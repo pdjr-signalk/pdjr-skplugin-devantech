@@ -4,48 +4,28 @@ Signal K interface to the
 [Devantech](https://www.devantech.co.uk)
 range of general-purpose relay modules.
 
-This project implements a plugin for the
-[Signal K Node server](https://github.com/SignalK/signalk-server-node).
+## Description 
 
-The
-[Signal K data model](http://signalk.org/specification/1.0.0/doc/data_model.html)
-and
-[Alarm, alert and notification handling](http://signalk.org/specification/1.0.0/doc/notifications.html)
-sections of the Signal K documentation may provide helpful orientation.
+__pdjr-skplugin-devantech__ implements a control interface for
+multi-channel relay devices manufactured by the UK company Devantech
+and includes support for devices that are operated over USB, WiFi
+and wired Ethernet.
 
-__pdjr-skplugin-devantech__ implements a control interface for multi-channel
-relay devices manufactured by the UK company Devantech and includes
-support for devices that are operated over USB, WiFi and wired
-ethernet.
-
-The plugin operates by intercepting Signal K put requests addressed to
+The plugin operates by handling Signal K put requests addressed to
 switch bank paths under its control.
 Valid requests are translated into relay module operating commands
-which are sent to the appropriate connected device.
+which are sent to the associated device.
 
 Devantech Ltd kindly supported the development of this plugin by making
 some of its relay devices available to the author for evaluation and
 testing.
 
-## System requirements
-
-__pdjr-skplugin-devantech__ has no special installation requirements.
+## Configuration
 
 If you intend using a Devantech relay device from the ETH or WIFI
 ranges then you must configure the device on your network before
 attempting to use it with this plugin.
 
-## Installation
-
-Download and install __pdjr-skplugin-devantech__ using the _Appstore_ link in
-your Signal K Node server console.
-
-The plugin can also be obtained from the
-[project homepage](https://github.com/preeve9534/pdjr-skplugin-devantech)
-and installed using
-[these instructions](https://github.com/SignalK/signalk-server-node/blob/master/SERVERPLUGINS.md).
-
-## Using the plugin
 
 __pdjr-skplugin-devantech__ operates autonomously but must be configured
 before use.
@@ -54,20 +34,13 @@ If you are using a relay module from Devantech, then most likely the
 only configuration required will be to define the modules connected to
 your system.
 
-The configuration includes the following properties.
+The plugin configuration has the following properties.
 
-__Switch path template__ [switchpath]\
-This required string property specifies a pattern for the Signal K
-keys that will be used by the plugin to represent its configured
-relay module channels.
-
-The default value of 'electrical.switches.bank.{m}.{c}' can probably
-be left untouched, but if you need to change it, then any path you
-supply must include the tokens '{m}' and '{c}' as placeholders which
-the plugin will interpolate with module-id and channel-id values for
-each connected module.
-
-__Module definitions__ [modules]\
+| Property   | Default                            | Description |
+| :--------- | :--------------------------------- | :---------- |
+| switchpath | 'electrical.switches.bank.{m}.{c}' | Required string property specifying a pattern for the Signal K
+keys that will be used by the plugin to represent relay module channels. The default value can probably be left untouched, but if you need to change it, then any path you supply must include the tokens '{m}' and '{c}' as placeholders which the plugin will interpolate with appropriate 'moduleid' and 'channelid' property values. |
+| modules    |
 This array property consists of a collection of *module definitions*
 each of which describes a particular relay device you wish the plugin
 to operate.
