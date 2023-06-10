@@ -6,18 +6,27 @@ range of general-purpose relay modules.
 
 ## Description 
 
-__pdjr-skplugin-devantech__ implements a control interface for
-multi-channel relay devices manufactured by the UK company Devantech
-and includes support for devices that are operated over USB, WiFi
-and wired Ethernet.
+This plugin implements a control interface for multi-channel relay
+devices manufactured by the UK company Devantech and includes support
+for devices that are operated over USB, WiFi and wired Ethernet.
 
-The plugin operates by handling Signal K put requests addressed to
-switch bank paths under its control.
-Valid requests are translated into relay module operating commands
-which are sent to the associated device.
+This plugin offers two distinct services.
+
+Firstly, it provides a mechanism for decorating Signal K's data
+hierarchy with user supplied meta-data.
+This allows relay devices to be documented in a meaningful way
+(perhaps including the device location, product code, serial-number,
+etc.) and relay channels to be described in terms of their function or
+application.
+
+Secondly, the plugin installs a PUT handler on each defined
+relay output channel, supporting state change operations within Signal
+K and allowing PUT operations on switch bank relay channels to be
+translated into relay module operating commands which are sent to the
+associated device.
 
 Devantech Ltd kindly supported the development of this plugin by making
-some of its relay devices available to the author for evaluation and
+one of its relay devices available to the author for evaluation and
 testing.
 
 ## Configuration
@@ -40,29 +49,15 @@ The plugin configuration has the following properties.
 | :--------- | :--------------------------------- | :---------- |
 | switchpath | 'electrical.switches.bank.{m}.{c}' | Required string property specifying a pattern for the Signal K
 keys that will be used by the plugin to represent relay module channels. The default value can probably be left untouched, but if you need to change it, then any path you supply must include the tokens '{m}' and '{c}' as placeholders which the plugin will interpolate with appropriate 'moduleid' and 'channelid' property values. |
-| modules    |
-This array property consists of a collection of *module definitions*
-each of which describes a particular relay device you wish the plugin
-to operate.
+| modules    | []                                 | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
 
-Each module definition has the following properties.
+Each 'module' object has the following properties.
 
-__Module identifier__ [id]\
-This required string property must supply a unique identifier for the
-module being defined.
-This value will be used as part of the Signal K path used to identify
-each relay channel (by replacing the '{m}' token in the __switchpath__
-property discussed above) and will also be used in status and error
-messaging.
-
-__Module description__ [description]\
-This optional string property can be used to supply some documentary
-text.
-
-__Module device type__ [deviceid]\
-This required string  property supplies an identifier which selects a
-specific device definition appropriate to the particular device that is
-being used to implement this module.
+| Property    | Default                            | Description |
+| :---------- | :--------------------------------- | :---------- |
+| id          | (none)                             | Required string property supplying a unique identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay channel (by replacing the '{m}' token in the 'switchpath' property discussed above) and will also be used in status and error messaging. |
+| description | (none)                             | Optional string property can be used to supply some documentary text. |
+| deviceid    | (none)                             | Required string  property specifying the device definition appropriate to the particular device that is being used to implement this module.
 See the [Device definitions](#device-definitions) section below for
 more detail.
 
