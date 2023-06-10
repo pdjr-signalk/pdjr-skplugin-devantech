@@ -7,22 +7,19 @@ range of general-purpose relay modules.
 ## Description 
 
 This plugin implements a control interface for multi-channel relay
-modules manufactured by the UK company Devantech and includes support
+modules manufactured by the UK company Devantech including support
 for devices that are operated over USB, WiFi and wired Ethernet.
 
-This plugin offers two distinct services.
+The plugin offers two distinct services.
 
 Firstly, it provides a mechanism for decorating Signal K's data
 hierarchy with user supplied meta-data that documents a connected
-module in a meaningful way, perhaps including the device location,
-product code, serial-number, etc. and relay channels to be described in terms of their function or
-application.
+module in a meaningful way and which allows relay channels to be
+described in terms of their function or application.
 
-Secondly, the plugin installs a PUT handler on each defined
-relay output channel, supporting state change operations within Signal
-K and allowing PUT operations on switch bank relay channels to be
-translated into relay module operating commands which are sent to the
-associated device.
+Secondly, the plugin installs a handler on each defined relay output
+channel that translates Signal K state changes into relay module
+operating commands.
 
 Devantech Ltd kindly supported the development of this plugin by making
 one of its relay devices available to the author for evaluation and
@@ -35,76 +32,61 @@ ranges then you must configure the device on your network before
 attempting to use it with this plugin.
 
 
-__pdjr-skplugin-devantech__ operates autonomously but must be configured
-before use.
-
-If you are using a relay device from Devantech, then most likely the
-only configuration required will be to define the modules connected to
-your system.
 
 The plugin configuration has the following properties.
 
 | Property   | Default                            | Description |
 | :--------- | :--------------------------------- | :---------- |
 | switchpath | 'electrical.switches.bank.{m}.{c}' | Required string property specifying a pattern for the Signal K
-keys that will be used by the plugin to represent relay module channels. The default value can probably be left untouched, but if you need to change it, then any path you supply must include the tokens '{m}' and '{c}' as placeholders which the plugin will interpolate with appropriate 'moduleid' and 'channelid' property values. |
+keys that will be used by the plugin to represent all relay module channels. |
 | modules    | []                                 | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
+| devices    | (see configuration file)           | Required array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes definitions for most devices currently in production. |
+
+If you are using a relay device from Devantech, then most likely the
+only configuration required will be to define the modules connected to
+your system.
 
 Each 'module' object has the following properties.
 
-| Property    | Default                            | Description |
-| :---------- | :--------------------------------- | :---------- |
-| id          | (none)                             | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay channel (by replacing the '{m}' token in the 'switchpath' property discussed above) and will also be used in status and error messaging. |
-| description | (none)                             | Optional string property can be used to supply some documentary text. |
-| deviceid    | (none)                             | Required string property specifying the device definition appropriate to the particular device that is being used to implement this module.
-See the [Device definitions](#device-definitions) section below for
-more detail.
+| Property      | Default | Description |
+| :------------ | :------ | :---------- |
+| id            | (none)  | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay channel (by replacing the '{m}' token in the 'switchpath' property discussed above) and will also be used in status and error messaging. |
+| description   | (none)  | Optional string property can be used to supply some documentary text about the module. |
+| deviceid      | (none)  | Required string property specifying the type of physical device to which this module definition relates. The value supplied here must be one of the 'deviceis's defined in the 'devices' section (see below). |
+| connectstring | (none)  | Required string property supplying a connection string that tells the
+plugin how to connect to the physical device implementing the module. |
+| channels      | []      | Array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
 
-__Module connection string__ [devicecstring]\
-This required string value supplies a connection string that tells the
-plugin how to connect to the physical device implementing this module.
+There are two styles of 'connectstring' property value: one describes a
+USB connection and the other an ethernet connection (supporting both
+wired and wireless devices).
 
-There are two styles of value: one describes a USB connection and the
-other an ethernet connection (supporting both wired and wireless
-devices).
+A USB connection string has the form 'usb:*device-path*' where
+*device-path* specifies the operating system serial device to which the
+associated physical device is connected.
+A typical value for a USB 'devicecstring' might be
+'usb:/dev/ttyACM0'.
 
-A USB connection string has the form '__usb:__*device-path*' where
-*device-path* specifies the serial device representing the physical
-port to which the associated device is connected.
-A typical value for a USB __devicecstring__ might be 'usb:/dev/ttyACM0'.
-
-An ethernet connection string has the form   '__eth:__[*password*__@__]*address*__:__*port*'
-where *address* is the IP address or hostname assigned to the associated
-device, *port* is the port number on which it provides service and
-*password* is the optional password required to operate the device.
-A typical value for an ethernet __devicecstring__ might be 'eth:letmein@192.168.0.20:14555'.
+An ethernet connection string has the form   'eth:[*password*@]*address*:*port*'
+where *address* is the IP address or hostname assigned to the
+associated device  and *port* is the port number on which the device
+provides service.
+*password* is an optional password required to operate the device.
+A typical value for an ethernet 'devicecstring' might be
+'eth:letmein@192.168.0.20:14555'.
 The values you should use when constructing this string are defined
 when you configure a Devantech ETH or WIFI relay device for first use:
-consult your user guide for more information. 
+consult your user Devantech user guide for more information.
 
-__Module channels__ [channels]\
-This array property introduces a collection of *channel definitions* each
-of which describes one of the module's a relay bank channels using the
-following properties.
+Each *channel* object in the *channels* array has the following
+properties.
 
-__Channel index__ [index]
-This number property defines the relay module channel to which the channel
-definition relates, supplying the value that Signal K will use to identify
-the associated relay.
-This value is used by the plugin to overwrite the '{c}' token in the
-__switchpath__ property discussed earlier and is also used in status and
-error reporting.
-
-__Channel address__ [address]\
-This optional number property defines the physical channel on the
-remote device with which this channel is associated.
-If this property is omitted, then the plugin will use the value of the
-__index__ property as the channel address.
- 
-__Channel description__ [description]\
-This optional string property supplies some narrative that is used to
-decorate the associated Signal K key's meta property with information
-that can be picked up by other Signal K processes.
+| Property      | Default                            | Description |
+| :------------ | :--------------------------------- | :---------- |
+| index         | (none)                             | Required number property specifying the Signal K index of the module channel being defined (Signal K convention starts channel numbering at 1). This value is used by the plugin to overwrite the '{c}' token in the 'switchpath' property discussed earlier and is also used in status and error reporting. |
+| address       | (none)                             | Optional number property specifying the address of the physical channel on the remote device with which this channel is associated. If this property is omitted, then the plugin will use the value of the
+'index' property as the channel address. Beware that channel addresses on Devantech devices may start at 0. |
+| description   | (none)                              | Optional string property supplying some text for the meta data 'description' property that will be associated with the channel in Signal K. | 
 
 __Device definitions__ [devices]\
 This array property defines an array of *device definitions*, each of
@@ -204,7 +186,10 @@ so as to obtain a state value for a channel.
 If no value is supplied then the plugin will compute a mask value from
 the channel [address] using the formula (1 << (*address* - 1)).
 
-## Supported relay modules
+## Operation
+
+The plugin will start immediately it is installed but must be
+configured before use.
 
 __pdjr-skplugin-devantech__ supports relay modules manufactured by:
 
