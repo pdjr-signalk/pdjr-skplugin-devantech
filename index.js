@@ -69,29 +69,15 @@ module.exports = function(app) {
  
       plugin.options.modules.forEach(module => {
         module.channels.forEach(c => {
-          delta.addM.push({
-                key: plugin.options.switchpath.replace('{m}', module.id).replace('{c}', c.index) + ".state",
-                description: "Relay state (0=OFF, 1=ON)",
-                displayName: c.description,
-                longName: c.description + " (bank " + module.id + ", channel " + c.index + ")",
-                shortName: "[" + module.id + "," + c.index + "]",
-                type: c.type
-              });
-            });
+          delta.addMeta(plugin.options.switchpath.replace('{m}', module.id).replace('{c}', c.index) + ".state", {
+            description: "Relay state (0=OFF, 1=ON)",
+            displayName: c.description,
+            shortName: "[" + module.id + "," + c.index + "]",
+            longName: c.description + "[" + module.id + "," + c.index + "]",
+            type: c.type
           });
-          if (metadata.length) {
-            var client = new net.Socket();
-            client.connect(options.metainjectorfifo);
-            client.on('connect', () => {
-              log.N("sending %d metadata keys to injector service at '%s'", metadata.length, options.metainjectorfifo);
-              client.write(JSON.stringify(metadata));
-              client.end();
-            });
-          }
-        } else {
-          log.E("meta injector FIFO (%s) does not exist", options.metainjectorfifo);
-        }
-      }
+        });
+      });
 
       /****************************************************************
        * Iterate over each module, connecting it to its relay module
