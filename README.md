@@ -7,16 +7,15 @@ range of general-purpose relay modules.
 ## Description 
 
 This plugin implements a control interface for multi-channel relay
-devices manufactured by the UK company Devantech and includes support
+modules manufactured by the UK company Devantech and includes support
 for devices that are operated over USB, WiFi and wired Ethernet.
 
 This plugin offers two distinct services.
 
 Firstly, it provides a mechanism for decorating Signal K's data
-hierarchy with user supplied meta-data.
-This allows relay devices to be documented in a meaningful way
-(perhaps including the device location, product code, serial-number,
-etc.) and relay channels to be described in terms of their function or
+hierarchy with user supplied meta-data that documents a connected
+module in a meaningful way, perhaps including the device location,
+product code, serial-number, etc. and relay channels to be described in terms of their function or
 application.
 
 Secondly, the plugin installs a PUT handler on each defined
@@ -31,7 +30,7 @@ testing.
 
 ## Configuration
 
-If you intend using a Devantech relay device from the ETH or WIFI
+If you intend using a Devantech relay module from the ETH or WIFI
 ranges then you must configure the device on your network before
 attempting to use it with this plugin.
 
@@ -39,7 +38,7 @@ attempting to use it with this plugin.
 __pdjr-skplugin-devantech__ operates autonomously but must be configured
 before use.
 
-If you are using a relay module from Devantech, then most likely the
+If you are using a relay device from Devantech, then most likely the
 only configuration required will be to define the modules connected to
 your system.
 
@@ -55,9 +54,9 @@ Each 'module' object has the following properties.
 
 | Property    | Default                            | Description |
 | :---------- | :--------------------------------- | :---------- |
-| id          | (none)                             | Required string property supplying a unique identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay channel (by replacing the '{m}' token in the 'switchpath' property discussed above) and will also be used in status and error messaging. |
+| id          | (none)                             | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay channel (by replacing the '{m}' token in the 'switchpath' property discussed above) and will also be used in status and error messaging. |
 | description | (none)                             | Optional string property can be used to supply some documentary text. |
-| deviceid    | (none)                             | Required string  property specifying the device definition appropriate to the particular device that is being used to implement this module.
+| deviceid    | (none)                             | Required string property specifying the device definition appropriate to the particular device that is being used to implement this module.
 See the [Device definitions](#device-definitions) section below for
 more detail.
 
