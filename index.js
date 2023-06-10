@@ -16,13 +16,15 @@
 
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 const Log = require("./lib/signalk-liblog/Log.js");
-const Schema = require("./lib/signalk-libschema/Schema.js");
 const SerialPort = require('./node_modules/serialport');
 const ByteLength = require('./node_modules/@serialport/parser-byte-length')
 const net = require('net');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
+const PLUGIN_ID = "devantech";
+const PLUGIN_NAME = "pdjr-skplugin-devantech";
+const PLUGIN_DESCRIPTION = "Signal K interface to the Devantech range of general-purpose relay modules";
 const PLUGIN_SCHEMA_FILE = __dirname + "/schema.json";
 const PLUGIN_UISCHEMA_FILE = __dirname + "/uischema.json";
 
@@ -30,25 +32,21 @@ module.exports = function(app) {
   var plugin = {};
   var unsubscribes = [];
 
-  plugin.id = "pdjr-skplugin-devantech";
-  plugin.name = "Devantech relay interface";
-  plugin.description = "Signal K interface to the Devantech range of general-purpose relay modules";
+  plugin.id = PLUGIN_ID;
+  plugin.name = PLUGIN_NAME;
+  plugin.description = PLUGIN_DESCRIPTION;
+  plugin.schema = {};
+  plugin.uiSchema = {};
   plugin.options = null;
 
+  const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
 
-  plugin.schema = function() {
-    var schema = Schema.createSchema(PLUGIN_SCHEMA_FILE);
-    return(schema.getSchema());
-  };
-
-  plugin.uiSchema = function() {
-    var schema = Schema.createSchema(PLUGIN_UISCHEMA_FILE);
-    return(schema.getSchema());
-  }
-
   plugin.start = function(options) {
-    plugin.options = options;
+    if (Object.keys(options).length == 0) {
+      options = plugin.schema.default;
+      log.W("using default configuration");
+    }
 
     /******************************************************************
      * Filter the module definitions in <options.modules>, eliminating
@@ -57,24 +55,21 @@ module.exports = function(app) {
      */
 
     plugin.options.modules = plugin.options.modules.reduce((a,m)  => {
-      try { a.push(validateModule(m, plugin.options)); } catch(e) { log.E(e); }
+      try { a.push(validateModule(m, plugin.options.devices)); } catch(e) { log.E(e); }
       return(a);
     }, []);
 
     /******************************************************************
-     * So now we have a, possibly empty, list of valid modules.
+     * So now we have a, possibly empty, list of prepared, validated,
+     * modules.
      */
 
     if (plugin.options.modules.length) {
-      log.N("connecting to %s", options.modules.map(m => m.id).join(", "));
-
+      log.N("started: loading meta data for %s", options.modules.map(module => module.id).join(", "));
  
-      if (options.metainjectorfifo) {
-        if (fs.existsSync(options.metainjectorfifo)) {
-          var metadata = [];
-          plugin.options.modules.forEach(module => {
-            module.channels.forEach(c => {
-              metadata.push({
+      plugin.options.modules.forEach(module => {
+        module.channels.forEach(c => {
+          delta.addM.push({
                 key: plugin.options.switchpath.replace('{m}', module.id).replace('{c}', c.index) + ".state",
                 description: "Relay state (0=OFF, 1=ON)",
                 displayName: c.description,
@@ -178,7 +173,53 @@ module.exports = function(app) {
    * - offcommand property
    * - statusmask property
    */ 
+  function validateModule(module, devices) {
+    var device;
 
+    if (module.deviceid) {
+      if (device = options.devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
+        module.size = device.size;
+        try {
+          module.cobject = parseConnectionString(module.cstring);
+          if (protocol = device.protocols.reduce((a,p) => ((module.cobject.protocol == p.id)?p:a), null)) {
+            module.statuscommand = protocol.statuscommand;
+            module.statuslength = (protocol.statuslength === undefined)?1:protocol.statuslength;
+            module.authenticationtoken = protocol.authenticationtoken;
+            // If the device channels array contains only one channel
+            // definition with address 0, then the operating command
+            // is parameterised.
+            if ((protocol.channels.length == 1) && (protocol.channels[0].address == 0)) {
+              for (var i = 0; i <= device.size; i++) {
+                protocol.channels.push({ "oncommand": protocol.channels[0].oncommand, "offcommand": protocol.channels[0].offcommand, "address": i });
+              }
+            }
+            module.channels.forEach(channel => {
+              deviceChannel = protocol.channels.reduce((a,dc) => (((channel.address?channel.address:channel.index) == dc.address)?dc:a), null);
+              if (deviceChannel) {
+                channel.oncommand = deviceChannel.oncommand;
+                channel.offcommand = deviceChannel.offcommand;
+                channel.statusmask = (deviceChannel.statusmask !== undefined)?deviceChannel.statusmask:(1 << (deviceChannel.address - 1));
+              } else {
+                throw new Error(sprintf("module '%s' has an invalid definition for channel %d", module.id, channel.index));
+              }        
+            });
+          } else {
+            throw new Error(sprintf("module %s has an invalid cstring (protocol not supported)", module.id));
+          }
+        } catch (e) {
+          throw new Error(sprintf("module '%s' had an invalid cstring", moduleid));
+        }
+      } else {
+        throw new Error(sprintf("module '%s' has an invalid deviceid", module.id));
+      }
+    } else {
+      throw new Error(sprintf("module '%s' has no deviceid property", module.id));
+    }
+    return(module);
+  }
+
+
+  
   function validateModule(module, options) {
     var device, protocol, deviceChannel;
     if (module.deviceid) {
