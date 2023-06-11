@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Signal K interface to the Devantech range of general-purpose relay modules.",
   "main": "index.js",
+  "signalk-plugin-enabled-by-default": true,
   "scripts": {
     "test": "echo \"Error: no test specified\""
   },
@@ -12,10 +13,7 @@
   },
   "keywords": [
     "signalk-node-server-plugin",
-    "signalk",
-    "devantech",
-    "relay",
-    "plugin"
+    "signalk-category-utility"
   ],
   "author": "Paul Reeve <preeve@pdjr.eu>",
   "license": "Apache-2.0",
@@ -27,5 +25,8 @@
     "serialport": "^8.0.8",
     "sprintf-js": "^1.1.2",
     "uuid": "^8.3.1"
+  },
+  "directories": {
+    "lib": "lib"
   }
 }
