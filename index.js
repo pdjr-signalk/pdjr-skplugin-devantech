@@ -25,8 +25,185 @@ const { v4: uuidv4 } = require('uuid');
 const PLUGIN_ID = "devantech";
 const PLUGIN_NAME = "pdjr-skplugin-devantech";
 const PLUGIN_DESCRIPTION = "Signal K interface to the Devantech range of general-purpose relay modules";
-const PLUGIN_SCHEMA_FILE = __dirname + "/schema.json";
-const PLUGIN_UISCHEMA_FILE = __dirname + "/uischema.json";
+const PLUGIN_SCHEMA = {
+  "type": "object",
+  "properties": {
+    "modules" : {
+      "title": "Modules",
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": [ "id", "deviceid", "cstring", "channels" ],
+        "properties": {
+          "id": { "title": "Signal K module id", "type": "string" },
+          "description": { "title": "Module description", "type": "string" },
+          "deviceid": { "title": "Device id", "type": "string" },
+          "devicecstring": { "title": "Connection string", "type": "string" },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "title": "Channel index",
+                  "type": "number"
+                },
+                "address": {
+                  "title": "Address of associated relay on physical device",
+                  "type": "number"
+                },
+                "description": {
+                  "title": "Channel description",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "devices": {
+      "title": "Device definitions",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required" : [ "id", "size", "protocols" ],
+        "properties": {
+          "id": { "title": "Device identifier", "type": "string" },
+          "size": { "title": "Number of relay channels", "type": "number" },
+          "protocols": {
+            "title": "Protocols supported by this module",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "title": "Protocol id", "type": "string", "enum": [ "http", "https", "tcp", "usb" ] },
+                "statuscommand": { "title": "Status command", "type": "string" },
+                "statuslength": { "title": "Status result length in bytes", "type": "number", "default": 1 },
+                "channels" : {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "address": { "title": "Relay channel address/index", "type": "number" },
+                      "oncommand": { "title": "ON command", "type": "string" },
+                      "offcommand": { "title": "OFF command", "type": "string" },
+                      "statuscommand": { "title": "Status command", "type": "string" },
+                      "statusmask": { "title": "Mask to reveal channel state", "type": "number" }
+                    }
+                  }
+                }
+              }
+            }
+          } 
+        }
+      }
+    }
+  },
+  "default": {
+    "modules": [],
+    "devices": [
+      {
+        "id": "USB-RLY02-SN USB-RLY02 USB-RLY82 ",
+        "size": 2,
+        "protocols": [
+          {
+            "id": "usb",
+            "statuscommand": "[",
+            "statuslength": 1,
+            "channels": [
+              { "address": 1, "oncommand": "e", "offcommand": "o" },
+              { "address": 2, "oncommand": "f", "offcommand": "p" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "USB-RLY08B USB-RLY16 USB-RLY16L USB-OPTO-RLY88 USB-OPTO-RLY816",
+        "size": 8,
+        "protocols": [
+          {
+            "id": "usb",
+            "statuscommand": "[",
+            "statuslength": 1,
+            "channels": [
+              { "address": 1, "oncommand": "e", "offcommand": "o" },
+              { "address": 2, "oncommand": "f", "offcommand": "p" },
+              { "address": 3, "oncommand": "g", "offcommand": "q" },
+              { "address": 4, "oncommand": "h", "offcommand": "r" },
+              { "address": 5, "oncommand": "i", "offcommand": "s" },
+              { "address": 6, "oncommand": "j", "offcommand": "t" },
+              { "address": 7, "oncommand": "k", "offcommand": "u" },
+              { "address": 8, "oncommand": "l", "offcommand": "v" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ETH002 WIFI002",
+        "size": 2,
+        "protocols": [
+          {
+            "id": "tcp",
+            "statuscommand": "$",
+            "statuslength": 2,
+            "authenticationtoken": ",{p}",
+            "channels": [
+              { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ETH044 ETH484 WIFI484",
+        "size": 4,
+        "protocols": [
+          {
+            "id": "tcp",
+            "statuscommand": "$",
+            "statuslength": 2,
+            "authenticationtoken": ",{p}",
+            "channels": [
+              { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ETH008 WIFI008",
+        "size": 8,
+        "protocols": [
+          {
+            "id": "tcp",
+            "statuscommand": "$",
+            "statuslength": 2,
+            "authenticationtoken": ",{p}",
+            "channels": [
+              { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ETH8020 WIFI8020",
+        "size": 20,
+        "protocols": [
+          {
+            "id": "tcp",
+            "statuscommand": "$",
+            "statuslength": 3,
+            "authenticationtoken": ",{p}",
+            "channels": [
+              { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+const PLUGIN_UISCHEMA_FILE = {};
 
 const MODULE_ROOT = "electrical.switches.bank.";
 

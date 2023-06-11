@@ -4,11 +4,11 @@
   "description": "Signal K interface to the Devantech range of general-purpose relay modules.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\""
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/preeve9534/pdjr-skplugin-devantech.git"
+    "url": "git+https://github.com/pdjr-signalk/pdjr-skplugin-devantech.git"
   },
   "keywords": [
     "signalk-node-server-plugin",
@@ -20,11 +20,10 @@
   "author": "Paul Reeve <preeve@pdjr.eu>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/preeve9534/pdjr-skplugin-devantech/issues"
+    "url": "https://github.com/pdjr-signalk/pdjr-skplugin-devantech/issues"
   },
-  "homepage": "https://github.com/preeve9534/pdjr-skplugin-devantech#readme",
+  "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-devantech#readme",
   "dependencies": {
-    "baconjs": "^1.0.1",
     "serialport": "^8.0.8",
     "sprintf-js": "^1.1.2",
     "uuid": "^8.3.1"
