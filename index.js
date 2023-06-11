@@ -103,109 +103,110 @@ const PLUGIN_SCHEMA = {
   },
   "default": {
     "modules": [],
-    "devices": [
-      {
-        "id": "USB-RLY02-SN USB-RLY02 USB-RLY82 ",
-        "size": 2,
-        "protocols": [
-          {
-            "id": "usb",
-            "statuscommand": "[",
-            "statuslength": 1,
-            "channels": [
-              { "address": 1, "oncommand": "e", "offcommand": "o" },
-              { "address": 2, "oncommand": "f", "offcommand": "p" }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "USB-RLY08B USB-RLY16 USB-RLY16L USB-OPTO-RLY88 USB-OPTO-RLY816",
-        "size": 8,
-        "protocols": [
-          {
-            "id": "usb",
-            "statuscommand": "[",
-            "statuslength": 1,
-            "channels": [
-              { "address": 1, "oncommand": "e", "offcommand": "o" },
-              { "address": 2, "oncommand": "f", "offcommand": "p" },
-              { "address": 3, "oncommand": "g", "offcommand": "q" },
-              { "address": 4, "oncommand": "h", "offcommand": "r" },
-              { "address": 5, "oncommand": "i", "offcommand": "s" },
-              { "address": 6, "oncommand": "j", "offcommand": "t" },
-              { "address": 7, "oncommand": "k", "offcommand": "u" },
-              { "address": 8, "oncommand": "l", "offcommand": "v" }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "ETH002 WIFI002",
-        "size": 2,
-        "protocols": [
-          {
-            "id": "tcp",
-            "statuscommand": "$",
-            "statuslength": 2,
-            "authenticationtoken": ",{p}",
-            "channels": [
-              { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "ETH044 ETH484 WIFI484",
-        "size": 4,
-        "protocols": [
-          {
-            "id": "tcp",
-            "statuscommand": "$",
-            "statuslength": 2,
-            "authenticationtoken": ",{p}",
-            "channels": [
-              { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "ETH008 WIFI008",
-        "size": 8,
-        "protocols": [
-          {
-            "id": "tcp",
-            "statuscommand": "$",
-            "statuslength": 2,
-            "authenticationtoken": ",{p}",
-            "channels": [
-              { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "ETH8020 WIFI8020",
-        "size": 20,
-        "protocols": [
-          {
-            "id": "tcp",
-            "statuscommand": "$",
-            "statuslength": 3,
-            "authenticationtoken": ",{p}",
-            "channels": [
-              { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
-            ]
-          }
-        ]
-      }
-    ]
+    "devices": []
   }
 };
 const PLUGIN_UISCHEMA_FILE = {};
 
 const MODULE_ROOT = "electrical.switches.bank.";
+const DEFAULT_DEVICES = [
+  {
+    "id": "USB-RLY02-SN USB-RLY02 USB-RLY82 ",
+    "size": 2,
+    "protocols": [
+      {
+        "id": "usb",
+        "statuscommand": "[",
+        "statuslength": 1,
+        "channels": [
+          { "address": 1, "oncommand": "e", "offcommand": "o" },
+          { "address": 2, "oncommand": "f", "offcommand": "p" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "USB-RLY08B USB-RLY16 USB-RLY16L USB-OPTO-RLY88 USB-OPTO-RLY816",
+    "size": 8,
+    "protocols": [
+      {
+        "id": "usb",
+        "statuscommand": "[",
+        "statuslength": 1,
+        "channels": [
+          { "address": 1, "oncommand": "e", "offcommand": "o" },
+          { "address": 2, "oncommand": "f", "offcommand": "p" },
+          { "address": 3, "oncommand": "g", "offcommand": "q" },
+          { "address": 4, "oncommand": "h", "offcommand": "r" },
+          { "address": 5, "oncommand": "i", "offcommand": "s" },
+          { "address": 6, "oncommand": "j", "offcommand": "t" },
+          { "address": 7, "oncommand": "k", "offcommand": "u" },
+          { "address": 8, "oncommand": "l", "offcommand": "v" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ETH002 WIFI002",
+    "size": 2,
+    "protocols": [
+      {
+        "id": "tcp",
+        "statuscommand": "$",
+        "statuslength": 2,
+        "authenticationtoken": ",{p}",
+        "channels": [
+          { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ETH044 ETH484 WIFI484",
+    "size": 4,
+    "protocols": [
+      {
+        "id": "tcp",
+        "statuscommand": "$",
+        "statuslength": 2,
+        "authenticationtoken": ",{p}",
+        "channels": [
+          { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ETH008 WIFI008",
+    "size": 8,
+    "protocols": [
+      {
+        "id": "tcp",
+        "statuscommand": "$",
+        "statuslength": 2,
+        "authenticationtoken": ",{p}",
+        "channels": [
+          { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ETH8020 WIFI8020",
+    "size": 20,
+    "protocols": [
+      {
+        "id": "tcp",
+        "statuscommand": "$",
+        "statuslength": 3,
+        "authenticationtoken": ",{p}",
+        "channels": [
+          { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
+        ]
+      }
+    ]
+  }
+];
 
 module.exports = function(app) {
   var plugin = {};
@@ -214,7 +215,7 @@ module.exports = function(app) {
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
   plugin.description = PLUGIN_DESCRIPTION;
-  plugin.schema = {};
+  plugin.schema = PLUGIN_SCHEMA;
   plugin.uiSchema = {};
   plugin.options = null;
 
@@ -222,9 +223,12 @@ module.exports = function(app) {
   const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
 
   plugin.start = function(options) {
-    if (Object.keys(options).length == 0) {
-      options = plugin.schema.default;
-      log.W("using default configuration");
+    
+    app.debug(JSON.stringify(options));
+
+    if (!(options.devices)) {
+      options.devices = DEFAULT_DEVICES;
+      log.W("using default device configuration");
     }
 
     /******************************************************************
@@ -232,21 +236,26 @@ module.exports = function(app) {
      * those module definitions that do not select a valid device and
      * those which cannot be made usable by validateModule().
      */
+    app.debug(JSON.stringify(options));
 
-    plugin.options.modules = plugin.options.modules.reduce((a,m)  => {
-      try { a.push(validateModule(m, plugin.options.devices)); } catch(e) { log.E(e); }
-      return(a);
-    }, []);
+    options.modules = options.modules.map(module => {
+      try {
+        return(validateModule(module, options.devices));
+      } catch (e) {
+        app.debug("module validation failed (%s)", e.message);
+        return({});
+      }
+    }).filter(module => (module != {}));
 
     /******************************************************************
      * So now we have a, possibly empty, list of prepared, validated,
      * modules.
      */
 
-    if (plugin.options.modules.length) {
+    if (options.modules.length) {
 
-      log.N("started: saving meta data for %d module%s", modules.length, ((modules.length == 1)?"":"s")); 
-      plugin.options.modules.forEach(module => {
+      log.N("started: saving meta data for %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s")); 
+      options.modules.forEach(module => {
         delta.addMeta(MODULE_ROOT + module.id,
           {
             "description": module.description,
@@ -269,17 +278,17 @@ module.exports = function(app) {
        * to this common set of functions.
        */
 
-      log.N("started: operating %d module%s", modules.length, ((modules.length == 1)?"":"s"));
-      plugin.options.modules.forEach(module => {
+      log.N("started: operating %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s"));
+      options.modules.forEach(module => {
 
         connectModule(module, {
           onerror: (err) => {
-            app.debug("module %s: %s communication error (%s)", module.id, module.cobject.protocol, err);
+            log.E("module '%s': %s communication error (%s)", module.id, module.cobject.protocol, err);
           },
           onopen: (module) => { 
             // Once module is open, register an action handler for every channel path
             // and issue a status request command.
-            app.debug("module %s: port %s open", module.id, module.cobject.device); 
+            app.debug("module '%s': port %s open", module.id, module.cobject.device); 
             module.channels.forEach(ch => {
               var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
               app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
@@ -287,16 +296,16 @@ module.exports = function(app) {
             if (module.statuscommand) module.connection.stream.write(module.statuscommand);
           },
           ondata: (module, buffer) => {
-            app.debug("module %s: %s data received (%o)", module.id, module.cobject.protocol, buffer);
+            app.debug("module '%s': %s data received (%o)", module.id, module.cobject.protocol, buffer);
             (new Delta(app, plugin.id)).addValues(getStateUpdates(module, buffer, plugin.options.switchpath)).commit();
           },
           onclose: (module) => {
-            app.debug("module %s: %s port closed", module.id, module.cobject.protocol); 
+            log.E("module '%s': port %s closed", module.id, module.cobject.protocol); 
           }
         });
       });
     } else {
-      log.W("there are no usable module definitions.");
+      log.W("stopped: there are no usable module definitions.");
     }
   }
 
@@ -354,7 +363,7 @@ module.exports = function(app) {
     var device;
 
     if (module.deviceid) {
-      if (device = options.devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
+      if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
         module.size = device.size;
         try {
           module.cobject = parseConnectionString(module.cstring);
@@ -474,7 +483,7 @@ module.exports = function(app) {
         module.connection = { stream: false };
         module.connection.serialport = new SerialPort(module.cobject.device, { baudRate: 19200 }, (err) => {
           if (err) {
-            options.onerror(module);
+            options.onerror(err);
           }
         });
         module.connection.serialport.on('open', () => {
