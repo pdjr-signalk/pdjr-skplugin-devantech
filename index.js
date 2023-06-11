@@ -67,8 +67,8 @@ module.exports = function(app) {
      */
 
     if (plugin.options.modules.length) {
-      log.N("started: loading meta data for %s", options.modules.map(module => module.id).join(", "));
- 
+
+      log.N("started: saving meta data for %d module%s", modules.length, ((modules.length == 1)?"":"s")); 
       plugin.options.modules.forEach(module => {
         delta.addMeta(MODULE_ROOT + module.id,
           {
@@ -92,6 +92,7 @@ module.exports = function(app) {
        * to this common set of functions.
        */
 
+      log.N("started: operating %d module%s", modules.length, ((modules.length == 1)?"":"s"));
       plugin.options.modules.forEach(module => {
 
         connectModule(module, {
@@ -104,7 +105,7 @@ module.exports = function(app) {
             app.debug("module %s: port %s open", module.id, module.cobject.device); 
             module.channels.forEach(ch => {
               var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
-              app.registerPutHandler('vessels.self', path, actionHandler, plugin.id);
+              app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
             });
             if (module.statuscommand) module.connection.stream.write(module.statuscommand);
           },
@@ -132,18 +133,18 @@ module.exports = function(app) {
 
     if (moduleId = getModuleIdFromPath(path)) {
       if (channelIndex = getChannelIndexFromPath(path)) {
-        if (relaycommand = getCommand(moduleId, channelIndex, value)) {
-          module.connection.stream.write(relaycommand);
-          app.debug("transmitted operating command (%s) for module %s, channel %s", relaycommand, value.moduleid, value.channelid);
+        if (relayCommand = getCommand(moduleId, channelIndex, value)) {
+          module.connection.stream.write(relayCommand);
+          app.debug("transmitted operating command (%s) for module %s, channel %s", relayCommand, value.moduleId, value.channelIndex);
           if (module.statuscommand !== undefined) module.connection.stream.write(module.statuscommand);
         } else {
-          log.E("cannot recover operating command for module %s, channel %s", value.moduleid, value.channelid);
+          app.debug("cannot recover operating command for module %s, channel %s", value.moduleId, value.channelIndex);
         }
       } else {
-
+        app.debug("error recovering channel index from path %s", path);
       }
     } else {
-      
+      app.debug("error recovering module id from path %s", path);
     }
     return({ state: 'COMPLETED', statusCode: 200 });
   }
@@ -213,49 +214,6 @@ module.exports = function(app) {
       }
     } else {
       throw new Error(sprintf("module '%s' has no deviceid property", module.id));
-    }
-    return(module);
-  }
-
-
-  
-  function validateModule(module, options) {
-    var device, protocol, deviceChannel;
-    if (module.deviceid) {
-      if (device = options.devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
-        module.size = device.size;
-        if (module.cobject = parseConnectionString(module.devicecstring)) {
-          if (protocol = device.protocols.reduce((a,p) => ((module.cobject.protocol == p.id)?p:a), null)) {
-            module.statuscommand = protocol.statuscommand;
-            module.statuslength = (protocol.statuslength === undefined)?1:protocol.statuslength;
-            module.authenticationtoken = protocol.authenticationtoken;
-            if ((protocol.channels.length == 1) && (protocol.channels[0].address == 0)) {
-              for (var i = 0; i <= device.size; i++) {
-                var blob = { "oncommand": protocol.channels[0].oncommand, "offcommand": protocol.channels[0].offcommand, "address": i };
-                protocol.channels.push(blob);
-              }
-            }
-            module.channels.forEach(channel => {
-              deviceChannel = protocol.channels.reduce((a,dc) => (((channel.address?channel.address:channel.index) == dc.address)?dc:a), null);
-              if (deviceChannel) {
-                channel.oncommand = deviceChannel.oncommand;
-                channel.offcommand = deviceChannel.offcommand;
-                channel.statusmask = (deviceChannel.statusmask !== undefined)?deviceChannel.statusmask:(1 << (deviceChannel.address - 1));
-              } else {
-                throw("invalid channel definition (" + channel.index + ")");
-              }        
-            });
-          } else {
-            throw("protocol specified in connection string is not supported by specified device (" + module.cobject.protocol + ")");
-          }
-        } else {
-          throw("module connection string could not be parsed (" + module.devicecstring + ")");
-        }
-      } else {
-        throw("module device id does not specify a defined device (" + module.deviceid + ")");
-      }
-    } else {
-      throw("module definition must include a device id");
     }
     return(module);
   
