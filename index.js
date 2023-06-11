@@ -338,10 +338,9 @@ module.exports = function(app) {
    * @return - the required command string or null if command recovery
    * fails.
    */
-
-  function getCommand(module, channelid, state) {
+  function getCommand(module, channelId, state) {
     var retval = null;
-    var channel = module.channels.reduce((a,c) => ((c.index == channelid)?c:a), null);
+    var channel = module.channels.reduce((a,c) => ((c.index == channelId)?c:a), null);
     if (channel) {
       retval = (state)?channel.oncommand:channel.offcommand;
       if (retval) {
