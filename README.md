@@ -31,20 +31,16 @@ If you intend using a Devantech relay module from the ETH or WIFI
 ranges then you must configure the device on your network before
 attempting to use it with this plugin.
 
-
-
 The plugin configuration has the following properties.
 
 | Property   | Default                            | Description |
 | :--------- | :--------------------------------- | :---------- |
-| switchpath | 'electrical.switches.bank.{m}.{c}' | Required string property specifying a pattern for the Signal K
-keys that will be used by the plugin to represent all relay module channels. |
 | modules    | []                                 | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
-| devices    | (see configuration file)           | Required array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes definitions for most devices currently in production. |
+| devices    | (see configuration file)           | Required array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes definitions for most Devantech devices currently in production. |
 
 If you are using a relay device from Devantech, then most likely the
-only configuration required will be to define the modules connected to
-your system.
+only configuration required will be to add 'module' definitions for the
+devices connected to your system.
 
 Each 'module' object has the following properties.
 

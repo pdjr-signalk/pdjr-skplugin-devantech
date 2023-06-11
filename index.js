@@ -28,6 +28,8 @@ const PLUGIN_DESCRIPTION = "Signal K interface to the Devantech range of general
 const PLUGIN_SCHEMA_FILE = __dirname + "/schema.json";
 const PLUGIN_UISCHEMA_FILE = __dirname + "/uischema.json";
 
+const MODULE_ROOT = "electrical.switches.bank.";
+
 module.exports = function(app) {
   var plugin = {};
   var unsubscribes = [];
@@ -68,13 +70,18 @@ module.exports = function(app) {
       log.N("started: loading meta data for %s", options.modules.map(module => module.id).join(", "));
  
       plugin.options.modules.forEach(module => {
+        delta.addMeta(MODULE_ROOT + module.id,
+          {
+            "description": module.description,
+            "displayName": "Relay module " + module.id
+          });
         module.channels.forEach(c => {
-          delta.addMeta(plugin.options.switchpath.replace('{m}', module.id).replace('{c}', c.index) + ".state", {
-            description: "Relay state (0=OFF, 1=ON)",
-            displayName: c.description,
-            shortName: "[" + module.id + "," + c.index + "]",
-            longName: c.description + "[" + module.id + "," + c.index + "]",
-            type: c.type
+          delta.addMeta(MODULE_ROOT +  module.id + "." + c.index + ".state", {
+            "description": "Relay state (0=OFF, 1=ON)",
+            "displayName": c.description,
+            "shortName": "[" + module.id + "," + c.index + "]",
+            "longName": c.description + "[" + module.id + "," + c.index + "]",
+            "type": "relay"
           });
         });
       });
@@ -96,10 +103,10 @@ module.exports = function(app) {
             // and issue a status request command.
             app.debug("module %s: port %s open", module.id, module.cobject.device); 
             module.channels.forEach(ch => {
-              var path = plugin.options.switchpath.replace('{m}', module.id).replace('{c}', ch.index) + ".state";
+              var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
               app.registerPutHandler('vessels.self', path, actionHandler, plugin.id);
             });
-            if (module.statuscommand !== undefined) module.connection.stream.write(module.statuscommand);
+            if (module.statuscommand) module.connection.stream.write(module.statuscommand);
           },
           ondata: (module, buffer) => {
             app.debug("module %s: %s data received (%o)", module.id, module.cobject.protocol, buffer);
@@ -120,29 +127,35 @@ module.exports = function(app) {
     unsubscribes = [];
   }
 
-  function actionHandler(context, path, value, callback) {
-    var module = getModuleFromPath(path);
-    if (module) {
-      var relaycommand = getCommand(getModuleFromPath(path), getChannelIdFromPath(path), value);
-      if (relaycommand) {
-        module.connection.stream.write(relaycommand);
-        app.debug("transmitted operating command (%s) for module %s, channel %s", relaycommand, value.moduleid, value.channelid);
-        if (module.statuscommand !== undefined) module.connection.stream.write(module.statuscommand);
+  function putHandler(context, path, value, callback) {
+    var moduleId, channelIndex, relayCommand;
+
+    if (moduleId = getModuleIdFromPath(path)) {
+      if (channelIndex = getChannelIndexFromPath(path)) {
+        if (relaycommand = getCommand(moduleId, channelIndex, value)) {
+          module.connection.stream.write(relaycommand);
+          app.debug("transmitted operating command (%s) for module %s, channel %s", relaycommand, value.moduleid, value.channelid);
+          if (module.statuscommand !== undefined) module.connection.stream.write(module.statuscommand);
+        } else {
+          log.E("cannot recover operating command for module %s, channel %s", value.moduleid, value.channelid);
+        }
       } else {
-        log.E("cannot recover operating command for module %s, channel %s", value.moduleid, value.channelid);
+
       }
+    } else {
+      
     }
     return({ state: 'COMPLETED', statusCode: 200 });
   }
 
-  function getModuleFromPath(path) {
-    var parts = path.split('.') || [];
-    return(plugin.options.modules.reduce((a,m) => ((m.id == parts[3])?m:a), null));
+  function getModuleIdFromPath(path) {
+    var parts = path.split('.');
+    return((parts.length >= 4)?parts[3]:null);
   }
 
-  function getChannelIdFromPath(path) {
-    var parts = path.split('.') || [];
-    return(parts[4]);
+  function getChannelIndexFromPath(path) {
+    var parts = path.split('.');
+    return((parts.length >= 5)?parts[4]:null);
   }
 
 
