@@ -223,34 +223,27 @@ module.exports = function(app) {
   const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
 
   plugin.start = function(options) {
-    
-    app.debug(JSON.stringify(options));
 
+    // If the user has not configured their own devices, then use the
+    // embedded defaults.
     if (!(options.devices)) {
       options.devices = DEFAULT_DEVICES;
       log.W("using default device configuration");
     }
 
-    /******************************************************************
-     * Filter the module definitions in <options.modules>, eliminating
-     * those module definitions that do not select a valid device and
-     * those which cannot be made usable by validateModule().
-     */
-    app.debug(JSON.stringify(options));
-
+    // Process each defined module, interpolating data from the
+    // specified device definition, then filter the result to eliminate
+    // any broken modules.
     options.modules = options.modules.map(module => {
       try {
         return(validateModule(module, options.devices));
       } catch (e) {
-        app.debug("module validation failed (%s)", e.message);
+        log.E("module validation failed for '%s' (%s)", module.id, e.message);
         return({});
       }
     }).filter(module => (module != {}));
 
-    /******************************************************************
-     * So now we have a, possibly empty, list of prepared, validated,
-     * modules.
-     */
+    // So now we have a list of prepared, valid, modules.
 
     if (options.modules.length) {
 
