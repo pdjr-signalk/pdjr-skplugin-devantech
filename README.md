@@ -34,28 +34,24 @@ attempting to use it with this plugin.
 The plugin configuration has the following properties.
 
 | Property   | Default                            | Description |
-| :--------- | :--------------------------------- | :---------- |
-| modules    | []                                 | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
-| devices    | (see configuration file)           | Required array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes definitions for most Devantech devices currently in production. |
-
-If you are using a relay device from Devantech, then most likely the
-only configuration required will be to add 'module' definitions for the
-devices connected to your system.
+| :--------- | :----- | :---------- |
+| modules    | []     | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
+| devices    | (none) | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes definitions for most Devantech devices currently in production, but additional devices can be specified here. |
 
 Each 'module' object has the following properties.
 
-| Property      | Default | Description |
-| :------------ | :------ | :---------- |
-| id            | (none)  | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay channel (by replacing the '{m}' token in the 'switchpath' property discussed above) and will also be used in status and error messaging. |
-| description   | (none)  | Optional string property can be used to supply some documentary text about the module. |
-| deviceid      | (none)  | Required string property specifying the type of physical device to which this module definition relates. The value supplied here must be one of the 'deviceis's defined in the 'devices' section (see below). |
-| connectstring | (none)  | Required string property supplying a connection string that tells the
+| Property    | Default | Description |
+| :---------- | :------ | :---------- |
+| id          | (none)  | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay switch channel. |
+| description | (none)  | Optional string property can be used to supply some documentary text about the module. |
+| deviceid    | (none)  | Required string property specifying the type of physical device to which this module definition relates. The value supplied here must be one of the 'deviceis's defined in the 'devices' section (see below). |
+| cstring     | (none)  | Required string property supplying a connection string that tells the
 plugin how to connect to the physical device implementing the module. |
-| channels      | []      | Array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
+| channels    | []      | Array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
 
-There are two styles of 'connectstring' property value: one describes a
-USB connection and the other an ethernet connection (supporting both
-wired and wireless devices).
+There are two styles of 'cstring' property value: one describes USB
+connection and the other an ethernet connection (supporting both wired
+and wireless devices).
 
 A USB connection string has the form 'usb:*device-path*' where
 *device-path* specifies the operating system serial device to which the
@@ -77,12 +73,12 @@ consult your user Devantech user guide for more information.
 Each *channel* object in the *channels* array has the following
 properties.
 
-| Property      | Default                            | Description |
-| :------------ | :--------------------------------- | :---------- |
-| index         | (none)                             | Required number property specifying the Signal K index of the module channel being defined (Signal K convention starts channel numbering at 1). This value is used by the plugin to overwrite the '{c}' token in the 'switchpath' property discussed earlier and is also used in status and error reporting. |
-| address       | (none)                             | Optional number property specifying the address of the physical channel on the remote device with which this channel is associated. If this property is omitted, then the plugin will use the value of the
+| Property    | Default | Description |
+| :---------- | ------- | :---------- |
+| index       | (none)  | Required number property specifying the Signal K index of the module channel being defined (Signal K convention starts channel numbering at 1).  This value will be used as part of the Signal K path used to identify each relay switch channel. |
+| address     | (none)  | Optional number property specifying the address of the physical channel on the remote device with which this channel is associated. If this property is omitted, then the plugin will use the value of the
 'index' property as the channel address. Beware that channel addresses on Devantech devices may start at 0. |
-| description   | (none)                              | Optional string property supplying some text for the meta data 'description' property that will be associated with the channel in Signal K. | 
+| description | (none)  | Optional string property supplying some text for the meta data 'description' property that will be associated with the channel in Signal K. |
 
 __Device definitions__ [devices]\
 This array property defines an array of *device definitions*, each of
@@ -203,11 +199,6 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 You can obtain a list of supported module ids by enabling the debug key
 and reviewing the Signal K log.
 
-## Debugging and logging
-
-The plugin understands the 'devantech' debug key.
-
 ## Author
 
-Paul Reeve <preeve@pdjr.eu>\
-October 2020
+Paul Reeve <*preeve _at_pdjr_dot_eu*>

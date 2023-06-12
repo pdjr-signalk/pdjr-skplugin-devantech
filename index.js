@@ -20,7 +20,6 @@ const SerialPort = require('./node_modules/serialport');
 const ByteLength = require('./node_modules/@serialport/parser-byte-length')
 const net = require('net');
 const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
 
 const PLUGIN_ID = "devantech";
 const PLUGIN_NAME = "pdjr-skplugin-devantech";
@@ -224,12 +223,9 @@ module.exports = function(app) {
 
   plugin.start = function(options) {
 
-    // If the user has not configured their own devices, then use the
-    // embedded defaults.
-    if (!(options.devices)) {
-      options.devices = DEFAULT_DEVICES;
-      log.W("using default device configuration");
-    }
+    // If the user has configured their own devices, then add them
+    // to the embedded defaults.
+    options.devices = (options.devices || []).concat(DEFAULT_DEVICES);
 
     // Process each defined module, interpolating data from the
     // specified device definition, then filter the result to eliminate
