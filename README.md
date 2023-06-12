@@ -26,8 +26,8 @@ hierarchy with user supplied meta-data that documents a relay module
 in a meaningful way and which allows relay channels to be described in
 terms of their function or application.
 
-Secondly, the plugin installs a handler on each defined relay output
-channel that translates Signal K state changes into relay module
+Secondly, the plugin installs a handler on each defined Signal K relay
+output channel that translates state change requests into relay module
 operating commands.
 
 Devantech Ltd kindly supported the development of this plugin by making
@@ -89,10 +89,14 @@ properties.
 'index' property as the channel address. Beware that channel addresses on Devantech devices may start at 0. |
 | description | (none)  | Optional string property supplying some text for the meta data 'description' property that will be associated with the channel in Signal K. |
 
-__Device definitions__ [devices]\
-This array property defines an array of *device definitions*, each of
-which describes the physical and interfacing characteristics of a
-supported relay device.
+### Device definitions
+
+A 'devices' array property can be included at the top-level of the
+plugin configuration to add relay device definitions to those which are
+pre-defined in the plugin.
+Each item in the 'devices' array is a *device* definition object which
+describes the physical and interfacing characteristics of a supported
+relay device.
 
 A device must be defined here before it can be configured for use in a
 module definition.
