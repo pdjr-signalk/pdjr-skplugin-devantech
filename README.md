@@ -4,6 +4,15 @@ Signal K interface to the
 [Devantech](https://www.devantech.co.uk)
 range of general-purpose relay modules.
 
+## Background
+
+I have a number of remote domestic switching requirements on my boat
+that don't warrant the expense of NMEA 2000 hardware and/or are not
+easily serviced by the installed NMEA bus.
+
+Using an alternate bus for switching makes some sense and this plugin
+explores that possibility.
+
 ## Description 
 
 This plugin implements a control interface for multi-channel relay
@@ -13,9 +22,9 @@ for devices that are operated over USB, WiFi and wired Ethernet.
 The plugin offers two distinct services.
 
 Firstly, it provides a mechanism for decorating Signal K's data
-hierarchy with user supplied meta-data that documents a connected
-module in a meaningful way and which allows relay channels to be
-described in terms of their function or application.
+hierarchy with user supplied meta-data that documents a relay module
+in a meaningful way and which allows relay channels to be described in
+terms of their function or application.
 
 Secondly, the plugin installs a handler on each defined relay output
 channel that translates Signal K state changes into relay module
