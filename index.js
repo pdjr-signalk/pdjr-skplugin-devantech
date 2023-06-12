@@ -110,7 +110,7 @@ const PLUGIN_UISCHEMA_FILE = {};
 const MODULE_ROOT = "electrical.switches.bank.";
 const DEFAULT_DEVICES = [
   {
-    "id": "USB-RLY02-SN USB-RLY02 USB-RLY82 ",
+    "id": "USB-RLY02-SN USB-RLY02 USB-RLY82",
     "size": 2,
     "protocols": [
       {
@@ -226,6 +226,7 @@ module.exports = function(app) {
     // If the user has configured their own devices, then add them
     // to the embedded defaults.
     options.devices = (options.devices || []).concat(DEFAULT_DEVICES);
+    log.N("supported devices: %s", options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", "));
 
     // Process each defined module, interpolating data from the
     // specified device definition, then filter the result to eliminate
