@@ -397,7 +397,7 @@ module.exports = function(app) {
             throw new Error("module has an invalid cstring (protocol not supported)");
           }
         } catch (e) {
-          throw new Error("module has an invalid cstring");
+          throw new Error("module has an invalid cstring (" + module.cstring + ")");
         }
       } else {
         throw new Error(sprintf("module '%s' has an invalid deviceid", module.id));
@@ -409,24 +409,15 @@ module.exports = function(app) {
   
     function parseConnectionString(cstring) {
       var retval = null;
-      var matches, username = undefined, password = undefined, protocol = undefined, device = undefined, port = undefined;
-      
-      switch (cstring.substr(0,4)) {
-        case "eth:":
-          if (cstring.substr(4).includes('@')) {
-            
-            ;
-          } else {
-            [ device, port ] = cstring.substr(4).split(':');
-            retval = { "protocol": "eth", "host": device, "port": port, "password": "" };
-          }
-          break;
-        case "usb:":
-          retval = { "protocol": "usb", "device": cstring.substr(4) };
-          break;
-        default:
-          throw new Error("invalid protocol");
-          break;
+
+      if (matches = match(/^eth\:(.*)\:(.*)@(.*)\:(.*)$/)) {
+        retval = { "protocol": "eth", "username": matches[1], "password": matches[2], "host": matches[3], "port": matches[4] };
+      } else if (matches = match(/^eth\:(.*)@(.*)\:(.*)$/)) {
+        retval = { "protocol": "eth", "password": matches[2], "host": matches[3], "port": matches[4] };
+      } else if (matches = match(/^eth\:(.*)\:(.*)$/)) {
+        retval = { "protocol": "eth", "host": matches[3], "port": matches[4] };
+      } else if (matches = match(/^usb\:(.*)$/)) {
+        retval = { "protocol": "usb", "device": matches[1] };
       }
       return(retval);
     }
