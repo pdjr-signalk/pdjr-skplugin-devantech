@@ -204,6 +204,20 @@ const DEFAULT_DEVICES = [
         ]
       }
     ]
+  },
+  {
+    "id": "DS2824",
+    "size": 24,
+    "protocols": [
+      {
+        "id": "tcp",
+        "statuscommand": "ST",
+        "statuslength": 24,
+        "channels": [
+          { "address": 0, "oncommand": ":SR {c} ON", "offcommand": ":SR {c} OFF" }
+        ]
+      }
+    ]
   }
 ];
 
@@ -376,14 +390,14 @@ module.exports = function(app) {
                 channel.offcommand = deviceChannel.offcommand;
                 channel.statusmask = (deviceChannel.statusmask !== undefined)?deviceChannel.statusmask:(1 << (deviceChannel.address - 1));
               } else {
-                throw new Error(sprintf("module '%s' has an invalid definition for channel %d", module.id, channel.index));
+                throw new Error("module has an invalid definition for channel");
               }        
             });
           } else {
-            throw new Error(sprintf("module %s has an invalid cstring (protocol not supported)", module.id));
+            throw new Error("module has an invalid cstring (protocol not supported)");
           }
         } catch (e) {
-          throw new Error(sprintf("module '%s' had an invalid cstring", moduleid));
+          throw new Error("module has an invalid cstring");
         }
       } else {
         throw new Error(sprintf("module '%s' has an invalid deviceid", module.id));
@@ -397,16 +411,21 @@ module.exports = function(app) {
       var retval = null;
       var matches, username = undefined, password = undefined, protocol = undefined, device = undefined, port = undefined;
       
-      [ protocol, cstring, port ] = cstring.split(':').map(v => v.trim());
-      switch (protocol) {
-        case "tcp":
-          if (cstring.includes('@')) [ password, cstring ] = cstring.split('@', 2).map(v => v.trim());
-          retval = { "protocol": "tcp", "host": cstring, "port": port, "password": password };
+      switch (cstring.substr(0,4)) {
+        case "eth:":
+          if (cstring.substr(4).includes('@')) {
+            
+            ;
+          } else {
+            [ device, port ] = cstring.substr(4).split(':');
+            retval = { "protocol": "eth", "host": device, "port": port, "password": "" };
+          }
           break;
-        case "usb":
-          retval = { "protocol": "usb", "device": cstring };
+        case "usb:":
+          retval = { "protocol": "usb", "device": cstring.substr(4) };
           break;
         default:
+          throw new Error("invalid protocol");
           break;
       }
       return(retval);
@@ -449,7 +468,7 @@ module.exports = function(app) {
 
   function connectModule(module, options) {
     switch (module.cobject.protocol) {
-      case 'tcp':
+      case 'eth':
         module.connection = { stream: false };
         module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, () => {
           if (options && options.onupdate) options.onupdate("TCP socket opened for module " + module.id);

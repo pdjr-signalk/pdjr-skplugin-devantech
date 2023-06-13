@@ -10,10 +10,23 @@ I have a number of remote domestic switching requirements on my boat
 that don't warrant the expense of NMEA 2000 hardware and/or are not
 easily serviced by the installed NMEA bus.
 
-Using an alternate bus for switching makes some sense and this plugin
-explores that possibility.
+It happened that I had to hand a couple of unused multi-channel USB
+relay devices from the UK company Devantech (see below) who kindly
+supported the development of this plugin by making one of its Ethernet
+relay devices available for evaluation and testing.
 
-## Description 
+Devantech Ltd\
+Maurice Gaymer Road\
+Attleborough\
+NR17 2QZ\
+England
+
+Telephone: +44 (0)1953 457387\
+Fax: +44 (0)1953 459793
+
+Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
+
+## Description
 
 This plugin implements a control interface for multi-channel relay
 modules manufactured by the UK company Devantech including support
@@ -29,10 +42,6 @@ terms of their function or application.
 Secondly, the plugin installs a handler on each defined Signal K relay
 output channel that translates state change requests into relay module
 operating commands.
-
-Devantech Ltd kindly supported the development of this plugin by making
-one of its relay devices available to the author for evaluation and
-testing.
 
 ## Configuration
 
@@ -157,22 +166,6 @@ with appropriate values before string transmission.
 
 The plugin will start immediately it is installed but must be
 configured before use.
-
-__pdjr-skplugin-devantech__ supports relay modules manufactured by:
-
-Devantech Ltd\
-Maurice Gaymer Road\
-Attleborough\
-NR17 2QZ\
-England
-
-Telephone: +44 (0)1953 457387\
-Fax: +44 (0)1953 459793
-
-Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
-
-You can obtain a list of supported module ids by enabling the debug key
-and reviewing the Signal K log.
 
 ## Author
 
