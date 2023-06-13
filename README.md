@@ -93,7 +93,7 @@ properties.
 
 A 'devices' array property can be included at the top-level of the
 plugin configuration to add relay device definitions to those which are
-pre-defined in the plugin.
+pre-defined in the plugin or to override an existing definition.
 Each item in the 'devices' array is a *device* definition object which
 describes the physical and interfacing characteristics of a supported
 relay device.
@@ -107,49 +107,24 @@ If you need to add an unsupported device, then read-on.
 
 Each device definition has the following properties.
 
-__Device ids__ [id]\
-This string property supplies a list of space-separated identifiers, one
-for each of the relay devices to which the definition applies.
-Typically these identifiers should be the model number assigned by the
-device manufacturer.
+| Property    | Default | Description |
+| :---------- | ------- | :---------- |
+| id          | (none)  | Required string property supplying a space-separated list of identifiers, one
+for each of the relay devices to which the definition applies. Typically these identifiers should be the model number assigned by the
+device manufacturer. |
+| size        | (none)  | Required number property specifying the number of relay channels supported by the device. |
+| protocols   | []      | Array property introducing a list of 'protocol' objects each of which describes a communication protocol supported by the device (usually you will only need to specify one protocol). |
 
-__Number of relay channels__ [size]\
-This number property specifies the number of relay channels supported by
-the device.
+Each 'protocol' object has the following properties.
 
-__Protocol definitions__ [protocols]\
-This array property introduces a list of *protocol definitions* each of
-which defines a communication protocol supported by the device (usually
-you will only need to specify one protocol).
-Each protocol definition has the following properties.
+| Property            | Default | Description |
+| :------------------ | ------- | :---------- |
+| id                  | 'usb'   | Required string property specifying the protocol type being defined (must be one of 'usb' or 'tcp'). |
+| statuscommand       | (none)  | String property supplying the string that must be transmitted to the device to elicit a status report. |
+| statuslength        | 1       | Number property specifying the number of bytes in the status report message transmitted by the device in response to 'statuscommand'. |
+| authenticationtoken | '{p}'   | String property specifying the format of the authentication token '{A}' which can be used when defining operating commands (see below). Some Devantech protocols require that a device password is decorated with some identifying character sequence and the format of that sequence can be specified here: typically this will include the token {p} which will be interpolated with the password value specified in the 'cstring' property discussed previously. |
+| channels            | []      | Array property introduces a list of *channel* definitions each of which specifies the commands required to operate a particular relay on the device being defined. |
 
-__Protocol id__ [id]\
-This string property specifies the protocol type being defined and must
-be one of 'usb' or 'tcp'.
-The value defaults to 'usb'.
-
-__Protocol status command__ [statuscommand]\
-This string property supplies the string that must be transmitted to the
-device to elicit a status report.
-
-__Protocol status report length__ [statuslength]\
-This number property specifies the number of bytes in the status report
-message transmitted by the device in response to a status command.
-The value defaults to 1.
-
-__Protocol authentication token__ [authenticationtoken]\
-This string property specifies the format for an authentication token
-'{A}' which can be used when defining operating commands (see below).
-Some Devantech protocols require that a device password is decorated
-with some identifying character sequence and the format of that sequence
-can be specified here: typically this will include the token {p} which
-will be interpolated with the password value specified in the
-[devicecstring] property discussed previously.
- 
-__Protocol channel commands__ [channels]\
-This required array property introduces a list of *channel definitions*
-each of which specifies the commands required to operate a particular
-relay on the device being defined.
 Relays are identified by an ordinal address in the range 1..[size] and
 each channel can be defined explicitly, but if there is a common format
 for commands that applies to all channels, then a pattern can be defined
@@ -158,38 +133,25 @@ for each of the real channels on the device.
 
 Each channel definition has the following properties.
 
-__Channel address__ [address]\
-This required number property gives the ordinal number of the relay
-channel that is being defined (or 0 for a generic definition).
+| Property            | Default | Description |
+| :------------------ | ------- | :---------- |
+| address             | (none)  | Number property giving the ordinal number of the relay channel that is being defined (or 0 for a generic definition). |
+| oncommand           | (none)  | String property specifying the character sequence that should be transmitted to the device to turn the relay identified by 'address' ON. |
+| offcommand          | (none)  | String property specifying the character sequence that should be transmitted to the device to turn the relay identified by 'address' OFF. |
+| statusmask          | (none)  | Number property introducing a value that will be bitwise AND-ed with status reports received from the device so as to obtain a state value for a channel. If no value is supplied then the plugin will compute a mask value from
+the channel 'address' using the formula (1 << (*address* - 1)).
 
-__Channel on command__ [oncommand]\
-This required string property specifies the character sequence that
-should be transmitted to the device to turn the relay identified by
-[address] ON.
-
-__Channel off command__ [offcommand]\
-This required string  property specifies the character sequence that
-should be transmitted to the device to turn the relay identified by
-[address] OFF.
-
-Both [oncommand] and [offcommand] can contain embedded JSON escape
+Both 'oncommand' and 'offcommand' can contain embedded JSON escape
 sequences.
-Additionally, the the following wildcard tokens will be substituted
+Additionally, the following wildcard tokens will be substituted
 with appropriate values before string transmission.
 
 | Token | Replacement value |
-|:------|:------------------|
+| :---- | :---------------- |
 | {c}   | The ASCII encoded address of the channel being processed. |
 | {C}   | The binary encoded address of the channel being processed. |
-| {A}   | The value of any defined authentication token. | 
+| {A}   | The value of any defined authentication token. |
 | {p}   | The value of any defined module password. |
-
-__Channel status mask__ [statusmask]\
-This optional number property can be used to introduce a value that
-will be bitwise AND-ed with state reports received from the device
-so as to obtain a state value for a channel.
-If no value is supplied then the plugin will compute a mask value from
-the channel [address] using the formula (1 << (*address* - 1)).
 
 ## Operation
 
