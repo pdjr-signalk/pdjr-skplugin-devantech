@@ -260,6 +260,7 @@ module.exports = function(app) {
 
       log.N("started: saving meta data for %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s")); 
       options.modules.forEach(module => {
+        app.debug("saving meta data for '%s'", (MODULE_ROOT + module.id));
         delta.addMeta(MODULE_ROOT + module.id,
           {
             "description": module.description,
@@ -287,7 +288,7 @@ module.exports = function(app) {
 
         connectModule(module, {
           onerror: (err) => {
-            log.E("module '%s': %s communication error (%s)", module.id, module.cobject.protocol, err);
+            log.E("%s communication error on module '%s'", module.cobject.protocol, module.id);
           },
           onopen: (module) => { 
             // Once module is open, register an action handler for every channel path
@@ -368,6 +369,7 @@ module.exports = function(app) {
 
     if (module.deviceid) {
       if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
+        app.debug("selected device '%s' for module '%s'", device.id, module.id);
         module.size = device.size;
         try {
           module.cobject = parseConnectionString(module.cstring);
@@ -379,7 +381,7 @@ module.exports = function(app) {
             // definition with address 0, then the operating command
             // is parameterised.
             if ((protocol.channels.length == 1) && (protocol.channels[0].address == 0)) {
-              for (var i = 0; i <= device.size; i++) {
+              for (var i = 1; i <= device.size; i++) {
                 protocol.channels.push({ "oncommand": protocol.channels[0].oncommand, "offcommand": protocol.channels[0].offcommand, "address": i });
               }
             }
@@ -410,13 +412,13 @@ module.exports = function(app) {
     function parseConnectionString(cstring) {
       var retval = null;
 
-      if (matches = match(/^eth\:(.*)\:(.*)@(.*)\:(.*)$/)) {
-        retval = { "protocol": "eth", "username": matches[1], "password": matches[2], "host": matches[3], "port": matches[4] };
-      } else if (matches = match(/^eth\:(.*)@(.*)\:(.*)$/)) {
-        retval = { "protocol": "eth", "password": matches[2], "host": matches[3], "port": matches[4] };
-      } else if (matches = match(/^eth\:(.*)\:(.*)$/)) {
-        retval = { "protocol": "eth", "host": matches[3], "port": matches[4] };
-      } else if (matches = match(/^usb\:(.*)$/)) {
+      if (matches = cstring.match(/^tcp\:(.*)\:(.*)@(.*)\:(.*)$/)) {
+        retval = { "protocol": "tcp", "username": matches[1], "password": matches[2], "host": matches[3], "port": matches[4] };
+      } else if (matches = cstring.match(/^tcp\:(.*)@(.*)\:(.*)$/)) {
+        retval = { "protocol": "tcp", "password": matches[1], "host": matches[2], "port": matches[3] };
+      } else if (matches = cstring.match(/^tcp\:(.*)\:(.*)$/)) {
+        retval = { "protocol": "tcp", "host": matches[1], "port": matches[2] };
+      } else if (matches = cstring.match(/^usb\:(.*)$/)) {
         retval = { "protocol": "usb", "device": matches[1] };
       }
       return(retval);
@@ -459,24 +461,31 @@ module.exports = function(app) {
 
   function connectModule(module, options) {
     switch (module.cobject.protocol) {
-      case 'eth':
+      case 'tcp':
         module.connection = { stream: false };
-        module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, () => {
-          if (options && options.onupdate) options.onupdate("TCP socket opened for module " + module.id);
+        module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, (err) => {
+          if (err) {
+            options.onerror(err);
+          }
+        });
+        module.connection.socket.on('open', () => {
           module.connection.stream = module.connection.socket;
+          options.onopen(module);
+
           module.connection.socket.on('data', (buffer) => {
-            if (options && options.onupdate) options.onupdate("TCP data received from " + module.id + " [" + buffer.toString() + "]");
-            if (options && options.ondata) options.ondata(module, buffer)
+            app.debug("TCP data received from " + module.id + " [" + buffer.toString() + "]");
+            options.ondata(module, buffer)
           });
+
           module.connection.socket.on('close', () => {
-            if (options && options.onerror) options.onerror("TCP socket closed for " + module.id);
+            app.debug("TCP socket closed for " + module.id);
             module.connection.stream = false;
-            if (options && options.onclose) options.onclose(module);
+            options.onclose(module);
           });
-          module.connection.socket.on('end', () => {
+
+          module.connection.socket.on('error', () => {
             if (options && options.onerror) options.onerror("TCP socket ended for " + module.id);
           });
-          if (options && options.onopen) options.onopen(module);
         });
         break;
       case 'usb':
@@ -498,9 +507,9 @@ module.exports = function(app) {
             module.connection.stream = false;
             options.onclose(module);
           });
-          module.connection.serialport.on('error', () => {
+          module.connection.serialport.on('error', (err) => {
             module.connection.stream = false;
-            options.onerror(module);
+            options.onerror(err);
           });
         });
         break;
