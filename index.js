@@ -463,28 +463,24 @@ module.exports = function(app) {
     switch (module.cobject.protocol) {
       case 'tcp':
         module.connection = { stream: false };
-        module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, (err) => {
-          if (err) {
-            options.onerror(err);
-          }
-        });
-        module.connection.socket.on('open', () => {
-          module.connection.stream = module.connection.socket;
-          options.onopen(module);
+        module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, () => {
+          module.connection.socket.on('open', () => {
+            options.onopen(module);
 
-          module.connection.socket.on('data', (buffer) => {
-            app.debug("TCP data received from " + module.id + " [" + buffer.toString() + "]");
-            options.ondata(module, buffer)
-          });
+            module.connection.socket.on('data', (buffer) => {
+              app.debug("TCP data received from " + module.id + " [" + buffer.toString() + "]");
+              options.ondata(module, buffer)
+            });
 
-          module.connection.socket.on('close', () => {
-            app.debug("TCP socket closed for " + module.id);
-            module.connection.stream = false;
-            options.onclose(module);
-          });
+            module.connection.socket.on('close', () => {
+              app.debug("TCP socket closed for " + module.id);
+              module.connection.stream = false;
+              options.onclose(module);
+            });
 
-          module.connection.socket.on('error', () => {
-            if (options && options.onerror) options.onerror("TCP socket ended for " + module.id);
+            module.connection.socket.on('error', () => {
+                if (options && options.onerror) options.onerror("TCP socket ended for " + module.id);
+            });
           });
         });
         break;
