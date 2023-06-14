@@ -211,8 +211,8 @@ const DEFAULT_DEVICES = [
     "protocols": [
       {
         "id": "tcp",
-        "statuscommand": "ST",
-        "statuslength": 24,
+        "statuscommand": "\063\001",
+        "statusport": 28241,
         "channels": [
           { "address": 0, "oncommand": ":SR {c} ON", "offcommand": ":SR {c} OFF" }
         ]
@@ -260,20 +260,21 @@ module.exports = function(app) {
 
       log.N("started: saving meta data for %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s")); 
       options.modules.forEach(module => {
-        app.debug("saving meta data for '%s'", (MODULE_ROOT + module.id));
-        delta.addMeta(MODULE_ROOT + module.id,
-          {
-            "description": module.description,
-            "displayName": "Relay module " + module.id
-          });
+        var path = (MODULE_ROOT + module.id);
+        var meta = { "description": module.description, "displayName": "Relay module " + module.id };
+        app.debug("saving meta data for path '%s' (%s)", path, meta);
+        delta.addMeta(path, meta);
         module.channels.forEach(c => {
-          delta.addMeta(MODULE_ROOT +  module.id + "." + c.index + ".state", {
+          path = (MODULE_ROOT +  module.id + "." + c.index + ".state");
+          meta = {
             "description": "Relay state (0=OFF, 1=ON)",
             "displayName": c.description,
             "shortName": "[" + module.id + "," + c.index + "]",
-            "longName": c.description + "[" + module.id + "," + c.index + "]",
+            "longName": c.description + " [" + module.id + "," + c.index + "]",
             "type": "relay"
-          });
+          };
+          app.debug("saving meta data for path '%s' (%s)", path, meta);
+          delta.addMeta(path, meta);
         });
       });
 
@@ -285,6 +286,7 @@ module.exports = function(app) {
 
       log.N("started: operating %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s"));
       options.modules.forEach(module => {
+        app.debug("attempting connection for module '%s' (%s)", module.id, module.cstring);
 
         connectModule(module, {
           onerror: (err) => {
@@ -293,16 +295,26 @@ module.exports = function(app) {
           onopen: (module) => { 
             // Once module is open, register an action handler for every channel path
             // and issue a status request command.
-            app.debug("module '%s': port %s open", module.id, module.cobject.device); 
+            app.debug("module '%s' is connected to '%s'", module.id, module.cstring); 
             module.channels.forEach(ch => {
               var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
+              app.debug("installing PUT handler on '%s'", path);
               app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
             });
             if (module.statuscommand) module.connection.stream.write(module.statuscommand);
           },
           ondata: (module, buffer) => {
-            app.debug("module '%s': %s data received (%o)", module.id, module.cobject.protocol, buffer);
-            (new Delta(app, plugin.id)).addValues(getStateUpdates(module, buffer, plugin.options.switchpath)).commit();
+            switch (module.cstring.substr(0,4)) {
+              case "usb:":
+                break;
+              case "tcp:":
+                if (buffer.toString().trim() == "Ok") {
+                  app.debug("Command OK");
+                }
+                break;
+              default:
+                break;
+            }
           },
           onclose: (module) => {
             log.E("module '%s': port %s closed", module.id, module.cobject.protocol); 
@@ -327,7 +339,7 @@ module.exports = function(app) {
         if (relayCommand = getCommand(moduleId, channelIndex, value)) {
           module.connection.stream.write(relayCommand);
           app.debug("transmitted operating command (%s) for module %s, channel %s", relayCommand, value.moduleId, value.channelIndex);
-          if (module.statuscommand !== undefined) module.connection.stream.write(module.statuscommand);
+          //if (module.statuscommand !== undefined) module.connection.stream.write(module.statuscommand);
         } else {
           app.debug("cannot recover operating command for module %s, channel %s", value.moduleId, value.channelIndex);
         }
@@ -464,23 +476,30 @@ module.exports = function(app) {
       case 'tcp':
         module.connection = { stream: false };
         module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, () => {
-          module.connection.socket.on('open', () => {
-            options.onopen(module);
+          module.connection.stream = module.connection.socket;
+          module.connection.stream.write("SR 1 ON");
+          options.onopen(module);
 
-            module.connection.socket.on('data', (buffer) => {
-              app.debug("TCP data received from " + module.id + " [" + buffer.toString() + "]");
-              options.ondata(module, buffer)
-            });
+          module.connection.socket.on('data', (buffer) => {
+            app.debug("TCP socket data received by module '%s' [%s]", module.id, buffer.toString().trim());
+            options.ondata(module, buffer)
+          });
 
-            module.connection.socket.on('close', () => {
-              app.debug("TCP socket closed for " + module.id);
-              module.connection.stream = false;
-              options.onclose(module);
-            });
+          module.connection.socket.on('close', () => {
+            app.debug("TCP socket closed for module '%s'", module.id);
+            module.connection.socket.close();
+            options.onclose(module);
+          });
 
-            module.connection.socket.on('error', () => {
-                if (options && options.onerror) options.onerror("TCP socket ended for " + module.id);
-            });
+          module.connection.socket.on('timeout', () => {
+            app.debug("TCP socket timeout for module '%s'", module.id);
+            module.connection.socket.close();
+            options.onclose(module);
+          });
+
+          module.connection.socket.on('error', () => {
+            app.debug("TCP socket error on module '%s'", module.id);
+            options.onerror(module);
           });
         });
         break;
