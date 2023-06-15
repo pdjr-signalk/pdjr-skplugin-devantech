@@ -11,9 +11,11 @@ that don't warrant the expense of NMEA 2000 hardware and/or are not
 easily serviced by the installed NMEA bus.
 
 It happened that I had to hand a couple of unused multi-channel USB
-relay devices from the UK company Devantech (see below) who kindly
-supported the development of this plugin by making one of its Ethernet
-relay devices available for evaluation and testing.
+relay devices from the UK company Devantech and I originally wrote
+something to support these.(see below) who kindly
+When Devantech released their DS series of wireless and wired Ethernet
+relay modules they kindly supplied a prototype device which allowed
+me to develop support for this product range. 
 
 Devantech Ltd\
 Maurice Gaymer Road\
@@ -31,6 +33,7 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 This plugin implements a control interface for multi-channel relay
 modules manufactured by the UK company Devantech including support
 for devices that are operated over USB, WiFi and wired Ethernet.
+Only the current DS series of Ethernet devices are supported.
 
 The plugin offers two distinct services.
 

@@ -566,11 +566,41 @@ module.exports = function(app) {
     return(retval);
   }
 
+  /**
+   * 
+   * @param {} module 
+   */
+  function statusListener(module) {
+    module.connection.statusListener = net.createServer();
+    module.connection.on('connection', (conn) => {
+      var clientAddress = conn.remoteAddress + ":" + conn.remotePort;
+      app.debug("status update client connected (%s)", clientAddress);
+
+      conn.on('data', (data) => {
+
+      });
+
+      conn.on('close', () => {
+
+      });
+
+      conn.on('error', (err) => {
+
+      });
+
+    }).
+    server.listen(module.statusListenerPort, () => {
+      app.debug("'%s' listening for status updates on port %d", module.id, module.connection.statusListenerPort);
+    });
+  }
+
   /********************************************************************
    * Return an array of state updates for <module> derived from
    * processing <buffer> which is assumed to contain a status message
    * received from the relay device associated with <module>.
    */
+
+
 
   function getStateUpdates(module, buffer, switchpath) {
     var moduleState = null, channelState, retval = null;
