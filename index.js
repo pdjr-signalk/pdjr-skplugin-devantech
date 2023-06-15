@@ -419,6 +419,7 @@ module.exports = function(app) {
         module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, () => {
           module.connection.stream = module.connection.socket;
           module.connection.stream.write("SR 1 ON");
+          module.connection.stream.write("SR 2 ON");
           options.onopen(module);
 
           module.connection.socket.on('data', (buffer) => {
@@ -512,8 +513,8 @@ module.exports = function(app) {
    * @param {} module 
    */
   function createStatusListener(module) {
-    module.connection.statusListener = net.createServer();
-    module.connection.on('connection', (conn) => {
+    module.statusListener = net.createServer();
+    module.statusListener.on('connection', (conn) => {
       var clientAddress = conn.remoteAddress + ":" + conn.remotePort;
       app.debug("%s status listener: client connected (%s)", clientAddress);
 
@@ -550,10 +551,9 @@ module.exports = function(app) {
       conn.on('error', (err) => {
         app.debug("%s status listener: client connection error", module.id);
       });
-
-    }).
-    server.listen(module.statusListenerPort, () => {
-      app.debug("%s status listener: listening for status updates on port %d", module.id, module.connection.statusListenerPort);
+    });
+    module.statusListener.listen(module.statusListenerPort, () => {
+      app.debug("%s status listener: listening for status updates on port %d", module.id, module.statusListenerPort);
     });
   }
 
