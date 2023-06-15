@@ -146,66 +146,6 @@ const DEFAULT_DEVICES = [
     ]
   },
   {
-    "id": "ETH002 WIFI002",
-    "size": 2,
-    "protocols": [
-      {
-        "id": "tcp",
-        "statuscommand": "$",
-        "statuslength": 2,
-        "authenticationtoken": ",{p}",
-        "channels": [
-          { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "ETH044 ETH484 WIFI484",
-    "size": 4,
-    "protocols": [
-      {
-        "id": "tcp",
-        "statuscommand": "$",
-        "statuslength": 2,
-        "authenticationtoken": ",{p}",
-        "channels": [
-          { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "ETH008 WIFI008",
-    "size": 8,
-    "protocols": [
-      {
-        "id": "tcp",
-        "statuscommand": "$",
-        "statuslength": 2,
-        "authenticationtoken": ",{p}",
-        "channels": [
-          { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "ETH8020 WIFI8020",
-    "size": 20,
-    "protocols": [
-      {
-        "id": "tcp",
-        "statuscommand": "$",
-        "statuslength": 3,
-        "authenticationtoken": ",{p}",
-        "channels": [
-          { "address": 0, "oncommand": ":DOA,{c},0{A}", "offcommand": ":DOI,{c},0{A}" }
-        ]
-      }
-    ]
-  },
-  {
     "id": "DS2824",
     "size": 24,
     "protocols": [
@@ -570,27 +510,27 @@ module.exports = function(app) {
    * 
    * @param {} module 
    */
-  function statusListener(module) {
+  function createStatusListener(module) {
     module.connection.statusListener = net.createServer();
     module.connection.on('connection', (conn) => {
       var clientAddress = conn.remoteAddress + ":" + conn.remotePort;
-      app.debug("status update client connected (%s)", clientAddress);
+      app.debug("%s status listener: client connected (%s)", clientAddress);
 
       conn.on('data', (data) => {
-
+        app.debug("%s status listener: data received (%s)", module.id, data);
       });
 
       conn.on('close', () => {
-
+        app.debug("%s status listener: client has closed connection", module.id);
       });
 
       conn.on('error', (err) => {
-
+        app.debug("%s status listener: client connection error", module.id);
       });
 
     }).
     server.listen(module.statusListenerPort, () => {
-      app.debug("'%s' listening for status updates on port %d", module.id, module.connection.statusListenerPort);
+      app.debug("%s status listener: listening for status updates on port %d", module.id, module.connection.statusListenerPort);
     });
   }
 
