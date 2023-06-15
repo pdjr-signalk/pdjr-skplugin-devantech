@@ -15,7 +15,7 @@ relay devices from the UK company Devantech and I originally wrote
 something to support these.(see below) who kindly
 When Devantech released their DS series of wireless and wired Ethernet
 relay modules they kindly supplied a prototype device which allowed
-me to develop support for this product range. 
+the development of support for this product range.
 
 Devantech Ltd\
 Maurice Gaymer Road\
@@ -48,9 +48,23 @@ operating commands.
 
 ## Configuration
 
-If you intend using a Devantech relay module from the ETH or WIFI
+If you intend using a Devantech relay module from the DS ETH or WIFI
 ranges then you must configure the device on your network before
 attempting to use it with this plugin.
+
+### Configuring a DS ETH or WIFI module
+
+Follow the set-up instructions that came with your module by setting
+up the device's IP address and port number.
+You should also enable event notifications, specifying the IP address
+of your Signal K server as the "Target IP" and selecting a
+"Target Port" of your choice.
+
+Note that if you intend using multiple DS relay modules with Signal K,
+then you must specify a different "Target Port" value for each of your
+defined modules.
+
+### Plugin configuration
 
 The plugin configuration has the following properties.
 
@@ -61,14 +75,14 @@ The plugin configuration has the following properties.
 
 Each 'module' object has the following properties.
 
-| Property    | Default | Description |
-| :---------- | :------ | :---------- |
-| id          | (none)  | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay switch channel. |
-| description | (none)  | Optional string property can be used to supply some documentary text about the module. |
-| deviceid    | (none)  | Required string property specifying the type of physical device to which this module definition relates. The value supplied here must be one of the 'deviceis's defined in the 'devices' section (see below). |
-| cstring     | (none)  | Required string property supplying a connection string that tells the
-plugin how to connect to the physical device implementing the module. |
-| channels    | []      | Array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
+| Property           | Default | Description |
+| :----------------- | :------ | :---------- |
+| id                 | (none)  | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay switch channel. |
+| description        | (none)  | Optional string property can be used to supply some documentary text about the module. |
+| deviceid           | (none)  | Required string property specifying the type of physical device to which this module definition relates. The value supplied here must be one of the 'deviceis's defined in the 'devices' section (see below). |
+| cstring            | (none)  | Required string property supplying a connection string that tells the plugin how to connect to the physical device implementing the module. |
+| statusListenerPort | (none)  | Optional number property supplying the port number on which the plugin can receive status updates from the connected relay device. This is a required property for DS ETH and WIFI devices and should be same value that you supplied for "Target Port" when configuring the device's event reporting. |
+| channels           | []      | Array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
 
 There are two styles of 'cstring' property value: one describes USB
 connection and the other an ethernet connection (supporting both wired
@@ -80,7 +94,7 @@ associated physical device is connected.
 A typical value for a USB 'devicecstring' might be
 'usb:/dev/ttyACM0'.
 
-An ethernet connection string has the form   'eth:[*password*@]*address*:*port*'
+An ethernet connection string has the form   'tcp:[*password*@]*address*:*port*'
 where *address* is the IP address or hostname assigned to the
 associated device  and *port* is the port number on which the device
 provides service.

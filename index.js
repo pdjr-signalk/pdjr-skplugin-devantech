@@ -241,7 +241,8 @@ module.exports = function(app) {
               app.debug("installing PUT handler on '%s'", path);
               app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
             });
-            if (module.statuscommand) module.connection.stream.write(module.statuscommand);
+            // And register a status listener for the module
+            if (module.cstring.substr(0,4) == 'tcp:') createStatusListener(module);
           },
           ondata: (module, buffer) => {
             switch (module.cstring.substr(0,4)) {
@@ -517,7 +518,29 @@ module.exports = function(app) {
       app.debug("%s status listener: client connected (%s)", clientAddress);
 
       conn.on('data', (data) => {
+        var lines, status, path, value, delta;
+
         app.debug("%s status listener: data received (%s)", module.id, data);
+        lines = data.toString().split('\n');
+        if ((lines.length == 4) || (lines.length == 5)) {
+          var status = lines[(lines.length == 4)?1:2];
+          if (status.length == module.size) {
+            delta = new Delta();
+            for (var i = 0; i < status.length; i++) {
+              path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
+              value = (status.charAt(i) == 0)?0:1;
+              app.debug("%s status listener: issuing delta update on '%s' (%d)", module.id, path, value);
+              delta.addValue(path, value);
+            }
+            delta.commit().clear();
+            delete delta;
+          } else {
+            app.debug("%s status listener: reported status length (%d) and configured module size (%d) do not agree", module.id, status.length, module.size);
+          }
+        } else {
+          app.debug("%s status listener: status report format is invalid");
+        }
+        conn.write("Ok");
       });
 
       conn.on('close', () => {
