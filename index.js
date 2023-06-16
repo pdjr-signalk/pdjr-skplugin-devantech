@@ -180,7 +180,7 @@ module.exports = function(app) {
     // If the user has configured their own devices, then add them
     // to the embedded defaults.
     options.devices = (options.devices || []).concat(DEFAULT_DEVICES);
-    log.N("supported devices: %s", options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", "));
+    app.debug("supported devices: %s", options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", "));
 
     // Process each defined module, interpolating data from the
     // specified device definition, then filter the result to eliminate
@@ -189,7 +189,7 @@ module.exports = function(app) {
       try {
         return(validateModule(module, options.devices));
       } catch (e) {
-        log.E("module validation failed for '%s' (%s)", module.id, e.message);
+        app.debug("module %s: ignoring bad configuration (%s)", module.id, e.message);
         return({});
       }
     }).filter(module => (module != {}));
@@ -202,7 +202,6 @@ module.exports = function(app) {
       options.modules.forEach(module => {
         var path = (MODULE_ROOT + module.id);
         var meta = { "description": module.description, "displayName": "Relay module " + module.id };
-        app.debug("saving meta data for path '%s' (%s)", path, meta);
         delta.addMeta(path, meta);
         module.channels.forEach(c => {
           path = (MODULE_ROOT +  module.id + "." + c.index + ".state");
@@ -213,7 +212,6 @@ module.exports = function(app) {
             "longName": c.description + " [" + module.id + "," + c.index + "]",
             "type": "relay"
           };
-          app.debug("saving meta data for path '%s' (%s)", path, meta);
           delta.addMeta(path, meta);
         });
       });
@@ -226,23 +224,24 @@ module.exports = function(app) {
 
       log.N("started: operating %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s"));
       options.modules.forEach(module => {
-        app.debug("attempting connection for module '%s' (%s)", module.id, module.cstring);
+        app.debug("module %s: trying to connect... (%s)", module.id, module.cstring);
 
         connectModule(module, {
           onerror: (err) => {
-            log.E("%s communication error on module '%s'", module.cobject.protocol, module.id);
+            app.debug("module %s: communication error (%s)", module.id, err, false);
           },
           onopen: (module) => { 
             // Once module is open, register an action handler for every channel path
             // and issue a status request command.
-            app.debug("module '%s' is connected to '%s'", module.id, module.cstring); 
+            app.debug("module %s: ...connected", module.id, false); 
             module.channels.forEach(ch => {
               var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
-              app.debug("installing PUT handler on '%s'", path);
               app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
             });
             // And register a status listener for the module
-            if (module.cstring.substr(0,4) == 'tcp:') createStatusListener(module);
+            if (module.cstring.substr(0,4) == 'tcp:') {
+              createStatusListener(module);
+            }
           },
           ondata: (module, buffer) => {
             switch (module.cstring.substr(0,4)) {
@@ -250,7 +249,7 @@ module.exports = function(app) {
                 break;
               case "tcp:":
                 if (buffer.toString().trim() == "Ok") {
-                  app.debug("Command OK");
+                  ;
                 }
                 break;
               default:
@@ -258,7 +257,7 @@ module.exports = function(app) {
             }
           },
           onclose: (module) => {
-            log.E("module '%s': port %s closed", module.id, module.cobject.protocol); 
+            app.debug("module '%s': port %s closed", module.id, module.cobject.protocol); 
           }
         });
       });
