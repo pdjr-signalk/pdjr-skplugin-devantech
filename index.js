@@ -244,12 +244,21 @@ module.exports = function(app) {
             }
           },
           ondata: (module, buffer) => {
+            var status, delta, path, value;
             switch (module.cstring.substr(0,4)) {
               case "usb:":
                 break;
               case "tcp:":
-                if (buffer.toString().trim() == "Ok") {
-                  ;
+                status = buffer.toString();
+                if (status.length == 32) {
+                  delta = new Delta(app, plugin.id);
+                  for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
+                    path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
+                    value = (status.charAt(i) == '0')?0:1;
+                    delta.addValue(path, value);
+                  }
+                  delta.commit().clear();
+                  delete delta;
                 }
                 break;
               default:
