@@ -278,13 +278,12 @@ module.exports = function(app) {
       if (channelIndex = getChannelIndexFromPath(path)) {
         if (relayCommand = getCommand(moduleId, channelIndex, value)) {
           module.connection.stream.write(relayCommand);
-          app.debug("transmitted operating command (%s) for module %s, channel %s", relayCommand, value.moduleId, value.channelIndex);
-          //if (module.statuscommand !== undefined) module.connection.stream.write(module.statuscommand);
+          app.debug("module %s: channel %d: transmitted '%s'", moduleId, channelIndex, relayCommand);
         } else {
-          app.debug("cannot recover operating command for module %s, channel %s", value.moduleId, value.channelIndex);
+          app.debug("module %s: channel %d: cannot recover operating command", moduleId, channelIndex);
         }
       } else {
-        app.debug("error recovering channel index from path %s", path);
+        app.debug("module %s: error recovering channel index from path %s", moduleId, path);
       }
     } else {
       app.debug("error recovering module id from path %s", path);
@@ -321,7 +320,7 @@ module.exports = function(app) {
 
     if (module.deviceid) {
       if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
-        app.debug("selected device '%s' for module '%s'", device.id, module.id);
+        app.debug("module %s: selected device '%s'", module.id, device.id);
         module.size = device.size;
         try {
           module.cobject = parseConnectionString(module.cstring);
@@ -344,20 +343,20 @@ module.exports = function(app) {
                 channel.offcommand = deviceChannel.offcommand;
                 channel.statusmask = (deviceChannel.statusmask !== undefined)?deviceChannel.statusmask:(1 << (deviceChannel.address - 1));
               } else {
-                throw new Error("module has an invalid definition for channel");
+                throw new Error("invalid channel configuration");
               }        
             });
           } else {
-            throw new Error("module has an invalid cstring (protocol not supported)");
+            throw new Error("invalid cstring (protocol not supported)");
           }
         } catch (e) {
-          throw new Error("module has an invalid cstring (" + module.cstring + ")");
+          throw new Error("invalid cstring (" + module.cstring + ")");
         }
       } else {
-        throw new Error(sprintf("module '%s' has an invalid deviceid", module.id));
+        throw new Error("invalid deviceid");
       }
     } else {
-      throw new Error(sprintf("module '%s' has no deviceid property", module.id));
+      throw new Error(sprintf("missing deviceid", module.id));
     }
     return(module);
   
@@ -422,24 +421,24 @@ module.exports = function(app) {
           options.onopen(module);
 
           module.connection.socket.on('data', (buffer) => {
-            app.debug("TCP socket data received by module '%s' [%s]", module.id, buffer.toString().trim());
+            app.debug("module %s: data received by module (%s)", module.id, buffer.toString().trim());
             options.ondata(module, buffer)
           });
 
           module.connection.socket.on('close', () => {
-            app.debug("TCP socket closed for module '%s'", module.id);
+            app.debug("module %s: socket closed", module.id);
             module.connection.socket.close();
             options.onclose(module);
           });
 
           module.connection.socket.on('timeout', () => {
-            app.debug("TCP socket timeout for module '%s'", module.id);
+            app.debug("module %s: socket timeout", module.id);
             module.connection.socket.close();
             options.onclose(module);
           });
 
           module.connection.socket.on('error', () => {
-            app.debug("TCP socket error on module '%s'", module.id);
+            app.debug("module %s: socket error", module.id);
             options.onerror(module);
           });
         });
