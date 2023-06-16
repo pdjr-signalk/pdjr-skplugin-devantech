@@ -420,27 +420,10 @@ module.exports = function(app) {
           module.connection.stream.write("SR 2 ON");
           options.onopen(module);
 
-          module.connection.socket.on('data', (buffer) => {
-            app.debug("module %s: data received by module (%s)", module.id, buffer.toString().trim());
-            options.ondata(module, buffer)
-          });
-
-          module.connection.socket.on('close', () => {
-            app.debug("module %s: socket closed", module.id);
-            module.connection.socket.close();
-            options.onclose(module);
-          });
-
-          module.connection.socket.on('timeout', () => {
-            app.debug("module %s: socket timeout", module.id);
-            module.connection.socket.close();
-            options.onclose(module);
-          });
-
-          module.connection.socket.on('error', () => {
-            app.debug("module %s: socket error", module.id);
-            options.onerror(module);
-          });
+          module.connection.socket.on('data', (buffer) => { options.ondata(module, buffer) });
+          module.connection.socket.on('close', () => { module.connection.socket.close(); options.onclose(module); });
+          module.connection.socket.on('timeout', () => { module.connection.socket.close(); });
+          module.connection.socket.on('error', () => { options.onerror(module); });
         });
         break;
       case 'usb':
