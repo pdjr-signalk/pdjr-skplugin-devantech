@@ -505,19 +505,19 @@ module.exports = function(app) {
         app.debug("%s status listener: data received (%s)", module.id, data);
         lines = data.toString().split('\n');
         if ((lines.length == 4) || (lines.length == 5)) {
-          var status = lines[(lines.length == 4)?1:2];
-          if (status.length == module.size) {
-            delta = new Delta();
-            for (var i = 0; i < status.length; i++) {
+          var status = lines[(lines.length == 4)?1:2].trim();
+          if (status.length > 0) {
+            delta = new Delta(app, plugin.id);
+            for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
               path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
-              value = (status.charAt(i) == 0)?0:1;
+              value = (status.charAt(i) == '0')?0:1;
               app.debug("%s status listener: issuing delta update on '%s' (%d)", module.id, path, value);
               delta.addValue(path, value);
             }
             delta.commit().clear();
             delete delta;
           } else {
-            app.debug("%s status listener: reported status length (%d) and configured module size (%d) do not agree", module.id, status.length, module.size);
+            app.debug("%s status listener: status length is %d", module.id, status.length);
           }
         } else {
           app.debug("%s status listener: status report format is invalid");
