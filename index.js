@@ -141,6 +141,7 @@ const DEFAULT_DEVICES = [
     "id": "DS2824",
     "size": 24,
     "protocol": "tcp",
+    "statuscommand": "ST",
     "channels": [
       { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
     ]
@@ -223,6 +224,7 @@ module.exports = function(app) {
           onopen: (module) => { 
             // Once module is open, register an action handler for every channel path
             // and issue a status request command.
+            module.connection.stream.write(module.statuscommand);
             app.debug("module %s: ...connected", module.id, false); 
             module.channels.forEach(ch => {
               var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
@@ -237,10 +239,10 @@ module.exports = function(app) {
           ondata: (module, buffer) => {
             app.debug("received '%s'", buffer.toString());
             var status, delta, path, value;
-            switch (module.protocol) {
-              case "usb:":
+            switch (module.cobject.protocol) {
+              case "usb":
                 break;
-              case "tcp:":
+              case "tcp":
                 status = buffer.toString();
                 app.debug("received '%s'");
                 if (status.length == 32) {
@@ -253,7 +255,10 @@ module.exports = function(app) {
                   app.debug("issuing delta");
                   delta.commit().clear();
                   delete delta;
+                } else {
+                  app.debug("%s", status);
                 }
+
                 break;
               default:
                 break;
