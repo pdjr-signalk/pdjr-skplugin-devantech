@@ -54,6 +54,18 @@ attempting to use it with this plugin.
 
 ### Configuring a DS ETH or WIFI module
 
+This plugin includes a patch for the firmware of DS series Devantech
+relay modules.
+The patch modifies:
+
+1. The response to the ST (status) TCP command so that it returns the
+   (duh!) status of the module's relays rather than version information
+   and other redundant stuff.
+
+2. The SR (set relay) TCP command so that it returns the status of the
+    
+
+
 Follow the set-up instructions that came with your module by setting
 up the device's IP address and port number.
 You should also enable event notifications, specifying the IP address

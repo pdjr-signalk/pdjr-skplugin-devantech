@@ -224,8 +224,8 @@ module.exports = function(app) {
           onopen: (module) => { 
             // Once module is open, register an action handler for every channel path
             // and issue a status request command.
-            module.connection.stream.write(module.statuscommand);
             app.debug("module %s: ...connected", module.id, false); 
+            module.connection.stream.write(module.statuscommand);
             module.channels.forEach(ch => {
               var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
               app.debug("registering PUT handler on '%s'", path);
@@ -243,8 +243,7 @@ module.exports = function(app) {
               case "usb":
                 break;
               case "tcp":
-                status = buffer.toString();
-                app.debug("received '%s'");
+                status = buffer.toString().trim();
                 if (status.length == 32) {
                   delta = new Delta(app, plugin.id);
                   for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
@@ -256,7 +255,7 @@ module.exports = function(app) {
                   delta.commit().clear();
                   delete delta;
                 } else {
-                  app.debug("%s", status);
+                  app.debug("what is this %s", status);
                 }
 
                 break;
@@ -360,19 +359,15 @@ module.exports = function(app) {
               if (oncommand) oncommand = oncommand
                 .replace('{A}', module.authenticationtoken)
                 .replace("{c}", channel.index)
-                .replace('{C}', String.fromCharCode(parseInt(channel.index, 10)))
+                .replace('{C}', String.fromCharCode(channel.index))
                 .replace("{p}", module.cobject.password)
                 .replace("{u}", channel.index)
-                .replace(/\\(\d\d\d)/gi, (match) => String.fromCharCode(parseInt(match, 8)))
-                .replace(/\\0x(\d\d)/gi, (match) => String.fromCharCode(parseInt(match, 16)));
               if (offcommand) offcommand = offcommand
                 .replace('{A}', module.authenticationtoken)
                 .replace("{c}", channel.index)
-                .replace('{C}', String.fromCharCode(parseInt(channel.index, 10)))
+                .replace('{C}', String.fromCharCode(channel.index))
                 .replace("{p}", module.cobject.password)
                 .replace("{u}", channel.index)
-                .replace(/\\(\d\d\d)/gi, (match) => String.fromCharCode(parseInt(match, 8)))
-                .replace(/\\0x(\d\d)/gi, (match) => String.fromCharCode(parseInt(match, 16)));
               channel.oncommand = oncommand;
               channel.offcommand = offcommand;
               //channel.statusmask = (deviceChannel.statusmask !== undefined)?deviceChannel.statusmask:(1 << (deviceChannel.address - 1));
