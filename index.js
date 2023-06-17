@@ -112,51 +112,37 @@ const DEFAULT_DEVICES = [
   {
     "id": "USB-RLY02-SN USB-RLY02 USB-RLY82",
     "size": 2,
-    "protocols": [
-      {
-        "id": "usb",
-        "statuscommand": "[",
-        "statuslength": 1,
-        "channels": [
-          { "address": 1, "oncommand": "e", "offcommand": "o" },
-          { "address": 2, "oncommand": "f", "offcommand": "p" }
-        ]
-      }
+    "protocol": "usb",
+    "statuscommand": "[",
+    "statuslength": 1,
+    "channels": [
+      { "address": 1, "oncommand": "e", "offcommand": "o" },
+      { "address": 2, "oncommand": "f", "offcommand": "p" }
     ]
   },
   {
     "id": "USB-RLY08B USB-RLY16 USB-RLY16L USB-OPTO-RLY88 USB-OPTO-RLY816",
     "size": 8,
-    "protocols": [
-      {
-        "id": "usb",
-        "statuscommand": "[",
-        "statuslength": 1,
-        "channels": [
-          { "address": 1, "oncommand": "e", "offcommand": "o" },
-          { "address": 2, "oncommand": "f", "offcommand": "p" },
-          { "address": 3, "oncommand": "g", "offcommand": "q" },
-          { "address": 4, "oncommand": "h", "offcommand": "r" },
-          { "address": 5, "oncommand": "i", "offcommand": "s" },
-          { "address": 6, "oncommand": "j", "offcommand": "t" },
-          { "address": 7, "oncommand": "k", "offcommand": "u" },
-          { "address": 8, "oncommand": "l", "offcommand": "v" }
-        ]
-      }
+    "protocol": "usb",
+    "statuscommand": "[",
+    "statuslength": 1,
+    "channels": [
+      { "address": 1, "oncommand": "e", "offcommand": "o" },
+      { "address": 2, "oncommand": "f", "offcommand": "p" },
+      { "address": 3, "oncommand": "g", "offcommand": "q" },
+      { "address": 4, "oncommand": "h", "offcommand": "r" },
+      { "address": 5, "oncommand": "i", "offcommand": "s" },
+      { "address": 6, "oncommand": "j", "offcommand": "t" },
+      { "address": 7, "oncommand": "k", "offcommand": "u" },
+      { "address": 8, "oncommand": "l", "offcommand": "v" }
     ]
   },
   {
     "id": "DS2824",
     "size": 24,
-    "protocols": [
-      {
-        "id": "tcp",
-        "statuscommand": "\063\001",
-        "statusport": 28241,
-        "channels": [
-          { "address": 0, "oncommand": ":SR {c} ON", "offcommand": ":SR {c} OFF" }
-        ]
-      }
+    "protocol": "tcp",
+    "channels": [
+      { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
     ]
   }
 ];
@@ -176,6 +162,8 @@ module.exports = function(app) {
   const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
 
   plugin.start = function(options) {
+    plugin.options = options;
+    options = plugin.options;
 
     // If the user has configured their own devices, then add them
     // to the embedded defaults.
@@ -200,6 +188,7 @@ module.exports = function(app) {
 
       log.N("started: saving meta data for %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s")); 
       options.modules.forEach(module => {
+        app.debug("saving meta data for '%s'", module.id);
         var path = (MODULE_ROOT + module.id);
         var meta = { "description": module.description, "displayName": "Relay module " + module.id };
         delta.addMeta(path, meta);
@@ -215,6 +204,7 @@ module.exports = function(app) {
           delta.addMeta(path, meta);
         });
       });
+      delta.commit().clear();
 
       /****************************************************************
        * Iterate over each module, connecting it to its relay module
@@ -236,20 +226,23 @@ module.exports = function(app) {
             app.debug("module %s: ...connected", module.id, false); 
             module.channels.forEach(ch => {
               var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
+              app.debug("registering PUT handler on '%s'", path);
               app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
             });
             // And register a status listener for the module
-            if (module.cstring.substr(0,4) == 'tcp:') {
-              createStatusListener(module);
-            }
+            //if (module.cstring.substr(0,4) == 'tcp:') {
+              //createStatusListener(module);
+            //}
           },
           ondata: (module, buffer) => {
+            app.debug("received '%s'", buffer.toString());
             var status, delta, path, value;
-            switch (module.cstring.substr(0,4)) {
+            switch (module.protocol) {
               case "usb:":
                 break;
               case "tcp:":
                 status = buffer.toString();
+                app.debug("received '%s'");
                 if (status.length == 32) {
                   delta = new Delta(app, plugin.id);
                   for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
@@ -257,6 +250,7 @@ module.exports = function(app) {
                     value = (status.charAt(i) == '0')?0:1;
                     delta.addValue(path, value);
                   }
+                  app.debug("issuing delta");
                   delta.commit().clear();
                   delete delta;
                 }
@@ -281,23 +275,34 @@ module.exports = function(app) {
   }
 
   function putHandler(context, path, value, callback) {
-    var moduleId, channelIndex, relayCommand;
-
+    var moduleId, module, channelIndex, channel, relayCommand;
+    var retval = { "state": "COMPLETED", "statusCode": 400 };
+    app.debug("Handling...");
     if (moduleId = getModuleIdFromPath(path)) {
-      if (channelIndex = getChannelIndexFromPath(path)) {
-        if (relayCommand = getCommand(moduleId, channelIndex, value)) {
-          module.connection.stream.write(relayCommand);
-          app.debug("module %s: channel %d: transmitted '%s'", moduleId, channelIndex, relayCommand);
+      if (module = getModuleFromModuleId(moduleId)) {
+        if (channelIndex = getChannelIndexFromPath(path)) {
+          if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
+            relayCommand = ((value)?channel.oncommand:channel.offcommand) + "\n";
+            module.connection.stream.write(relayCommand);
+            retval.statusCode = 200;
+            log.N("transmitting '%s' to module '%s'", relayCommand, moduleId);
+          } else {
+            retval.message = "error recovering channel configuration";
+          }
         } else {
-          app.debug("module %s: channel %d: cannot recover operating command", moduleId, channelIndex);
+          retval.message = "error recovering channel index from path";
         }
       } else {
-        app.debug("module %s: error recovering channel index from path %s", moduleId, path);
+        retval.message = "error recovering module configuration";
       }
     } else {
-      app.debug("error recovering module id from path %s", path);
+      retval.message = "error recovering module id from path";
     }
-    return({ state: 'COMPLETED', statusCode: 200 });
+    return(retval);
+  }
+
+  function getModuleFromModuleId(moduleId) {
+    return(plugin.options.modules.reduce((a,m) => ((m.id == moduleId)?m:0), null));
   }
 
   function getModuleIdFromPath(path) {
@@ -325,40 +330,52 @@ module.exports = function(app) {
    * - statusmask property
    */ 
   function validateModule(module, devices) {
-    var device;
+    var device, oncommand, offcommand;
 
     if (module.deviceid) {
       if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
         app.debug("module %s: selected device '%s'", module.id, device.id);
         module.size = device.size;
-        try {
-          module.cobject = parseConnectionString(module.cstring);
-          if (protocol = device.protocols.reduce((a,p) => ((module.cobject.protocol == p.id)?p:a), null)) {
-            module.statuscommand = protocol.statuscommand;
-            module.statuslength = (protocol.statuslength === undefined)?1:protocol.statuslength;
-            module.authenticationtoken = protocol.authenticationtoken;
-            // If the device channels array contains only one channel
-            // definition with address 0, then the operating command
-            // is parameterised.
-            if ((protocol.channels.length == 1) && (protocol.channels[0].address == 0)) {
-              for (var i = 1; i <= device.size; i++) {
-                protocol.channels.push({ "oncommand": protocol.channels[0].oncommand, "offcommand": protocol.channels[0].offcommand, "address": i });
-              }
-            }
+        if (module.cobject = parseConnectionString(module.cstring)) {
+          if (module.cobject.protocol == device.protocol) {
+            module.statuscommand = device.statuscommand;
+            module.statuslength = device.statuslength;
+            module.authenticationtoken = device.authenticationtoken;
+
             module.channels.forEach(channel => {
-              deviceChannel = protocol.channels.reduce((a,dc) => (((channel.address?channel.address:channel.index) == dc.address)?dc:a), null);
-              if (deviceChannel) {
-                channel.oncommand = deviceChannel.oncommand;
-                channel.offcommand = deviceChannel.offcommand;
-                channel.statusmask = (deviceChannel.statusmask !== undefined)?deviceChannel.statusmask:(1 << (deviceChannel.address - 1));
+              oncommand = null;
+              offcommand = null;
+              if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
+                oncommand = device.channels[0].oncommand;
+                offcommand = device.channels[0].offcommand;
               } else {
-                throw new Error("invalid channel configuration");
-              }        
+                oncommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.oncommand:a), null);
+                offcommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.offcommand:a), null);
+              }
+              if (oncommand) oncommand = oncommand
+                .replace('{A}', module.authenticationtoken)
+                .replace("{c}", channel.index)
+                .replace('{C}', String.fromCharCode(parseInt(channel.index, 10)))
+                .replace("{p}", module.cobject.password)
+                .replace("{u}", channel.index)
+                .replace(/\\(\d\d\d)/gi, (match) => String.fromCharCode(parseInt(match, 8)))
+                .replace(/\\0x(\d\d)/gi, (match) => String.fromCharCode(parseInt(match, 16)));
+              if (offcommand) offcommand = offcommand
+                .replace('{A}', module.authenticationtoken)
+                .replace("{c}", channel.index)
+                .replace('{C}', String.fromCharCode(parseInt(channel.index, 10)))
+                .replace("{p}", module.cobject.password)
+                .replace("{u}", channel.index)
+                .replace(/\\(\d\d\d)/gi, (match) => String.fromCharCode(parseInt(match, 8)))
+                .replace(/\\0x(\d\d)/gi, (match) => String.fromCharCode(parseInt(match, 16)));
+              channel.oncommand = oncommand;
+              channel.offcommand = offcommand;
+              //channel.statusmask = (deviceChannel.statusmask !== undefined)?deviceChannel.statusmask:(1 << (deviceChannel.address - 1));
             });
           } else {
-            throw new Error("invalid cstring (protocol not supported)");
+            throw new Error("protocol not supported");
           }
-        } catch (e) {
+        } else {
           throw new Error("invalid cstring (" + module.cstring + ")");
         }
       } else {
@@ -424,9 +441,8 @@ module.exports = function(app) {
       case 'tcp':
         module.connection = { stream: false };
         module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, () => {
+          app.debug("CONNECTED");
           module.connection.stream = module.connection.socket;
-          module.connection.stream.write("SR 1 ON");
-          module.connection.stream.write("SR 2 ON");
           options.onopen(module);
 
           module.connection.socket.on('data', (buffer) => { options.ondata(module, buffer) });
@@ -480,19 +496,12 @@ module.exports = function(app) {
    * @return - the required command string or null if command recovery
    * fails.
    */
-  function getCommand(module, channelId, state) {
+  function getCommand(moduleId, channelIndex, state, options) {
     var retval = null;
-    var channel = module.channels.reduce((a,c) => ((c.index == channelId)?c:a), null);
-    if (channel) {
-      retval = (state)?channel.oncommand:channel.offcommand;
-      if (retval) {
-        retval = retval.replace('{A}', module.authenticationtoken);
-        retval = retval.replace("{c}", channel.index);
-        retval = retval.replace('{C}', String.fromCharCode(parseInt(channel.index, 10)));
-        retval = retval.replace("{p}", module.cobject.password);
-        retval = retval.replace("{u}", channel.index);
-        retval = retval.replace(/\\(\d\d\d)/gi, (match) => String.fromCharCode(parseInt(match, 8)));
-        retval = retval.replace(/\\0x(\d\d)/gi, (match) => String.fromCharCode(parseInt(match, 16)));
+    var module = options.modules.reduce((a,m) => { return((m.id == moduleId)?m:a); }, []);
+    if (module) {
+      if ((channelIndex > 0) && (channelIndex <= module.size)) {
+        retval = (state)?module.channels[channelIndex].oncommand:module.channels[channelIndex].offcommand;
       }
     }
     return(retval);
