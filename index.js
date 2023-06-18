@@ -221,9 +221,9 @@ module.exports = function(app) {
       delta.commit().clear();
 
       /****************************************************************
-       * Iterate over each module, connecting it to its relay module
-       * using whatever protocol is configured and arrange for callback
-       * to this common set of functions.
+       * Iterate over each module, connecting it to its associated
+       * relay device and arranging for callback to these event
+       * handlers.
        */
 
       options.modules.forEach(module => {
