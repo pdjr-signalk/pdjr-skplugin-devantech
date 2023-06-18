@@ -107,6 +107,7 @@ const PLUGIN_SCHEMA = {
 };
 const PLUGIN_UISCHEMA_FILE = {};
 
+const STATUS_INTERVAL = 5000;
 const MODULE_ROOT = "electrical.switches.bank.";
 const DEFAULT_DEVICES = [
   {
@@ -151,13 +152,14 @@ const DEFAULT_DEVICES = [
 module.exports = function(app) {
   var plugin = {};
   var unsubscribes = [];
+  var intervalId = null;
+  var globalOptions = null;
 
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
   plugin.description = PLUGIN_DESCRIPTION;
   plugin.schema = PLUGIN_SCHEMA;
   plugin.uiSchema = {};
-  plugin.options = null;
 
   const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
@@ -167,7 +169,7 @@ module.exports = function(app) {
     // Context-free event handlers need access to the plugin
     // configuration options, so we elevate them to the plugin global
     // namespace. 
-    plugin.options = options;
+    globalOptions = options;
 
     // If the user has configured their own devices, then add them
     // to the embedded defaults.
@@ -188,11 +190,11 @@ module.exports = function(app) {
       });
 
     // So now we have a list of prepared, valid, modules.
+    log.N("started: operating %d module%s (%s)", options.modules.length, ((options.modules.length == 1)?"":"s"), options.modules.map(m => m.id).join(","));
 
     if (options.modules.length) {
 
       // Save meta data for modules and channels.
-      log.N("started: saving meta data for %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s"));
       var path, value; 
       options.modules.forEach(module => {
         path = (MODULE_ROOT + module.id);
@@ -213,7 +215,7 @@ module.exports = function(app) {
             "unit": "Binary switch state (0/1)",
             "type": "relay"
           };
-          delta.addMeta(path, meta);
+          delta.addMeta(path, value);
         });
       });
       delta.commit().clear();
@@ -224,13 +226,13 @@ module.exports = function(app) {
        * to this common set of functions.
        */
 
-      log.N("started: operating %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s"));
       options.modules.forEach(module => {
         app.debug("module %s: trying to connect... (%s)", module.id, module.cstring);
 
         connectModule(module, {
           // We had an error.
           onerror: (err) => {
+            if (intervalId) { clearInterval(intervalId); intervalId = null; }
             log.E("communication error on module '%s' (%s)", module.id, err);
           },
           // Once module is open, request a status update and register
@@ -238,6 +240,7 @@ module.exports = function(app) {
           onopen: (module) => { 
             app.debug("module %s: ...connected", module.id); 
             module.connection.stream.write(module.statuscommand);
+            intervalId = setInterval(() => module.connection.stream.write(module.statuscommand), STATUS_INTERVAL);
             module.channels.forEach(ch => {
               var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
               app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
@@ -276,6 +279,7 @@ module.exports = function(app) {
           // TCP connection closed by remote module. This is really an
           // error.
           onclose: (module) => {
+            if (intervalId) { clearInterval(intervalId); intervalId = null; }
             log.E("module '%s' closed comms connection", module.id); 
           }
         });
@@ -286,6 +290,7 @@ module.exports = function(app) {
   }
 
   plugin.stop = function() {
+    if (intervalId) { clearInterval(intervalId); intervalId = null; }
     unsubscribes.forEach(f => f());
     unsubscribes = [];
   }
@@ -317,7 +322,7 @@ module.exports = function(app) {
   }
 
   function getModuleFromModuleId(moduleId) {
-    return(plugin.options.modules.reduce((a,m) => ((m.id == moduleId)?m:0), null));
+    return(globalOptions.modules.reduce((a,m) => ((m.id == moduleId)?m:0), null));
   }
 
   function getModuleIdFromPath(path) {
