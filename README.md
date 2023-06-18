@@ -67,13 +67,13 @@ to Devantech modules is not all that useful for real-time applications
 that need accurate, up-to-date, status information about the remote
 device.
 
-In particular, the module's respond to a relay operation command with
+In particular, the modules respond to a relay operation command with
 the message "Ok".
 Exactly what this means is unfathomable.
 
-Additionally, there is no command which reports as a response the
-current status of the module (i.e. what the state of every relay is
-at that moment in time).
+Additionally, there is no command which reports the current status of
+the module (i.e. what the state of every relay is at that moment in
+time).
 
 The provided patch corrects this by:
 
