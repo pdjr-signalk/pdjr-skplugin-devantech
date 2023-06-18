@@ -12,10 +12,14 @@ easily serviced by the installed NMEA bus.
 
 It happened that I had to hand a couple of unused multi-channel USB
 relay devices from the UK company Devantech and I originally wrote
-something to support these.(see below) who kindly
+something to support these.
 When Devantech released their DS series of wireless and wired Ethernet
 relay modules they kindly supplied a prototype device which allowed
 the development of support for this product range.
+
+Out of the box, the Devantech devices are somewhat limited in their
+status reporting ability, but it is a trivial matter to tweak the
+open-source firmware to correct this issue.
 
 Devantech Ltd\
 Maurice Gaymer Road\
@@ -45,6 +49,7 @@ terms of their function or application.
 Secondly, the plugin installs a handler on each defined Signal K relay
 output channel that translates state change requests into relay module
 operating commands.
+The plugin uses the TCP ASCII module operating mode.
 
 ## Configuration
 
@@ -54,27 +59,20 @@ attempting to use it with this plugin.
 
 ### Configuring a DS ETH or WIFI module
 
-This plugin includes a patch for the firmware of DS series Devantech
-relay modules.
+This plugin includes a patched firmware of DS series Devantech relay
+modules.
 The patch modifies:
 
-1. The response to the ST (status) TCP command so that it returns the
-   (duh!) status of the module's relays rather than version information
-   and other redundant stuff.
+1. The response made by the module to the ST (status) TCP command so
+   that it returns the (duh!) status of the module's relays rather than
+   module version information and other largely redundant stuff.
 
 2. The SR (set relay) TCP command so that it returns the status of the
-    
+   module's relays rather than the wholly ambiguous "Ok" default.
 
-
-Follow the set-up instructions that came with your module by setting
+Install the patch using the firmware update mechanism described in the
+Devantech user guide and then follow the set-up instructions by setting
 up the device's IP address and port number.
-You should also enable event notifications, specifying the IP address
-of your Signal K server as the "Target IP" and selecting a
-"Target Port" of your choice.
-
-Note that if you intend using multiple DS relay modules with Signal K,
-then you must specify a different "Target Port" value for each of your
-defined modules.
 
 ### Plugin configuration
 

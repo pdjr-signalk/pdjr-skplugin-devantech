@@ -163,8 +163,11 @@ module.exports = function(app) {
   const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
 
   plugin.start = function(options) {
-    plugin.options = options;
-    options = plugin.options;
+  
+    // Context-free event handlers need access to the plugin
+    // configuration options, so we elevate them to the plugin global
+    // namespace. 
+    options = (plugin.options = options);
 
     // If the user has configured their own devices, then add them
     // to the embedded defaults.
@@ -174,14 +177,9 @@ module.exports = function(app) {
     // Process each defined module, interpolating data from the
     // specified device definition, then filter the result to eliminate
     // any broken modules.
-    options.modules = options.modules.map(module => {
-      try {
-        return(validateModule(module, options.devices));
-      } catch (e) {
-        app.debug("module %s: ignoring bad configuration (%s)", module.id, e.message);
-        return({});
-      }
-    }).filter(module => (module != {}));
+    options.modules = options.modules
+      .map(module => elaborateModuleConfiguration(module, options.devices))
+      .filter(module => (module != {}));
 
     // So now we have a list of prepared, valid, modules.
 
@@ -236,14 +234,13 @@ module.exports = function(app) {
               //createStatusListener(module);
             //}
           },
-          ondata: (module, buffer) => {
-            app.debug("received '%s'", buffer.toString());
+          ondata: (module, status) => {
+            app.debug("received '%s'", status);
             var status, delta, path, value;
-            switch (module.cobject.protocol) {
+            switch (module.protocol) {
               case "usb":
                 break;
               case "tcp":
-                status = buffer.toString().trim();
                 if (status.length == 32) {
                   delta = new Delta(app, plugin.id);
                   for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
@@ -319,133 +316,74 @@ module.exports = function(app) {
     return((parts.length >= 5)?parts[4]:null);
   }
 
-
-  /********************************************************************
-   * Fettle up a module definition by normalising property values,
-   * adding defaults for missing, optional, properties and copying over
-   * properties from the specified device definition.
-   *
-   * Update <module> with:
-   * - statuscommand property
-   * - authenticationtoken property
-   * Update each channel in <module> with:
-   * - oncommand property
-   * - offcommand property
-   * - statusmask property
-   */ 
-  function validateModule(module, devices) {
+  function elaborateModuleConfiguration(module, devices) {
     var device, oncommand, offcommand;
+    var retval = {};
 
     if (module.deviceid) {
       if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
-        app.debug("module %s: selected device '%s'", module.id, device.id);
         module.size = device.size;
+        module.protocol = device.protocol;
+        module.statuscommand = device.statuscommand;
+        module.statuslength = device.statuslength;
+        module.authenticationtoken = device.authenticationtoken;
         if (module.cobject = parseConnectionString(module.cstring)) {
-          if (module.cobject.protocol == device.protocol) {
-            module.statuscommand = device.statuscommand;
-            module.statuslength = device.statuslength;
-            module.authenticationtoken = device.authenticationtoken;
-
-            module.channels.forEach(channel => {
-              oncommand = null;
-              offcommand = null;
-              if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
-                oncommand = device.channels[0].oncommand;
-                offcommand = device.channels[0].offcommand;
-              } else {
-                oncommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.oncommand:a), null);
-                offcommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.offcommand:a), null);
-              }
-              if (oncommand) oncommand = oncommand
-                .replace('{A}', module.authenticationtoken)
-                .replace("{c}", channel.index)
-                .replace('{C}', String.fromCharCode(channel.index))
-                .replace("{p}", module.cobject.password)
-                .replace("{u}", channel.index)
-              if (offcommand) offcommand = offcommand
-                .replace('{A}', module.authenticationtoken)
-                .replace("{c}", channel.index)
-                .replace('{C}', String.fromCharCode(channel.index))
-                .replace("{p}", module.cobject.password)
-                .replace("{u}", channel.index)
-              channel.oncommand = oncommand;
-              channel.offcommand = offcommand;
-              //channel.statusmask = (deviceChannel.statusmask !== undefined)?deviceChannel.statusmask:(1 << (deviceChannel.address - 1));
-            });
-          } else {
-            throw new Error("protocol not supported");
-          }
-        } else {
-          throw new Error("invalid cstring (" + module.cstring + ")");
+          module.channels.forEach(channel => {
+            oncommand = null;
+            offcommand = null;
+            if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
+              oncommand = device.channels[0].oncommand;
+              offcommand = device.channels[0].offcommand;
+            } else {
+              oncommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.oncommand:a), null);
+              offcommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.offcommand:a), null);
+            }
+            if (oncommand) oncommand = oncommand
+              .replace('{A}', module.authenticationtoken)
+              .replace("{c}", channel.index)
+              .replace('{C}', String.fromCharCode(channel.index))
+              .replace("{p}", module.cobject.password)
+              .replace("{u}", channel.index)
+            if (offcommand) offcommand = offcommand
+              .replace('{A}', module.authenticationtoken)
+              .replace("{c}", channel.index)
+              .replace('{C}', String.fromCharCode(channel.index))
+              .replace("{p}", module.cobject.password)
+              .replace("{u}", channel.index)
+            channel.oncommand = oncommand;
+            channel.offcommand = offcommand;
+          });
+          retval = module;
         }
-      } else {
-        throw new Error("invalid deviceid");
       }
-    } else {
-      throw new Error(sprintf("missing deviceid", module.id));
     }
-    return(module);
+    return(retval);
   
     function parseConnectionString(cstring) {
       var retval = null;
 
-      if (matches = cstring.match(/^tcp\:(.*)\:(.*)@(.*)\:(.*)$/)) {
-        retval = { "protocol": "tcp", "username": matches[1], "password": matches[2], "host": matches[3], "port": matches[4] };
-      } else if (matches = cstring.match(/^tcp\:(.*)@(.*)\:(.*)$/)) {
-        retval = { "protocol": "tcp", "password": matches[1], "host": matches[2], "port": matches[3] };
-      } else if (matches = cstring.match(/^tcp\:(.*)\:(.*)$/)) {
-        retval = { "protocol": "tcp", "host": matches[1], "port": matches[2] };
-      } else if (matches = cstring.match(/^usb\:(.*)$/)) {
-        retval = { "protocol": "usb", "device": matches[1] };
+      if (matches = cstring.match(/^(.*)\:(.*)@(.*)\:(.*)$/)) {
+        retval = { "username": matches[1], "password": matches[2], "host": matches[3], "port": matches[4] };
+      } else if (matches = cstring.match(/^(.*)@(.*)\:(.*)$/)) {
+        retval = { "password": matches[1], "host": matches[2], "port": matches[3] };
+      } else if (matches = cstring.match(/^(.*)\:(.*)$/)) {
+        retval = { "host": matches[1], "port": matches[2] };
+      } else if (matches = cstring.match(/^(.*)$/)) {
+        retval = { "device": matches[1] };
       }
       return(retval);
     }
   }
 
-  /********************************************************************
-   * Attempts to connect <module> to its defined and configured
-   * hardware device. <module> must have been validated and prepared
-   * for use by a prior call to validateModuleDefinition().
-   *
-   * <module> is updated with a module.connection object propert which
-   * is used to hold configuration and state information relating the
-   * connected module. Pretty much everything that goes on here is
-   * asynchronous in character.
-   *
-   * The <options> object should be used to define a number of
-   * callbacks:
-   *
-   * onopen is required and defines a function which will be called
-   * with <module> when a connection is successfully opened and
-   * should be used to register the now functioning module with Signal
-   * K by subscribing relay state change functions to each of the
-   * module channel paths.
-   *
-   * onclose is optional and defines a function which will be called
-   * with <module> if a connection spontaineously closes and should be
-   * used to de-register the now non-functioning module from Signal K
-   * by unsubscribing trigger deltas.
-   *
-   * onupdate will be called with explanatory messages as connections
-   * are progressed.
-   *
-   * onerror will be called with diagnostic messages if connection
-   * fails. 
-   *
-   * @param module - the module definition to be processed.
-   * @param options - various callbacks.
-   */
-
   function connectModule(module, options) {
-    switch (module.cobject.protocol) {
+    switch (module.protocol) {
       case 'tcp':
         module.connection = { stream: false };
         module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, () => {
-          app.debug("CONNECTED");
           module.connection.stream = module.connection.socket;
           options.onopen(module);
 
-          module.connection.socket.on('data', (buffer) => { options.ondata(module, buffer) });
+          module.connection.socket.on('data', (buffer) => { options.ondata(module, buffer.toString().trim()) });
           module.connection.socket.on('close', () => { module.connection.socket.close(); options.onclose(module); });
           module.connection.socket.on('timeout', () => { module.connection.socket.close(); });
           module.connection.socket.on('error', () => { options.onerror(module); });
@@ -479,117 +417,6 @@ module.exports = function(app) {
       default:
         break;
     }
-  }
-
-  /********************************************************************
-   * Processes a <device> definition and returns the relay control
-   * command that is specified for for switching <channel> to <state>
-   * using * the protocol specified in the <connectionParameters>
-   * "protocol" property.
-   *  
-   * @param device - device definition from which to pull the command.
-   * @param protocol - the protocol to use for communication with
-   * device.
-   * @param channel - the channel to be operated.
-   * @param state - the state to which the relay should be set (0 or
-   * 1).
-   * @return - the required command string or null if command recovery
-   * fails.
-   */
-  function getCommand(moduleId, channelIndex, state, options) {
-    var retval = null;
-    var module = options.modules.reduce((a,m) => { return((m.id == moduleId)?m:a); }, []);
-    if (module) {
-      if ((channelIndex > 0) && (channelIndex <= module.size)) {
-        retval = (state)?module.channels[channelIndex].oncommand:module.channels[channelIndex].offcommand;
-      }
-    }
-    return(retval);
-  }
-
-  /**
-   * 
-   * @param {} module 
-   */
-  function createStatusListener(module) {
-    module.statusListener = net.createServer();
-    module.statusListener.on('connection', (conn) => {
-      var clientAddress = conn.remoteAddress + ":" + conn.remotePort;
-      app.debug("%s status listener: client connected (%s)", clientAddress);
-
-      conn.on('data', (data) => {
-        var lines, status, path, value, delta;
-
-        app.debug("%s status listener: data received (%s)", module.id, data);
-        lines = data.toString().split('\n');
-        if ((lines.length == 4) || (lines.length == 5)) {
-          var status = lines[(lines.length == 4)?1:2].trim();
-          if (status.length > 0) {
-            delta = new Delta(app, plugin.id);
-            for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
-              path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
-              value = (status.charAt(i) == '0')?0:1;
-              app.debug("%s status listener: issuing delta update on '%s' (%d)", module.id, path, value);
-              delta.addValue(path, value);
-            }
-            delta.commit().clear();
-            delete delta;
-          } else {
-            app.debug("%s status listener: status length is %d", module.id, status.length);
-          }
-        } else {
-          app.debug("%s status listener: status report format is invalid");
-        }
-        conn.write("Ok");
-      });
-
-      conn.on('close', () => {
-        app.debug("%s status listener: client has closed connection", module.id);
-      });
-
-      conn.on('error', (err) => {
-        app.debug("%s status listener: client connection error", module.id);
-      });
-    });
-    module.statusListener.listen(module.statusListenerPort, () => {
-      app.debug("%s status listener: listening for status updates on port %d", module.id, module.statusListenerPort);
-    });
-  }
-
-  /********************************************************************
-   * Return an array of state updates for <module> derived from
-   * processing <buffer> which is assumed to contain a status message
-   * received from the relay device associated with <module>.
-   */
-
-
-
-  function getStateUpdates(module, buffer, switchpath) {
-    var moduleState = null, channelState, retval = null;
-    if (switchpath) {
-      switch (module.cobject.protocol) {
-        case "tcp":
-          if ((module.size <= 8) && (module.statuslength == buffer.length)) moduleState = (buffer.readUInt16BE(0) >> 8);
-          if ((module.size == 20) && (module.statuslength == buffer.length)) moduleState = (0 | (buffer.readUInt(0)) | (buffer.readUInt(1) << 8) | (buffer.readUInt(2) << 16));
-          break;
-        case "usb":
-          if ((module.size <= 8) && (module.statuslength == buffer.length)) moduleState = buffer.readUInt8(0);
-          break;
-        default:
-          break;
-      }
-      if (moduleState !== null) {
-        retval = [];
-        module.channels.forEach(channel => {
-          channelState = (moduleState & channel.statusmask)?1:0;
-          retval.push({
-            "path": switchpath.replace('{m}', module.id).replace('{c}', channel.index) + ".state",
-            "value": channelState
-          });
-        });
-      }
-    }
-    return(retval);
   }
 
   return(plugin);
