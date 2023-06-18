@@ -49,7 +49,7 @@ terms of their function or application.
 Secondly, the plugin installs a handler on each defined Signal K relay
 output channel that translates state change requests into relay module
 operating commands.
-The plugin uses the TCP ASCII module operating mode.
+The plugin uses the Devantec module's TCP ASCII module operating mode.
 
 ## Configuration
 
@@ -57,18 +57,19 @@ If you intend using a Devantech relay module from the DS ETH or WIFI
 ranges then you must configure the device on your network before
 attempting to use it with this plugin.
 
-### Configuring a DS ETH or WIFI module
+### Configuring a DS module
 
-This plugin includes a patched firmware of DS series Devantech relay
-modules.
-The patch modifies:
+This plugin includes a patch for the firmware of DS series Devantech
+relay modules which adds two new commands to the TCP ASCII control
+groups.
 
-1. The response made by the module to the ST (status) TCP command so
-   that it returns the (duh!) status of the module's relays rather than
-   module version information and other largely redundant stuff.
+The KR (Signal **K** Set **R**elay) command operates in exactly the
+same way as the module's normal SR (**S**et **R**elay) command except
+that it replies with the status of the module's relays rather than
+the wholly ambiguous "Ok" of the default.
 
-2. The SR (set relay) TCP command so that it returns the status of the
-   module's relays rather than the wholly ambiguous "Ok" default.
+The KS (Signal **K** **S**tatus) command causes the module to return
+the status of the module's relays.
 
 Install the patch using the firmware update mechanism described in the
 Devantech user guide and then follow the set-up instructions by setting
@@ -78,10 +79,10 @@ up the device's IP address and port number.
 
 The plugin configuration has the following properties.
 
-| Property   | Default                            | Description |
-| :--------- | :----- | :---------- |
-| modules    | []     | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
-| devices    | (none) | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes definitions for most Devantech devices currently in production, but additional devices can be specified here. |
+| Property   | Default | Description |
+| :--------- | :------ | :---------- |
+| modules    | []      | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
+| devices    | (none)  | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes definitions for most Devantech devices currently in production, but additional devices can be specified here. |
 
 Each 'module' object has the following properties.
 
@@ -91,20 +92,19 @@ Each 'module' object has the following properties.
 | description        | (none)  | Optional string property can be used to supply some documentary text about the module. |
 | deviceid           | (none)  | Required string property specifying the type of physical device to which this module definition relates. The value supplied here must be one of the 'deviceis's defined in the 'devices' section (see below). |
 | cstring            | (none)  | Required string property supplying a connection string that tells the plugin how to connect to the physical device implementing the module. |
-| statusListenerPort | (none)  | Optional number property supplying the port number on which the plugin can receive status updates from the connected relay device. This is a required property for DS ETH and WIFI devices and should be same value that you supplied for "Target Port" when configuring the device's event reporting. |
 | channels           | []      | Array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
 
 There are two styles of 'cstring' property value: one describes USB
 connection and the other an ethernet connection (supporting both wired
 and wireless devices).
 
-A USB connection string has the form 'usb:*device-path*' where
+A USB connection string has the form '*device-path*' where
 *device-path* specifies the operating system serial device to which the
 associated physical device is connected.
 A typical value for a USB 'devicecstring' might be
 'usb:/dev/ttyACM0'.
 
-An ethernet connection string has the form   'tcp:[*password*@]*address*:*port*'
+An ethernet connection string has the form   '[*password*@]*address*:*port*'
 where *address* is the IP address or hostname assigned to the
 associated device  and *port* is the port number on which the device
 provides service.
