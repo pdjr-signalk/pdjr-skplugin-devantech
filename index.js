@@ -167,7 +167,7 @@ module.exports = function(app) {
     // Context-free event handlers need access to the plugin
     // configuration options, so we elevate them to the plugin global
     // namespace. 
-    options = (plugin.options = options);
+    plugin.options = options;
 
     // If the user has configured their own devices, then add them
     // to the embedded defaults.
@@ -179,25 +179,38 @@ module.exports = function(app) {
     // any broken modules.
     options.modules = options.modules
       .map(module => elaborateModuleConfiguration(module, options.devices))
-      .filter(module => (module != {}));
+      .filter(module => {
+        if (Object.keys(module).length == 1) {
+          log.W("dropping module '%s' (bad configuration)", module.id);
+          return(false);
+        }
+        return(true);
+      });
 
     // So now we have a list of prepared, valid, modules.
 
     if (options.modules.length) {
 
-      log.N("started: saving meta data for %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s")); 
+      // Save meta data for modules and channels.
+      log.N("started: saving meta data for %d module%s", options.modules.length, ((options.modules.length == 1)?"":"s"));
+      var path, value; 
       options.modules.forEach(module => {
-        app.debug("saving meta data for '%s'", module.id);
-        var path = (MODULE_ROOT + module.id);
-        var meta = { "description": module.description, "displayName": "Relay module " + module.id };
-        delta.addMeta(path, meta);
+        path = (MODULE_ROOT + module.id);
+        value = {
+          "description": module.description,
+          "shortName": module.id,
+          "longName": "Relay module " + module.id,
+          "displayName": "Relay module " + module.id
+        };
+        delta.addMeta(path, value);
         module.channels.forEach(c => {
           path = (MODULE_ROOT +  module.id + "." + c.index + ".state");
-          meta = {
+          value = {
             "description": "Relay state (0=OFF, 1=ON)",
-            "displayName": c.description,
             "shortName": "[" + module.id + "," + c.index + "]",
             "longName": c.description + " [" + module.id + "," + c.index + "]",
+            "displayName": c.description,
+            "unit": "Binary switch state (0/1)",
             "type": "relay"
           };
           delta.addMeta(path, meta);
@@ -216,30 +229,31 @@ module.exports = function(app) {
         app.debug("module %s: trying to connect... (%s)", module.id, module.cstring);
 
         connectModule(module, {
+          // We had an error.
           onerror: (err) => {
-            app.debug("module %s: communication error (%s)", module.id, err, false);
+            log.E("communication error on module '%s' (%s)", module.id, err);
           },
+          // Once module is open, request a status update and register
+          // a PUT handler for every channel path.
           onopen: (module) => { 
-            // Once module is open, register an action handler for every channel path
-            // and issue a status request command.
-            app.debug("module %s: ...connected", module.id, false); 
+            app.debug("module %s: ...connected", module.id); 
             module.connection.stream.write(module.statuscommand);
             module.channels.forEach(ch => {
               var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
-              app.debug("registering PUT handler on '%s'", path);
               app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
             });
-            // And register a status listener for the module
-            //if (module.cstring.substr(0,4) == 'tcp:') {
-              //createStatusListener(module);
-            //}
           },
+          // Incoming data is either a response to a channel update
+          // or a response to a status request. We use the received
+          // data to update Signal K channel states.
           ondata: (module, status) => {
-            app.debug("received '%s'", status);
-            var status, delta, path, value;
+            app.debug("module %s: received '%s'", module.id, status);
+            var delta, path, value;
             switch (module.protocol) {
               case "usb":
                 break;
+              // TCP status responses are always the same 32 channel
+              // status report.
               case "tcp":
                 if (status.length == 32) {
                   delta = new Delta(app, plugin.id);
@@ -252,16 +266,17 @@ module.exports = function(app) {
                   delta.commit().clear();
                   delete delta;
                 } else {
-                  app.debug("what is this %s", status);
+                  app.debug("module %s: unrecognised data (%s)", module.id, status);
                 }
-
                 break;
               default:
                 break;
             }
           },
+          // TCP connection closed by remote module. This is really an
+          // error.
           onclose: (module) => {
-            app.debug("module '%s': port %s closed", module.id, module.cobject.protocol); 
+            log.E("module '%s' closed comms connection", module.id); 
           }
         });
       });
@@ -316,9 +331,9 @@ module.exports = function(app) {
     return((parts.length >= 5)?parts[4]:null);
   }
 
-  function elaborateModuleConfiguration(module, devices) {
+  function elaborateModuleConfiguration(module, devices) {  
     var device, oncommand, offcommand;
-    var retval = {};
+    var retval = { "id": module.id };
 
     if (module.deviceid) {
       if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
