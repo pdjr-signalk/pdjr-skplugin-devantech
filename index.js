@@ -293,7 +293,6 @@ module.exports = function(app) {
   function putHandler(context, path, value, callback) {
     var moduleId, module, channelIndex, channel, relayCommand;
     var retval = { "state": "COMPLETED", "statusCode": 400 };
-    app.debug("Handling...");
     if (moduleId = getModuleIdFromPath(path)) {
       if (module = getModuleFromModuleId(moduleId)) {
         if (channelIndex = getChannelIndexFromPath(path)) {
@@ -301,7 +300,7 @@ module.exports = function(app) {
             relayCommand = ((value)?channel.oncommand:channel.offcommand) + "\n";
             module.connection.stream.write(relayCommand);
             retval.statusCode = 200;
-            log.N("transmitting '%s' to module '%s'", relayCommand, moduleId);
+            log.N("sending '%s' to module '%s'", relayCommand, moduleId);
           } else {
             retval.message = "error recovering channel configuration";
           }
