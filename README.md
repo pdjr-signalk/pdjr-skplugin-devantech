@@ -2,7 +2,7 @@
 
 Signal K interface to the
 [Devantech](https://www.devantech.co.uk)
-range of general-purpose relay modules.
+DS range of general-purpose Ethernet relay modules.
 
 ## Background
 
@@ -10,16 +10,13 @@ I have a number of remote domestic switching requirements on my boat
 that don't warrant the expense of NMEA 2000 hardware and/or are not
 easily serviced by the installed NMEA bus.
 
-It happened that I had to hand a couple of unused multi-channel USB
-relay devices from the UK company Devantech and I originally wrote
-something to support these.
 When Devantech released their DS series of wireless and wired Ethernet
 relay modules they kindly supplied a prototype device which allowed
-the development of support for this product range.
+the development of this plugin.
 
 Out of the box, the Devantech devices are somewhat limited in their
-status reporting ability, but it is a trivial matter to tweak the
-open-source firmware to correct this issue.
+status reporting capability and the plugin includes a firmware
+tweak that improves this issue.
 
 Devantech Ltd\
 Maurice Gaymer Road\
@@ -34,28 +31,30 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 
 ## Description
 
-This plugin implements a control interface for multi-channel relay
-modules manufactured by the UK company Devantech including support
-for devices that are operated over USB, WiFi and wired Ethernet.
-Only the current DS series of Ethernet devices are supported.
+This plugin implements a control interface for the DS series of
+multi-channel relay modules manufactured by the UK company
+Devantech.
+This range includes devices that interface over WiFi and wired
+Ethernet.
 
 The plugin offers two distinct services.
 
 Firstly, it provides a mechanism for decorating Signal K's data
 hierarchy with user supplied meta-data that documents a relay module
-in a meaningful way and which allows relay channels to be described in
+in a meaningful way and allows relay channels to be described in
 terms of their function or application.
 
 Secondly, the plugin installs a handler on each defined Signal K relay
 output channel that translates state change requests into relay module
 operating commands.
+
 The plugin uses the Devantec module's TCP ASCII module operating mode.
 
 ## Configuration
 
-If you intend using a Devantech relay module from the DS ETH or WIFI
-ranges then you must configure the device on your network before
-attempting to use it with this plugin.
+If you intend using a Devantech relay module from the DS range then
+you must patch your device firmware and then configure your device on
+its host Ethernet network before attempting to use it with this plugin.
 
 ### Configuring a DS module
 
@@ -63,13 +62,26 @@ This plugin includes a patch for the firmware of DS series Devantech
 relay modules which adds two new commands to the TCP ASCII control
 groups.
 
-The KR (Signal **K** Set **R**elay) command operates in exactly the
-same way as the module's normal SR (**S**et **R**elay) command except
-that it replies with the status of the module's relays rather than
-the wholly ambiguous "Ok" of the default.
+Why is the patch necessary and what does it do? The TCP ASCII interface
+to Devantech modules is not all that useful for real-time applications
+that need accurate, up-to-date, status information about the remote
+device.
 
-The KS (Signal **K** **S**tatus) command causes the module to return
-the status of the module's relays.
+In particular, the module's respond to a relay operation command with
+the message "Ok".
+Exactly what this means is unfathomable.
+
+Additionally, there is no command which reports as a response the
+current status of the module (i.e. what the state of every relay is
+at that moment in time).
+
+The provided patch corrects this by:
+
+1. Updating the module's SR (**S**et **R**elay) command so that it
+   responds with the status of the module's relays.
+
+2. Replacing the module's ST (**St**atus) command so that the module
+   returns the status of the module's relays.
 
 Install the patch using the firmware update mechanism described in the
 Devantech user guide and then follow the set-up instructions by setting
