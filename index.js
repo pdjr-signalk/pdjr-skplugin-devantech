@@ -403,8 +403,8 @@ module.exports = function(app) {
           options.onopen(module);
 
           module.connection.socket.on('data', (buffer) => { options.ondata(module, buffer.toString().trim()) });
-          module.connection.socket.on('close', () => { module.connection.socket.close(); options.onclose(module); });
-          module.connection.socket.on('timeout', () => { module.connection.socket.close(); });
+          module.connection.socket.on('close', () => { options.onclose(module); });
+          module.connection.socket.on('timeout', () => { module.connection.socket.end(); });
           module.connection.socket.on('error', () => { options.onerror(module); });
         });
         break;
