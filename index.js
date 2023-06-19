@@ -240,7 +240,6 @@ module.exports = function(app) {
           onopen: (module) => { 
             app.debug("module %s: ...connected", module.id); 
             module.connection.stream.write(module.statuscommand);
-            intervalId = setInterval(() => module.connection.stream.write(module.statuscommand), STATUS_INTERVAL);
             module.channels.forEach(ch => {
               var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
               app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
@@ -248,7 +247,7 @@ module.exports = function(app) {
           },
           // Incoming data is either a response to a channel update
           // or a response to a status request. We use the received
-          // data to update Signal K channel states.
+          // data to update Signal K paths with the channel states.
           ondata: (module, status) => {
             app.debug("module %s: received '%s'", module.id, status);
             var delta, path, value;
@@ -259,6 +258,7 @@ module.exports = function(app) {
               // status report.
               case "tcp":
                 if (status.length == 32) {
+                  clearTimeout(intervalId);
                   delta = new Delta(app, plugin.id);
                   for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
                     path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
@@ -268,6 +268,7 @@ module.exports = function(app) {
                   app.debug("issuing delta");
                   delta.commit().clear();
                   delete delta;
+                  intervalId = setTimeout(() => module.connection.stream.write(module.statuscommand, STATUS_INTERVAL);
                 } else {
                   app.debug("module %s: unrecognised data (%s)", module.id, status);
                 }
