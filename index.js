@@ -250,27 +250,19 @@ module.exports = function(app) {
           // data to update Signal K paths with the channel states.
           ondata: (module, status) => {
             app.debug("module %s: received '%s'", module.id, status);
-            var delta, path, value;
             switch (module.protocol) {
               case "usb":
                 break;
               // TCP status responses are always the same 32 channel
               // status report.
               case "tcp":
-                if (status.length == 32) {
-                  clearTimeout(intervalId);
-                  delta = new Delta(app, plugin.id);
-                  for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
-                    path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
-                    value = (status.charAt(i) == '0')?0:1;
-                    delta.addValue(path, value);
-                  }
-                  app.debug("issuing delta");
-                  delta.commit().clear();
-                  delete delta;
-                  intervalId = setTimeout(() => module.connection.stream.write(module.statuscommand, STATUS_INTERVAL);
-                } else {
-                  app.debug("module %s: unrecognised data (%s)", module.id, status);
+                switch (status.length) {
+                  case 32:
+                    statusHandler(module, status);
+                    break;
+                  default:
+                    app.debug("module %s: unrecognised status data (%s)", module.id, status);
+                    break;
                 }
                 break;
               default:
@@ -320,6 +312,20 @@ module.exports = function(app) {
       retval.message = "error recovering module id from path";
     }
     return(retval);
+  }
+
+  function statusHandler(module, status) {
+    clearTimeout(intervalId);
+    var delta = new Delta(app, plugin.id);
+    for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
+      var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
+      var value = (status.charAt(i) == '0')?0:1;
+      delta.addValue(path, value);
+    }
+    app.debug("issuing delta");
+    delta.commit().clear();
+    delete delta;
+    intervalId = setTimeout(() => module.connection.stream.write(module.statuscommand), STATUS_INTERVAL);
   }
 
   function getModuleFromModuleId(moduleId) {
