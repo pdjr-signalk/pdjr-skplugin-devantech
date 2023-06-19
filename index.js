@@ -252,13 +252,20 @@ module.exports = function(app) {
             app.debug("module %s: received '%s'", module.id, status);
             switch (module.protocol) {
               case "usb":
+                switch (status.length) {
+                  case 1:
+                    usbStatusHandler(module, status);
+                    break;
+                  default:
+                    break;
+                }
                 break;
               // TCP status responses are always the same 32 channel
               // status report.
               case "tcp":
                 switch (status.length) {
                   case 32:
-                    statusHandler(module, status);
+                    tcpStatusHandler(module, status);
                     break;
                   default:
                     app.debug("module %s: unrecognised status data (%s)", module.id, status);
@@ -332,13 +339,26 @@ module.exports = function(app) {
    * Update the Signal K switch paths associated with module so that
    * they conform to status.
    */
-  function statusHandler(module, status) {
+  function tcpStatusHandler(module, status) {
     clearTimeout(intervalId);
     var delta = new Delta(app, plugin.id);
     for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
       var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
       var value = (status.charAt(i) == '0')?0:1;
       delta.addValue(path, value);
+    }
+    delta.commit().clear();
+    delete delta;
+    intervalId = setTimeout(() => module.connection.stream.write(module.statuscommand), STATUS_INTERVAL);
+  }
+
+  function usbStatusHandler(module, status) {
+    clearTimeout(intervalId);
+    var delta = new Delta(app, plugin.id);
+    for (var i = 0; i < module.size; i++) {
+      var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
+      var value = (status & (1 << i))?1:0;
+      DataTransfer.addValue(path, value);
     }
     delta.commit().clear();
     delete delta;
@@ -445,7 +465,7 @@ module.exports = function(app) {
           module.connection.serialport.pipe(module.connection.parser);
           options.onopen(module);
           module.connection.parser.on('data', (buffer) => {
-            options.ondata(module, buffer);
+            options.ondata(module, buffer.toString().trim());
           });
           module.connection.serialport.on('close', () => {
             module.connection.stream = false;
