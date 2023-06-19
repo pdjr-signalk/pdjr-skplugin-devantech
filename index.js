@@ -288,6 +288,17 @@ module.exports = function(app) {
     unsubscribes = [];
   }
 
+  /**
+   * Callback function triggered by a PUT request on a switch path. The
+   * function translates the PUT request into a Devantec DS TCP ASCII
+   * command and transmits this to the associated relay device.
+   * 
+   * @param {*} context - not used. 
+   * @param {*} path - path of the switch to be updated.
+   * @param {*} value - requested state (0 or 1).
+   * @param {*} callback - not used.
+   * @returns 
+   */
   function putHandler(context, path, value, callback) {
     var moduleId, module, channelIndex, channel, relayCommand;
     var retval = { "state": "COMPLETED", "statusCode": 400 };
@@ -314,6 +325,13 @@ module.exports = function(app) {
     return(retval);
   }
 
+  /**
+   * @param {*} module - the module from which the status was received.
+   * @param {*} status - the module status.
+   * 
+   * Update the Signal K switch paths associated with module so that
+   * they conform to status.
+   */
   function statusHandler(module, status) {
     clearTimeout(intervalId);
     var delta = new Delta(app, plugin.id);
@@ -322,7 +340,6 @@ module.exports = function(app) {
       var value = (status.charAt(i) == '0')?0:1;
       delta.addValue(path, value);
     }
-    app.debug("issuing delta");
     delta.commit().clear();
     delete delta;
     intervalId = setTimeout(() => module.connection.stream.write(module.statuscommand), STATUS_INTERVAL);
