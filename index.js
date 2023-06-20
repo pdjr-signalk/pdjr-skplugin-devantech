@@ -357,8 +357,8 @@ module.exports = function(app) {
     var delta = new Delta(app, plugin.id);
     for (var i = 0; i < module.size; i++) {
       var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
-      var value = (status & (1 << i))?1:0;
-      DataTransfer.addValue(path, value);
+      var value = (status.charCodeAt(0) & (1 << i))?1:0;
+      delta.addValue(path, value);
     }
     delta.commit().clear();
     delete delta;
