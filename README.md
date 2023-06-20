@@ -47,7 +47,7 @@ Secondly, the plugin installs on each defined Signal K relay output
 channel a PUT handler that translates state change requests into relay
 device operating commands.
 
-Devantech modules are not consistent in providing positive confirmative
+Devantech modules are not consistent in providing confirmative
 responses to relay operating commands and are somewhat inconsistent in
 the ways in which they can be cajoled into reporting module status.
 The plugin ensures that:
@@ -67,7 +67,7 @@ If you intend using a Devantech relay module from the DS range then
 you must patch your device firmware and then configure your device on
 its host Ethernet network before attempting to use it with this plugin.
 
-The included patch 
+The include file 'ds.patch' adds two 
 
 ### Configuring a DS module
 
