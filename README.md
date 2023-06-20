@@ -11,9 +11,10 @@ that don't warrant the expense of NMEA 2000 hardware and/or are not
 easily serviced by the installed NMEA bus.
 
 The UK supplier Devantech manufactures a range of widely available
-USB, wireless and wired Ethernet relay modules that this plugin
-integrates into Signal K in a manner that echoes the model used
-to interface NMEA 2000 switchbanks.
+USB, wireless and wired Ethernet relay modules that I felt could serve
+as N2K switchbank alternatives in some situations.
+
+This plugin integrates support for Devantech devices into Signal K.
 
 Devantech Ltd\
 Maurice Gaymer Road\
@@ -28,34 +29,45 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 
 ## Description
 
-This plugin implements a control interface for multi-channel relay modules
-manufactured by the UK company Devantech, including devices that interface
-over USB, WiFi and wired Ethernet.
-
+This plugin implements a control interface for multi-channel relay
+modules manufactured by the UK company Devantech, including devices
+that interface over USB, WiFi and wired Ethernet.
 The plugin includes specimen configurations for devices in Devantech's
 USB, TCP and DS ranges and support for additional devices can be added
 through module configuration. 
 
-The plugin offers two distinct services.
+In the Signal K context the plugin offers two distinct services.
 
 Firstly, it provides a mechanism for decorating Signal K's data
 hierarchy with user supplied meta-data that documents a relay module
 in a meaningful way and allows relay channels to be described in
 terms of their function or application.
 
-Secondly, the plugin installs a PUT handler on each defined Signal K
-relay output channel that translates state change requests into relay
+Secondly, the plugin installs on each defined Signal K relay output
+channel a PUT handler that translates state change requests into relay
 device operating commands.
 
 Devantech modules are not consistent in providing positive confirmative
 responses to relay operating commands and are somewhat inconsistent in
 the ways in which they can be cajoled into reporting module status.
+The plugin ensures that:
+
+1. Every relay operation command immediately results in a device status
+   report being received by Signal K (it is this status report that
+   ultimately sets the state of Signal K's switch paths, not the
+   receipt of a PUT command *per-se*).
+
+2. Every 5 seconds a status report is requested from the remote device
+   and this is similarly used to update the state of Signal K's switch
+   paths.
 
 ## Configuration
 
 If you intend using a Devantech relay module from the DS range then
 you must patch your device firmware and then configure your device on
 its host Ethernet network before attempting to use it with this plugin.
+
+The included patch 
 
 ### Configuring a DS module
 
