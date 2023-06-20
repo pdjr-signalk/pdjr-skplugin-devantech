@@ -14,10 +14,6 @@ When Devantech released their DS series of wireless and wired Ethernet
 relay modules they kindly supplied a prototype device which allowed
 the development of this plugin.
 
-Out of the box, the Devantech devices are somewhat limited in their
-status reporting capability and the plugin includes a firmware
-tweak that improves this issue.
-
 Devantech Ltd\
 Maurice Gaymer Road\
 Attleborough\
@@ -31,11 +27,13 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 
 ## Description
 
-This plugin implements a control interface for the DS series of
-multi-channel relay modules manufactured by the UK company
-Devantech.
-This range includes devices that interface over WiFi and wired
-Ethernet.
+This plugin implements a control interface for some multi-channel relay
+modules manufactured by the UK company Devantech,including devices that
+interface over USB, WiFi and wired Ethernet.
+
+The plugin includes configuration data for some devices in the USB, TCP
+and DS ranges.
+Support for additional devices can be added through module configuration. 
 
 The plugin offers two distinct services.
 
@@ -205,6 +203,16 @@ with appropriate values before string transmission.
 
 The plugin will start immediately it is installed but must be
 configured before use.
+At startup the module writes a list of supported device identifiers
+to the Signal K log.
+
+Support for status reportind across the Devantec range is not
+consistently implemented and the plugin seeks to manage this issue
+by requiring that supported devices must (i) report all module relay
+states immediately a relay operation has completed, and (ii)
+provide a mechanism for ad-hoc interrogation of module status.
+
+
 
 ## Author
 
