@@ -32,7 +32,7 @@ This plugin implements a control interface for multi-channel relay modules
 manufactured by the UK company Devantech, including devices that interface
 over USB, WiFi and wired Ethernet.
 
-The plugin includes specimen configuration data for some devices Devantech's
+The plugin includes specimen configurations for devices in Devantech's
 USB, TCP and DS ranges and support for additional devices can be added
 through module configuration. 
 
@@ -49,8 +49,7 @@ device operating commands.
 
 Devantech modules are not consistent in providing positive confirmative
 responses to relay operating commands and are somewhat inconsistent in
-the ways in which device status reports can be requested.
-The plugin works around these problems as best i
+the ways in which they can be cajoled into reporting module status.
 
 ## Configuration
 
