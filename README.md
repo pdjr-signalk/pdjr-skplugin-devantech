@@ -2,7 +2,7 @@
 
 Signal K interface to the
 [Devantech](https://www.devantech.co.uk)
-DS range of general-purpose Ethernet relay modules.
+range of general-purpose relay modules.
 
 ## Background
 
@@ -10,9 +10,10 @@ I have a number of remote domestic switching requirements on my boat
 that don't warrant the expense of NMEA 2000 hardware and/or are not
 easily serviced by the installed NMEA bus.
 
-When Devantech released their DS series of wireless and wired Ethernet
-relay modules they kindly supplied a prototype device which allowed
-the development of this plugin.
+The UK supplier Devantech manufactures a range of widely available
+USB, wireless and wired Ethernet relay modules that this plugin
+integrates into Signal K in a manner that echoes the model used
+to interface NMEA 2000 switchbanks.
 
 Devantech Ltd\
 Maurice Gaymer Road\
@@ -27,13 +28,13 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 
 ## Description
 
-This plugin implements a control interface for some multi-channel relay
-modules manufactured by the UK company Devantech,including devices that
-interface over USB, WiFi and wired Ethernet.
+This plugin implements a control interface for multi-channel relay modules
+manufactured by the UK company Devantech, including devices that interface
+over USB, WiFi and wired Ethernet.
 
-The plugin includes configuration data for some devices in the USB, TCP
-and DS ranges.
-Support for additional devices can be added through module configuration. 
+The plugin includes specimen configuration data for some devices Devantech's
+USB, TCP and DS ranges and support for additional devices can be added
+through module configuration. 
 
 The plugin offers two distinct services.
 
@@ -42,11 +43,14 @@ hierarchy with user supplied meta-data that documents a relay module
 in a meaningful way and allows relay channels to be described in
 terms of their function or application.
 
-Secondly, the plugin installs a handler on each defined Signal K relay
-output channel that translates state change requests into relay module
-operating commands.
+Secondly, the plugin installs a PUT handler on each defined Signal K
+relay output channel that translates state change requests into relay
+device operating commands.
 
-The plugin uses the Devantec module's TCP ASCII module operating mode.
+Devantech modules are not consistent in providing positive confirmative
+responses to relay operating commands and are somewhat inconsistent in
+the ways in which device status reports can be requested.
+The plugin works around these problems as best i
 
 ## Configuration
 
