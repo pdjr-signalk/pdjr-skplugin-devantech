@@ -111,22 +111,9 @@ const STATUS_INTERVAL = 5000;
 const MODULE_ROOT = "electrical.switches.bank.";
 const DEFAULT_DEVICES = [
   {
-    "id": "USB-RLY02-SN USB-RLY02 USB-RLY82",
-    "size": 2,
-    "protocol": "usb",
+    "id": "USB-RLY02-SN USB-RLY02 USB-RLY82 USB-RLY08B USB-RLY16 USB-RLY16L USB-OPTO-RLY88 USB-OPTO-RLY816",
+    "series": "usb",
     "statuscommand": "[",
-    "statuslength": 1,
-    "channels": [
-      { "address": 1, "oncommand": "e", "offcommand": "o" },
-      { "address": 2, "oncommand": "f", "offcommand": "p" }
-    ]
-  },
-  {
-    "id": "USB-RLY08B USB-RLY16 USB-RLY16L USB-OPTO-RLY88 USB-OPTO-RLY816",
-    "size": 8,
-    "protocol": "usb",
-    "statuscommand": "[",
-    "statuslength": 1,
     "channels": [
       { "address": 1, "oncommand": "e", "offcommand": "o" },
       { "address": 2, "oncommand": "f", "offcommand": "p" },
@@ -140,8 +127,7 @@ const DEFAULT_DEVICES = [
   },
   {
     "id": "DS2824",
-    "size": 24,
-    "protocol": "tcp",
+    "series": "ds",
     "statuscommand": "ST",
     "channels": [
       { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
@@ -250,7 +236,8 @@ module.exports = function(app) {
           // data to update Signal K paths with the channel states.
           ondata: (module, status) => {
             app.debug("module %s: received '%s'", module.id, status);
-            switch (module.protocol) {
+            switch (module.series) {
+              // USB series status responses are always 1 byte.
               case "usb":
                 switch (status.length) {
                   case 1:
@@ -260,12 +247,11 @@ module.exports = function(app) {
                     break;
                 }
                 break;
-              // TCP status responses are always the same 32 channel
-              // status report.
-              case "tcp":
+              // DS series status responses are always 32 bytes.
+              case "ds":
                 switch (status.length) {
                   case 32:
-                    tcpStatusHandler(module, status);
+                    dsStatusHandler(module, status);
                     break;
                   default:
                     app.debug("module %s: unrecognised status data (%s)", module.id, status);
@@ -316,7 +302,7 @@ module.exports = function(app) {
             relayCommand = ((value)?channel.oncommand:channel.offcommand) + "\n";
             module.connection.stream.write(relayCommand);
             retval.statusCode = 200;
-            log.N("sending '%s' to module '%s'", relayCommand, moduleId);
+            log.N("sending '%s' to module '%s'", relayCommand.trim(), moduleId);
           } else {
             retval.message = "error recovering channel configuration";
           }
@@ -340,7 +326,7 @@ module.exports = function(app) {
    * Update the Signal K switch paths associated with module so that
    * they conform to status.
    */
-  function tcpStatusHandler(module, status) {
+  function dsStatusHandler(module, status) {
     clearTimeout(intervalId);
     var delta = new Delta(app, plugin.id);
     for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
@@ -386,38 +372,38 @@ module.exports = function(app) {
 
     if (module.deviceid) {
       if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
-        module.size = device.size;
-        module.protocol = device.protocol;
+        module.series = device.series;
         module.statuscommand = device.statuscommand;
-        module.statuslength = device.statuslength;
         module.authenticationtoken = device.authenticationtoken;
-        if (module.cobject = parseConnectionString(module.cstring)) {
-          module.channels.forEach(channel => {
-            oncommand = null;
-            offcommand = null;
-            if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
-              oncommand = device.channels[0].oncommand;
-              offcommand = device.channels[0].offcommand;
-            } else {
-              oncommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.oncommand:a), null);
-              offcommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.offcommand:a), null);
-            }
-            if (oncommand) oncommand = oncommand
-              .replace('{A}', module.authenticationtoken)
-              .replace("{c}", channel.index)
-              .replace('{C}', String.fromCharCode(channel.index))
-              .replace("{p}", module.cobject.password)
-              .replace("{u}", channel.index)
-            if (offcommand) offcommand = offcommand
-              .replace('{A}', module.authenticationtoken)
-              .replace("{c}", channel.index)
-              .replace('{C}', String.fromCharCode(channel.index))
-              .replace("{p}", module.cobject.password)
-              .replace("{u}", channel.index)
-            channel.oncommand = oncommand;
-            channel.offcommand = offcommand;
-          });
-          retval = module;
+        if (module.size) {
+          if (module.cobject = parseConnectionString(module.cstring)) {
+            module.channels.forEach(channel => {
+              oncommand = null;
+              offcommand = null;
+              if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
+                oncommand = device.channels[0].oncommand;
+                offcommand = device.channels[0].offcommand;
+              } else {
+                oncommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.oncommand:a), null);
+                offcommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.offcommand:a), null);
+              }
+              if (oncommand) oncommand = oncommand
+                .replace('{A}', module.authenticationtoken)
+                .replace("{c}", channel.index)
+                .replace('{C}', String.fromCharCode(channel.index))
+                .replace("{p}", module.cobject.password)
+                .replace("{u}", channel.index)
+              if (offcommand) offcommand = offcommand
+                .replace('{A}', module.authenticationtoken)
+                .replace("{c}", channel.index)
+                .replace('{C}', String.fromCharCode(channel.index))
+                .replace("{p}", module.cobject.password)
+                .replace("{u}", channel.index)
+              channel.oncommand = oncommand;
+              channel.offcommand = offcommand;
+            });
+            retval = module;
+          }
         }
       }
     }
@@ -440,8 +426,8 @@ module.exports = function(app) {
   }
 
   function connectModule(module, options) {
-    switch (module.protocol) {
-      case 'tcp':
+    switch (module.series) {
+      case 'ds':
         module.connection = { stream: false };
         module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, () => {
           module.connection.stream = module.connection.socket;
