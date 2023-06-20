@@ -336,6 +336,7 @@ module.exports = function(app) {
    * @param {*} module - the module from which the status was received.
    * @param {*} status - the module status.
    * 
+   * 
    * Update the Signal K switch paths associated with module so that
    * they conform to status.
    */
