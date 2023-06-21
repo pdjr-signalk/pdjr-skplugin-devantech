@@ -138,7 +138,6 @@ const DEFAULT_DEVICES = [
 module.exports = function(app) {
   var plugin = {};
   var unsubscribes = [];
-  var intervalId = null;
   var globalOptions = null;
 
   plugin.id = PLUGIN_ID;
@@ -243,7 +242,7 @@ module.exports = function(app) {
           // TCP connection closed by remote module. This is really an
           // error.
           onclose: (module) => {
-            if (intervalId) { clearInterval(intervalId); intervalId = null; }
+            if (module.connection.intervalId) { clearInterval(module.connection.intervalId); module.connection.intervalId = null; }
             log.E("module '%s' closed comms connection", module.id); 
           }
         });
@@ -318,7 +317,7 @@ module.exports = function(app) {
    * they conform to status.
    */
   function updatePathsFromStatus(module, status) {
-    clearTimeout(intervalId);
+    clearTimeout(module.connection.intervalId);
     var delta = new Delta(app, plugin.id);
     var error = false;
     for (var channel = 1; channel <= module.size; channel++) {
@@ -337,7 +336,7 @@ module.exports = function(app) {
     }
     delta.commit().clear();
     delete delta;
-    intervalId = setTimeout(() => module.connection.stream.write(module.statuscommand), STATUS_INTERVAL);
+    module.connection.intervalId = setTimeout(() => module.connection.stream.write(module.statuscommand), STATUS_INTERVAL);
     if (error) throw new Error('invalid status value');
 
     function getDsChannelState(status, channel) {
@@ -355,6 +354,7 @@ module.exports = function(app) {
         throw new Error();
       }
     }
+
   }
   
   function elaborateModuleConfiguration(module, devices) {  
@@ -420,15 +420,12 @@ module.exports = function(app) {
     switch (module.series) {
       case 'ds':
         module.connection = { stream: false };
-        module.connection.socket = net.createConnection(module.cobject.port, module.cobject.host, () => {
-          module.connection.stream = module.connection.socket;
-          options.onopen(module);
-
-          module.connection.socket.on('data', (buffer) => { options.ondata(module, buffer.toString().trim()) });
-          module.connection.socket.on('close', () => { options.onclose(module); });
-          module.connection.socket.on('timeout', () => { module.connection.socket.end(); });
-          module.connection.socket.on('error', () => { });
-        });
+        module.connection.socket = net.createConnection(module.cobject.port, module.cobject.host);
+        module.connection.socket.on('open', () => { module.connection.stream = module.connection.socket; options.onopen(module); })
+        module.connection.socket.on('data', (buffer) => { options.ondata(module, buffer.toString().trim()) });
+        module.connection.socket.on('close', () => { options.onclose(module); });
+        module.connection.socket.on('timeout', () => { module.connection.socket.end(); });
+        module.connection.socket.on('error', () => { module.connection.socket = net.createConnection(module.cobject.port, module.cobject.host) });
         break;
       case 'usb':
         module.connection = { stream: false };
