@@ -105,7 +105,7 @@ const PLUGIN_SCHEMA = {
     "devices": []
   }
 };
-const PLUGIN_UISCHEMA_FILE = {};
+const PLUGIN_UISCHEMA = {};
 
 const STATUS_INTERVAL = 5000;
 const MODULE_ROOT = "electrical.switches.bank.";
@@ -145,7 +145,7 @@ module.exports = function(app) {
   plugin.name = PLUGIN_NAME;
   plugin.description = PLUGIN_DESCRIPTION;
   plugin.schema = PLUGIN_SCHEMA;
-  plugin.uiSchema = {};
+  plugin.uiSchema = PLUGIN_UISCHEMA;
 
   const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
@@ -236,30 +236,10 @@ module.exports = function(app) {
           // data to update Signal K paths with the channel states.
           ondata: (module, status) => {
             app.debug("module %s: received '%s'", module.id, status);
-            switch (module.series) {
-              // USB series status responses are always 1 byte.
-              case "usb":
-                switch (status.length) {
-                  case 1:
-                    usbStatusHandler(module, status);
-                    break;
-                  default:
-                    break;
-                }
-                break;
-              // DS series status responses are always 32 bytes.
-              case "ds":
-                switch (status.length) {
-                  case 32:
-                    dsStatusHandler(module, status);
-                    break;
-                  default:
-                    app.debug("module %s: unrecognised status data (%s)", module.id, status);
-                    break;
-                }
-                break;
-              default:
-                break;
+            try {
+              updatePathsFromStatus(module, status);
+            } catch(e) {
+              app.debug("module '%s': %s", e.message);
             }
           },
           // TCP connection closed by remote module. This is really an
@@ -316,56 +296,69 @@ module.exports = function(app) {
       retval.message = "error recovering module id from path";
     }
     return(retval);
+
+    function getModuleFromModuleId(moduleId) {
+      return(globalOptions.modules.reduce((a,m) => ((m.id == moduleId)?m:0), null));
+    }
+  
+    function getModuleIdFromPath(path) {
+      var parts = path.split('.');
+      return((parts.length >= 4)?parts[3]:null);
+    }
+  
+    function getChannelIndexFromPath(path) {
+      var parts = path.split('.');
+      return((parts.length >= 5)?parts[4]:null);
+    }  
   }
 
   /**
    * @param {*} module - the module from which the status was received.
    * @param {*} status - the module status.
    * 
-   * 
    * Update the Signal K switch paths associated with module so that
    * they conform to status.
    */
-  function dsStatusHandler(module, status) {
+  function updatePathsFromStatus(module, status) {
     clearTimeout(intervalId);
     var delta = new Delta(app, plugin.id);
-    for (var i = 0; ((i < status.length) && (i < module.size)); i++) {
-      var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
-      var value = (status.charAt(i) == '0')?0:1;
-      delta.addValue(path, value);
+    var error = false;
+    for (var channel = 1; channel <= module.size; channel++) {
+      var path = MODULE_ROOT + module.id + "." + channel + ".state";
+      try {
+        var value;
+        switch (module.series) {
+          case 'usb': value = getUsbChannelState(status, channel); break;
+          case 'ds':  value = getDsChannelState(status, channel); break;
+          case 'eth': value = 0;
+        }
+        delta.addValue(path, value);
+      } catch(e) {
+        error = true;
+      }
     }
     delta.commit().clear();
     delete delta;
     intervalId = setTimeout(() => module.connection.stream.write(module.statuscommand), STATUS_INTERVAL);
-  }
+    if (error) throw new Error('invalid status value');
 
-  function usbStatusHandler(module, status) {
-    clearTimeout(intervalId);
-    var delta = new Delta(app, plugin.id);
-    for (var i = 0; i < module.size; i++) {
-      var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
-      var value = (status.charCodeAt(0) & (1 << i))?1:0;
-      delta.addValue(path, value);
+    function getDsChannelState(status, channel) {
+      if (status.length == 32) {
+        return((status.charAt(channel - 1) == '0')?0:1);
+      } else {
+        throw new Error();
+      }
     }
-    delta.commit().clear();
-    delete delta;
-    intervalId = setTimeout(() => module.connection.stream.write(module.statuscommand), STATUS_INTERVAL);
-  }
 
-  function getModuleFromModuleId(moduleId) {
-    return(globalOptions.modules.reduce((a,m) => ((m.id == moduleId)?m:0), null));
+    function getUsbChannelState(status, channel) {
+      if (status.length == 1) {
+        return((status.charCodeAt(0) & (1 << (channel - 1)))?1:0);
+      } else {
+        throw new Error();
+      }
+    }
   }
-
-  function getModuleIdFromPath(path) {
-    var parts = path.split('.');
-    return((parts.length >= 4)?parts[3]:null);
-  }
-
-  function getChannelIndexFromPath(path) {
-    var parts = path.split('.');
-    return((parts.length >= 5)?parts[4]:null);
-  }
-
+  
   function elaborateModuleConfiguration(module, devices) {  
     var device, oncommand, offcommand;
     var retval = { "id": module.id };
