@@ -213,23 +213,21 @@ module.exports = function(app) {
        */
 
       options.modules.forEach(module => {
+        module.channels.forEach(ch => {
+          var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
+          app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
+        });
+      });
+
+      options.modules.forEach(module => {
         app.debug("module %s: trying to connect... (%s)", module.id, module.cstring);
 
         connectModule(module, {
-          // We had an error.
-          onerror: (err) => {
-            if (intervalId) { clearInterval(intervalId); intervalId = null; }
-            log.E("communication error on module '%s' (%s)", module.id, err);
-          },
           // Once module is open, request a status update and register
           // a PUT handler for every channel path.
           onopen: (module) => { 
             app.debug("module %s: ...connected", module.id); 
             module.connection.stream.write(module.statuscommand);
-            module.channels.forEach(ch => {
-              var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
-              app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
-            });
           },
           // Incoming data is either a response to a channel update
           // or a response to a status request. We use the received
@@ -422,14 +420,14 @@ module.exports = function(app) {
     switch (module.series) {
       case 'ds':
         module.connection = { stream: false };
-        module.connection.socket = new net.createConnection(module.cobject.port, module.cobject.host, () => {
+        module.connection.socket = net.createConnection(module.cobject.port, module.cobject.host, () => {
           module.connection.stream = module.connection.socket;
           options.onopen(module);
 
           module.connection.socket.on('data', (buffer) => { options.ondata(module, buffer.toString().trim()) });
           module.connection.socket.on('close', () => { options.onclose(module); });
           module.connection.socket.on('timeout', () => { module.connection.socket.end(); });
-          module.connection.socket.on('error', () => { options.onerror(module); });
+          module.connection.socket.on('error', () => { });
         });
         break;
       case 'usb':
