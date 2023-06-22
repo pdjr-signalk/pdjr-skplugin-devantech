@@ -205,12 +205,7 @@ module.exports = function(app) {
       });
       delta.commit().clear();
 
-      /****************************************************************
-       * Iterate over each module, connecting it to its associated
-       * relay device and arranging for callback to these event
-       * handlers.
-       */
-
+      // Install put handlers.
       options.modules.forEach(module => {
         module.channels.forEach(ch => {
           var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
