@@ -244,6 +244,9 @@ module.exports = function(app) {
           onclose: (module) => {
             if (module.connection.intervalId) { clearInterval(module.connection.intervalId); module.connection.intervalId = null; }
             log.E("module '%s' closed comms connection", module.id); 
+          },
+          onError: (module) => {
+            log.E("module '%s' connection error", module.id); 
           }
         });
       });
@@ -429,26 +432,29 @@ module.exports = function(app) {
         break;
       case 'usb':
         module.connection = { stream: false };
-        module.connection.serialport = new SerialPort(module.cobject.device, { baudRate: 19200 });
-        module.connection.serialport.on('open', () => {
-          module.connection.stream = module.connection.serialport;
-          module.connection.parser = new ByteLength({ length: 1 });
-          module.connection.serialport.pipe(module.connection.parser);
-          options.onopen(module);
+        module.connection.serialport = new SerialPort(module.cobject.device, { baudRate: 19200 }, (err) => {
+          if (err) {
+            options.onError(module);
+          } else {
+            module.connection.stream = module.connection.serialport;
+            module.connection.parser = new ByteLength({ length: 1 });
+            module.connection.serialport.pipe(module.connection.parser);
+            options.onopen(module);
         
-          module.connection.parser.on('data', (buffer) => {
-            options.ondata(module, buffer.toString().trim());
-          });
+            module.connection.parser.on('data', (buffer) => {
+              options.ondata(module, buffer.toString().trim());
+            });
 
-          module.connection.serialport.on('close', () => {
-            module.connection.stream = false;
-            options.onclose(module);
-          });
+            module.connection.serialport.on('close', () => {
+              module.connection.stream = false;
+              options.onclose(module);
+            });
 
-          module.connection.serialport.on('error', (err) => {
-            module.connection.stream = false;
-          });
-
+            module.connection.serialport.on('error', (err) => {
+              module.connection.stream = false;
+              options.error(module);
+            });
+          }
         });
         break;
       default:
