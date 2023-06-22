@@ -283,17 +283,9 @@ module.exports = function(app) {
             module.connection.stream.write(relayCommand);
             retval.statusCode = 200;
             log.N("sending '%s' to module '%s'", relayCommand.trim(), moduleId);
-          } else {
-            retval.message = "error recovering channel configuration";
           }
-        } else {
-          retval.message = "error recovering channel index from path";
         }
-      } else {
-        retval.message = "error recovering module configuration";
       }
-    } else {
-      retval.message = "error recovering module id from path";
     }
     return(retval);
 
