@@ -429,27 +429,26 @@ module.exports = function(app) {
         break;
       case 'usb':
         module.connection = { stream: false };
-        module.connection.serialport = new SerialPort(module.cobject.device, { baudRate: 19200 }, (err) => {
-          if (err) {
-            options.onerror(err);
-          }
-        });
+        module.connection.serialport = new SerialPort(module.cobject.device, { baudRate: 19200 });
         module.connection.serialport.on('open', () => {
           module.connection.stream = module.connection.serialport;
           module.connection.parser = new ByteLength({ length: 1 });
           module.connection.serialport.pipe(module.connection.parser);
           options.onopen(module);
+        
           module.connection.parser.on('data', (buffer) => {
             options.ondata(module, buffer.toString().trim());
           });
+
           module.connection.serialport.on('close', () => {
             module.connection.stream = false;
             options.onclose(module);
           });
+
           module.connection.serialport.on('error', (err) => {
             module.connection.stream = false;
-            options.onerror(err);
           });
+
         });
         break;
       default:
