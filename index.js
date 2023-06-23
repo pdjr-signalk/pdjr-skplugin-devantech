@@ -155,6 +155,7 @@ module.exports = function(app) {
     // configuration options, so we elevate them to the plugin global
     // namespace. 
     globalOptions = options;
+    options = globalOptions;
 
     // If the user has configured their own devices, then add them
     // to the embedded defaults.
@@ -240,7 +241,7 @@ module.exports = function(app) {
             if (module.connection.intervalId) { clearInterval(module.connection.intervalId); module.connection.intervalId = null; }
             log.E("module '%s' closed comms connection", module.id); 
           },
-          onError: (module) => {
+          onerror: (module) => {
             log.E("module '%s' connection error", module.id); 
           }
         });
@@ -284,10 +285,6 @@ module.exports = function(app) {
     }
     return(retval);
 
-    function getModuleFromModuleId(moduleId) {
-      return(globalOptions.modules.reduce((a,m) => ((m.id == moduleId)?m:0), null));
-    }
-  
     function getModuleIdFromPath(path) {
       var parts = path.split('.');
       return((parts.length >= 4)?parts[3]:null);
@@ -296,9 +293,14 @@ module.exports = function(app) {
     function getChannelIndexFromPath(path) {
       var parts = path.split('.');
       return((parts.length >= 5)?parts[4]:null);
-    }  
+    }
+  
+    function getModuleFromModuleId(moduleId) {
+      return(globalOptions.modules.reduce((a,m) => ((m.id == moduleId)?m:a), null));
+    }
+    
   }
-
+  
   /**
    * @param {*} module - the module from which the status was received.
    * @param {*} status - the module status.
@@ -421,7 +423,7 @@ module.exports = function(app) {
         module.connection = { stream: false };
         module.connection.serialport = new SerialPort(module.cobject.device, { baudRate: 19200 }, (err) => {
           if (err) {
-            options.onError(module);
+            options.onerror(module);
           } else {
             module.connection.stream = module.connection.serialport;
             module.connection.parser = new ByteLength({ length: 1 });
@@ -439,7 +441,7 @@ module.exports = function(app) {
 
             module.connection.serialport.on('error', (err) => {
               module.connection.stream = false;
-              options.error(module);
+              options.onerror(module);
             });
           }
         });
