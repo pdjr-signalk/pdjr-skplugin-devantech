@@ -29,13 +29,25 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 
 ## Description
 
-This plugin implements a control interface for multi-channel relay
-modules manufactured by the UK company Devantech, including devices
-that interface over USB, WiFi and wired Ethernet.
-The plugin includes specimen configurations for devices in Devantech's
-USB, TCP and DS ranges and support for additional devices can be added
-through module configuration.
+This plugin implements a control interface for the multi-channel
+'DS-series' Ethernet relay devices manufactured by the UK company
+Devantech.
 
+DS devices used with the plugin must be configured to issue module
+status reports periodically and on any relay state change.
+
+The plugin listens on a specified TCP 'status' port for incoming status
+reports and when a report is received from a previously unconnected
+device which is identified in the module configuration then the plugin
+opens a TCP 'command' command connection to the device and begins
+controlling the module remotely.
+If the command connection is lost for whatever reason, then it will
+simply be re-made as soon as a new status report is receved.
+
+The control mechanism is resilient to network outage and allows ad-hoc
+connection of devices as long as they are defined in the module
+configuration.
+ 
 Optimum (that is, reliable and resilient) support is provided for DS
 series modules.
 The plugin will detect the presence of an appropriately configured DS

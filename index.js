@@ -27,6 +27,9 @@ const PLUGIN_DESCRIPTION = "Signal K interface to the Devantech range of general
 const PLUGIN_SCHEMA = {
   "type": "object",
   "properties": {
+    "statusListenerPort": {
+      "type": "number"
+    },
     "modules" : {
       "title": "Modules",
       "type": "array",
@@ -111,23 +114,7 @@ const STATUS_INTERVAL = 5000;
 const MODULE_ROOT = "electrical.switches.bank.";
 const DEFAULT_DEVICES = [
   {
-    "id": "USB-RLY02-SN USB-RLY02 USB-RLY82 USB-RLY08B USB-RLY16 USB-RLY16L USB-OPTO-RLY88 USB-OPTO-RLY816",
-    "series": "usb",
-    "statuscommand": "[",
-    "channels": [
-      { "address": 1, "oncommand": "e", "offcommand": "o" },
-      { "address": 2, "oncommand": "f", "offcommand": "p" },
-      { "address": 3, "oncommand": "g", "offcommand": "q" },
-      { "address": 4, "oncommand": "h", "offcommand": "r" },
-      { "address": 5, "oncommand": "i", "offcommand": "s" },
-      { "address": 6, "oncommand": "j", "offcommand": "t" },
-      { "address": 7, "oncommand": "k", "offcommand": "u" },
-      { "address": 8, "oncommand": "l", "offcommand": "v" }
-    ]
-  },
-  {
     "id": "DS2824",
-    "series": "ds",
     "statuscommand": "ST",
     "channels": [
       { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
@@ -355,7 +342,6 @@ module.exports = function(app) {
 
     if (module.deviceid) {
       if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
-        module.series = device.series;
         module.statuscommand = device.statuscommand;
         module.authenticationtoken = device.authenticationtoken;
         if (module.size) {
@@ -395,60 +381,23 @@ module.exports = function(app) {
     function parseConnectionString(cstring) {
       var retval = null;
 
-      if (matches = cstring.match(/^(.*)\:(.*)@(.*)\:(.*)$/)) {
-        retval = { "username": matches[1], "password": matches[2], "host": matches[3], "port": matches[4] };
-      } else if (matches = cstring.match(/^(.*)@(.*)\:(.*)$/)) {
+      if (matches = cstring.match(/^(.*)@(.*)\:(.*)$/)) {
         retval = { "password": matches[1], "host": matches[2], "port": matches[3] };
       } else if (matches = cstring.match(/^(.*)\:(.*)$/)) {
         retval = { "host": matches[1], "port": matches[2] };
-      } else if (matches = cstring.match(/^(.*)$/)) {
-        retval = { "device": matches[1] };
       }
       return(retval);
     }
   }
 
   function connectModule(module, options) {
-    switch (module.series) {
-      case 'ds':
-        module.connection = { stream: false };
-        module.connection.socket = net.createConnection(module.cobject.port, module.cobject.host);
-        module.connection.socket.on('open', () => { module.connection.stream = module.connection.socket; options.onopen(module); })
-        module.connection.socket.on('data', (buffer) => { options.ondata(module, buffer.toString().trim()) });
-        module.connection.socket.on('close', () => { options.onclose(module); });
-        module.connection.socket.on('timeout', () => { module.connection.socket.end(); });
-        module.connection.socket.on('error', () => { module.connection.socket = net.createConnection(module.cobject.port, module.cobject.host) });
-        break;
-      case 'usb':
-        module.connection = { stream: false };
-        module.connection.serialport = new SerialPort(module.cobject.device, { baudRate: 19200 }, (err) => {
-          if (err) {
-            options.onerror(module);
-          } else {
-            module.connection.stream = module.connection.serialport;
-            module.connection.parser = new ByteLength({ length: 1 });
-            module.connection.serialport.pipe(module.connection.parser);
-            options.onopen(module);
-        
-            module.connection.parser.on('data', (buffer) => {
-              options.ondata(module, buffer.toString().trim());
-            });
-
-            module.connection.serialport.on('close', () => {
-              module.connection.stream = false;
-              options.onclose(module);
-            });
-
-            module.connection.serialport.on('error', (err) => {
-              module.connection.stream = false;
-              options.onerror(module);
-            });
-          }
-        });
-        break;
-      default:
-        break;
-    }
+    module.connection = null;
+    module.connection = net.createConnection(module.cobject.port, module.cobject.host);
+    module.connection.on('open', () => { module.connection.stream = module.connection.socket; })
+    module.connection.on('data', (buffer) => { });
+    module.connection.on('close', () => { module.connection = null; });
+    module.connection.on('timeout', () => { module.connection.end(); });
+    module.connection.on('error', () => { module.connection.end(); });
   }
 
   function startTCPServer(port) {
@@ -456,7 +405,7 @@ module.exports = function(app) {
 
       client.on('connection', (stream) => {
         var address = stream.remoteAddress;
-        var module = globalOptions.modules.reduce((a,m) => ((m.cstring.split(':')[0] == address)?m:a), null);
+        var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == address)?m:a), null);
         if (module) connectModule(module, globalOptions);
         }
       });
