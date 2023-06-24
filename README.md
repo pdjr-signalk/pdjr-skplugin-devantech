@@ -34,7 +34,15 @@ modules manufactured by the UK company Devantech, including devices
 that interface over USB, WiFi and wired Ethernet.
 The plugin includes specimen configurations for devices in Devantech's
 USB, TCP and DS ranges and support for additional devices can be added
-through module configuration. 
+through module configuration.
+
+Optimum (that is, reliable and resilient) support is provided for DS
+series modules.
+The plugin will detect the presence of an appropriately configured DS
+device on its host Ethernet and establish and operate a control
+connection whenever the device appears.
+Transient failures in communication and ad-hoc device presence are
+handled seamlessly.
 
 In the Signal K context the plugin offers two distinct services.
 
@@ -47,9 +55,18 @@ Secondly, the plugin installs on each defined Signal K relay output
 channel a PUT handler that translates state change requests into relay
 device operating commands.
 
+The most reliable devices supported by the plugin are those in the
+DS range.
+These can be configured to automatically report their status to the
+Signal K host and the plugin will use these report messages as a
+trigger for establishing control communication with the remote device.
+  
+
 Devantech modules are not consistent in providing confirmative
 responses to relay operating commands and are somewhat inconsistent in
 the ways in which they can be cajoled into reporting module status.
+
+
 The plugin ensures that:
 
 1. Every relay operation command immediately results in a device status

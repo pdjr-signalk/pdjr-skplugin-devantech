@@ -451,6 +451,29 @@ module.exports = function(app) {
     }
   }
 
+  function startTCPServer(port) {
+    const socket = net.createServer((socket_object) => {
+
+      socket_object.on("data", (data) => {
+        console.log(data);
+      });
+
+      socket_object.on("end", () => {
+
+      });
+
+      socket_object.on("error", () => {
+        console.log(err);
+      });
+
+    });
+
+    socket.listen(port, () => {
+        log.N("TCP server listening on port %d", port);
+    });
+  }
+
+
   return(plugin);
 
 }
