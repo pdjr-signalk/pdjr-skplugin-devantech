@@ -452,23 +452,31 @@ module.exports = function(app) {
   }
 
   function startTCPServer(port) {
-    const socket = net.createServer((socket_object) => {
+    const server = net.createServer((client) => {
 
-      socket_object.on("data", (data) => {
+      client.on('connection', (stream) => {
+        var address = stream.remoteAddress;
+        var module = globalOptions.modules.reduce((a,m) => ((m.cstring.split(':')[0] == address)?m:a), null);
+        if (module) connectModule(module, globalOptions);
+        }
+      });
+
+      client.on("data", (data) => {
+
         console.log(data);
       });
 
-      socket_object.on("end", () => {
+      client.on("end", () => {
 
       });
 
-      socket_object.on("error", () => {
+      client.on("error", () => {
         console.log(err);
       });
 
     });
 
-    socket.listen(port, () => {
+    server.listen(port, () => {
         log.N("TCP server listening on port %d", port);
     });
   }
