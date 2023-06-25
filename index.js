@@ -234,7 +234,7 @@ module.exports = function(app) {
           if (channelIndex = getChannelIndexFromPath(path)) {
             if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
               relayCommand = ((value)?channel.oncommand:channel.offcommand) + "\n";
-              module.connection.stream.write(relayCommand);
+              module.connection.write(relayCommand);
               retval.statusCode = 200;
               log.N("sending '%s' to module '%s'", relayCommand.trim(), moduleId);
             }
@@ -410,15 +410,27 @@ module.exports = function(app) {
       });
 
       client.on("data", (data) => {
-        app.debug("received data from");
-        var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == client.remoteAddress)?m:a), null);
-
+        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+        app.debug("received data from %s (%s)", clientIP, data.toString());
+        var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
         if (module) {
           if (module.connection == null) {
-            app.debug("opening command connection for device at '%s' (module %s)", client.remoteAddress, module.id);
+            app.debug("opening command connection for device at '%s' (module %s)", clientIP, module.id);
             connectModule(module, globalOptions);
           } else {
-            app.debug("device at %s (module '%s') already has a command connection", client.remoteAddress, module.id);
+            app.debug("device at %s (module '%s') already has a command connection", clientIP, module.id);
+          }
+          var status = data.toString().split('\n');
+          status = status[1].trim();
+          if (status.length == 32) {
+            var delta = new Delta(app, plugin.id);
+            for (var i = 0; i < module.size; i++) {
+              var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
+              var value = (status.charAt(i) == '0')?0:1;
+              delta.addValue(path, value);
+            }
+            delta.commit().clear();
+            delete delta;
           }
         }
       });
@@ -429,9 +441,7 @@ module.exports = function(app) {
 
     });
 
-    server.listen(port, () => {
-        log.N("TCP server listening for status notifications on port %d", port);
-    });
+    server.listen(port, () => { app.debug("TCP server started on port %d", port); });
   }
 
 
