@@ -391,42 +391,67 @@ module.exports = function(app) {
   }
 
   function connectModule(module, options) {
-    module.connection = null;
     module.connection = net.createConnection(module.cobject.port, module.cobject.host);
-    module.connection.on('open', () => { module.connection.stream = module.connection.socket; })
+    module.connection.on('open', () => { log.N("command connection to moduke '%s' is open", module.id); })
     module.connection.on('data', (buffer) => { });
-    module.connection.on('close', () => { module.connection = null; });
-    module.connection.on('timeout', () => { module.connection.end(); });
-    module.connection.on('error', () => { module.connection.end(); });
+    module.connection.on('close', () => { log.N("command connection to module '%s' has closed", module.id); module.connection = null; });
+    module.connection.on('timeout', () => { });
+    module.connection.on('error', () => { });
   }
 
+  /**
+   * Open a status report listener on a specified port
+   * 
+   * The listener waits for TCP connections and then validates them by
+   * checking that the connecting client is defined as a module in the
+   * plugin configuration.
+   * 
+   * Clients which fail this test are summarily disconnected. Clients
+   * which pass have their connection allowed and subsequent data
+   * transmissions are viewed as valid device status reports.
+   * 
+   * A check is made to determine if a validated client has an open
+   * command connection, and if not, an attempt is made to open a TCP
+   * channel to the remote device over which the plugin can send relay
+   * operating commands.
+   *  
+   * @param {*} port - the port on which to listen for DS device client connections.
+   */
   function startTCPServer(port) {
     const server = net.createServer((client) => {
 
       client.on('connection', (stream) => {
-        var address = stream.remoteAddress;
-        var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == address)?m:a), null);
-        if (module) connectModule(module, globalOptions);
+        var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == client.remoteAddress)?m:a), null);
+        if (module) {
+          if (module.connection == null) {
+            log.N("opening command connection for module '%s' (%s)", module.id, client.remoteAddress);
+            connectModule(module, globalOptions);
+          } else {
+            app.debug("device at %s (module '%s') already has a command connection", client.remoteAddress, module.id);
+          }
+        } else {
+          log.W("device at %s is issuing status reports but is not configured for command connection", client.remoteAddress);
+          client.destroy();
         }
       });
 
       client.on("data", (data) => {
-
-        console.log(data);
+        app.debug("received data from");
+        var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == client.remoteAddress)?m:a), null);
+        if (module) {
+        } else {
+          log.W("ignoring status notification from unknown client (%s)", client.remoteAddress);
+        }
       });
 
-      client.on("end", () => {
+      client.on("end", () => {} );
 
-      });
-
-      client.on("error", () => {
-        console.log(err);
-      });
+      client.on("error", () => {});
 
     });
 
     server.listen(port, () => {
-        log.N("TCP server listening on port %d", port);
+        log.N("TCP server listening for status notifications on port %d", port);
     });
   }
 
