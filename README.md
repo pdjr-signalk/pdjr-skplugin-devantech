@@ -32,29 +32,23 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 This plugin implements a control interface for the multi-channel
 'DS-series' Ethernet relay devices manufactured by the UK company
 Devantech.
-DS devices that ar eto be used with this plugin must be configured
+DS devices that are to be used with this plugin must be configured
 to issue relay status reports periodically and on any relay state
 change.
+See below for a description of how to do this.
 
-The plugin listens on a specified TCP 'status' port for incoming status
-reports and when a report is received from a previously unconnected
-device which is identified in the module configuration then the plugin
-opens a TCP 'command' command connection to the device and begins
-controlling the module remotely.
+The plugin listens on a specified TCP 'status' port for incoming
+device status notifications.
+When a report is received from a previously unconnected device which
+is identified in the module configuration then the plugin opens a TCP
+'command' connection to the device and begins controlling the module
+remotely.
 If the command connection is lost for whatever reason, then it will
 simply be re-made as soon as a new status report is receved.
 
 The control mechanism is resilient to network outage and allows ad-hoc
 connection of devices as long as they are defined in the module
 configuration.
- 
-Optimum (that is, reliable and resilient) support is provided for DS
-series modules.
-The plugin will detect the presence of an appropriately configured DS
-device on its host Ethernet and establish and operate a control
-connection whenever the device appears.
-Transient failures in communication and ad-hoc device presence are
-handled seamlessly.
 
 In the Signal K context the plugin offers two distinct services.
 
@@ -63,42 +57,14 @@ hierarchy with user supplied meta-data that documents a relay module
 in a meaningful way and allows relay channels to be described in
 terms of their function or application.
 
-Secondly, the plugin installs on each defined Signal K relay output
-channel a PUT handler that translates state change requests into relay
-device operating commands.
-
-The most reliable devices supported by the plugin are those in the
-DS range.
-These can be configured to automatically report their status to the
-Signal K host and the plugin will use these report messages as a
-trigger for establishing control communication with the remote device.
-  
-
-Devantech modules are not consistent in providing confirmative
-responses to relay operating commands and are somewhat inconsistent in
-the ways in which they can be cajoled into reporting module status.
-
-
-The plugin ensures that:
-
-1. Every relay operation command immediately results in a device status
-   report being received by Signal K (it is this status report that
-   ultimately sets the state of Signal K's switch paths, not the
-   receipt of a PUT command *per-se*).
-
-2. Every 5 seconds a status report is requested from the remote device
-   and this is similarly used to update the state of Signal K's switch
-   paths.
+Secondly, the plugin installs a PUT handler on each Signal K switch
+path that is associated with a relay device channel.
+The PUT handler translates state change requests directed at a switch
+path into relay device operating commands.
 
 ## Configuration
 
-If you intend using a Devantech relay module from the DS range then
-you must patch your device firmware and then configure your device on
-its host Ethernet network before attempting to use it with this plugin.
-
-The include file 'ds.patch' adds two 
-
-### Configuring a DS module
+### Configuring a DS module for use with this plugin
 
 This plugin includes a patch for the firmware of DS series Devantech
 relay modules which adds two new commands to the TCP ASCII control
