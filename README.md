@@ -66,6 +66,14 @@ path into relay device operating commands.
 
 ### Configuring a DS module for use with this plugin
 
+1. Enable 'Event Notifications' for all the relays on the host module
+   and also for the virtual relay R32. 'Target IP' should be set to the
+   IP address of the Signal K host and 'Target Port' to the same value
+   as the 'statusListenerPort' property in the plugin configuration.
+   Set 'TCP/IP Timeout' to 5000.
+
+2. Set up a  
+
 This plugin includes a patch for the firmware of DS series Devantech
 relay modules which adds two new commands to the TCP ASCII control
 groups.
