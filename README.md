@@ -32,9 +32,9 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 This plugin implements a control interface for the multi-channel
 'DS-series' Ethernet relay devices manufactured by the UK company
 Devantech.
-
-DS devices used with the plugin must be configured to issue module
-status reports periodically and on any relay state change.
+DS devices that ar eto be used with this plugin must be configured
+to issue relay status reports periodically and on any relay state
+change.
 
 The plugin listens on a specified TCP 'status' port for incoming status
 reports and when a report is received from a previously unconnected

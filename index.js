@@ -163,7 +163,6 @@ module.exports = function(app) {
       });
 
     // So now we have a list of prepared, valid, modules.
-    log.N("started: operating %d module%s (%s)", options.modules.length, ((options.modules.length == 1)?"":"s"), options.modules.map(m => m.id).join(","));
 
     if (options.modules.length) {
 
@@ -201,38 +200,9 @@ module.exports = function(app) {
         });
       });
 
-      options.modules.forEach(module => {
-        app.debug("module %s: trying to connect... (%s)", module.id, module.cstring);
-
-        connectModule(module, {
-          // Once module is open, request a status update and register
-          // a PUT handler for every channel path.
-          onopen: (module) => { 
-            app.debug("module %s: ...connected", module.id); 
-            module.connection.stream.write(module.statuscommand);
-          },
-          // Incoming data is either a response to a channel update
-          // or a response to a status request. We use the received
-          // data to update Signal K paths with the channel states.
-          ondata: (module, status) => {
-            app.debug("module %s: received '%s'", module.id, status);
-            try {
-              updatePathsFromStatus(module, status);
-            } catch(e) {
-              app.debug("module '%s': %s", e.message);
-            }
-          },
-          // TCP connection closed by remote module. This is really an
-          // error.
-          onclose: (module) => {
-            if (module.connection.intervalId) { clearInterval(module.connection.intervalId); module.connection.intervalId = null; }
-            log.E("module '%s' closed comms connection", module.id); 
-          },
-          onerror: (module) => {
-            log.E("module '%s' connection error", module.id); 
-          }
-        });
-      });
+      log.N("started: listening for client connections on port %d", options.statusListenerPort);
+      startTCPServer(options.statusListenerPort);
+      
     } else {
       log.W("stopped: there are no usable module definitions.");
     }
@@ -260,13 +230,17 @@ module.exports = function(app) {
     var retval = { "state": "COMPLETED", "statusCode": 400 };
     if (moduleId = getModuleIdFromPath(path)) {
       if (module = getModuleFromModuleId(moduleId)) {
-        if (channelIndex = getChannelIndexFromPath(path)) {
-          if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
-            relayCommand = ((value)?channel.oncommand:channel.offcommand) + "\n";
-            module.connection.stream.write(relayCommand);
-            retval.statusCode = 200;
-            log.N("sending '%s' to module '%s'", relayCommand.trim(), moduleId);
+        if (module.connection) {
+          if (channelIndex = getChannelIndexFromPath(path)) {
+            if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
+              relayCommand = ((value)?channel.oncommand:channel.offcommand) + "\n";
+              module.connection.stream.write(relayCommand);
+              retval.statusCode = 200;
+              log.N("sending '%s' to module '%s'", relayCommand.trim(), moduleId);
+            }
           }
+        } else {
+          app.debug("PUT request cannot be actioned (module '%s' has no open command connection)", module.id);
         }
       }
     }
@@ -424,13 +398,13 @@ module.exports = function(app) {
         var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == client.remoteAddress)?m:a), null);
         if (module) {
           if (module.connection == null) {
-            log.N("opening command connection for module '%s' (%s)", module.id, client.remoteAddress);
+            app.debug("opening command connection for device at '%s' (module %s)", client.remoteAddress, module.id);
             connectModule(module, globalOptions);
           } else {
             app.debug("device at %s (module '%s') already has a command connection", client.remoteAddress, module.id);
           }
         } else {
-          log.W("device at %s is issuing status reports but is not configured for command connection", client.remoteAddress);
+          app.debug("device at %s is attempting to connect but is not configured", client.remoteAddress);
           client.destroy();
         }
       });
@@ -439,8 +413,6 @@ module.exports = function(app) {
         app.debug("received data from");
         var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == client.remoteAddress)?m:a), null);
         if (module) {
-        } else {
-          log.W("ignoring status notification from unknown client (%s)", client.remoteAddress);
         }
       });
 
