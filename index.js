@@ -412,7 +412,14 @@ module.exports = function(app) {
       client.on("data", (data) => {
         app.debug("received data from");
         var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == client.remoteAddress)?m:a), null);
+
         if (module) {
+          if (module.connection == null) {
+            app.debug("opening command connection for device at '%s' (module %s)", client.remoteAddress, module.id);
+            connectModule(module, globalOptions);
+          } else {
+            app.debug("device at %s (module '%s') already has a command connection", client.remoteAddress, module.id);
+          }
         }
       });
 
