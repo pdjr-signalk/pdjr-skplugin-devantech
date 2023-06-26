@@ -96,9 +96,9 @@ The plugin configuration has the following properties.
 
 | Property           | Default | Description |
 | :----------------- | :------ | :---------- |
-| statusListenerPort | 24281 | Required TCP port number on which the plugin will listen for DS event notificataions. |
+| statusListenerPort | 24281   | Required TCP port number on which the plugin will listen for DS event notificataions. |
 | modules            | []      | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
-| devices            | (none)  | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes definitions for most Devantech devices currently in production, but additional devices can be specified here. |
+| devices            | (none)  | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes a single definition suitable for all Devantech DS devices. |
 
 Each 'module' object has the following properties.
 
@@ -108,27 +108,8 @@ Each 'module' object has the following properties.
 | description        | (none)  | Optional string property can be used to supply some documentary text about the module. |
 | size               | (none)  | Required number property specifying the number of relay channels supported by the device. |
 | deviceid           | 'DS'    | Required string property specifying the physical device to which this module definition relates. The value supplied here must be one of the device 'id's defined in the 'devices' section (see below). |
-| cstring            | (none)  | Required string property supplying a connection string that tells the plugin how to connect to the physical device implementing the module. |
+| cstring            | (none)  | Required string property supplying a connection string of the form '*address*:*port*' that identifes the physical device implementing this module and the TCP port number on which it listens for commands. |
 | channels           | []      | Array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
-
-There are two styles of 'cstring' property value: one describes a USB
-connection and the other an Ethernet connection.
-
-A USB connection string has the form '*device-path*' where
-*device-path* specifies the operating system serial device to which the
-associated physical device is connected.
-A typical value for a USB 'devicecstring' might be '/dev/ttyACM0'.
-
-An ethernet connection string has the form  '[*password*@]*address*:*port*'
-where *address* is the IP address or hostname assigned to the
-associated device and *port* is the port number on which the device
-provides service.
-*password* is an optional password required to operate the device.
-A typical value for an ethernet 'devicecstring' might be
-'letmein@192.168.0.20:14555'.
-The values you should use when constructing this string are defined
-when you configure a Devantech ETH or WIFI relay device for first use:
-consult your Devantech user guide for more information.
 
 Each *channel* object in the *channels* array has the following
 properties.
@@ -151,11 +132,9 @@ relay device.
 
 A device must be defined here before it can be configured for use in a
 module definition.
-The plugin installation includes device definitions for Devantech relay
-modules that were usable in the Signal K context and that were
-available at the time of release.
-If you need to add an unsupported device, then read-on.
-
+The plugin includes a single device definition suitable for all
+DS-series Devantech relay modules that were available at the time of
+release.
 Each device definition has the following properties.
 
 | Property      | Default | Description |
