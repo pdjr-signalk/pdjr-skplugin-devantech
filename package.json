@@ -1,7 +1,7 @@
 {
   "name": "pdjr-skplugin-devantech",
   "version": "1.0.0",
-  "description": "Signal K interface to the Devantech range of general-purpose relay modules.",
+  "description": "Signal K interface to the Devantech DS range of Ethernet relay modules.",
   "main": "index.js",
   "signalk-plugin-enabled-by-default": true,
   "scripts": {
