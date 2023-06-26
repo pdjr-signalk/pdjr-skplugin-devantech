@@ -28,7 +28,8 @@ const PLUGIN_SCHEMA = {
   "type": "object",
   "properties": {
     "statusListenerPort": {
-      "type": "number"
+      "type": "number",
+      "default": 24281
     },
     "modules" : {
       "title": "Modules",
@@ -135,6 +136,8 @@ module.exports = function(app) {
 
   const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
+  var statusListener = null;
+  var statusListenerClients = [];
 
   plugin.start = function(options) {
   
@@ -201,7 +204,7 @@ module.exports = function(app) {
       });
 
       log.N("started: listening for client connections on port %d", options.statusListenerPort);
-      startTCPServer(options.statusListenerPort);
+      startStatusListener(options.statusListenerPort);
       
     } else {
       log.W("stopped: there are no usable module definitions.");
@@ -209,7 +212,10 @@ module.exports = function(app) {
   }
 
   plugin.stop = function() {
-    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    if (statusListener) {
+      statusListenerClients.forEach(client => client.destroy());
+      statusListener.close();
+    }
     unsubscribes.forEach(f => f());
     unsubscribes = [];
   }
@@ -367,81 +373,72 @@ module.exports = function(app) {
   function connectModule(module, options) {
     module.connection = net.createConnection(module.cobject.port, module.cobject.host);
     module.connection.on('open', () => { log.N("command connection to moduke '%s' is open", module.id); })
-    module.connection.on('data', (buffer) => { });
     module.connection.on('close', () => { log.N("command connection to module '%s' has closed", module.id); module.connection = null; });
-    module.connection.on('timeout', () => { });
-    module.connection.on('error', () => { });
   }
 
   /**
-   * Open a status report listener on a specified port
+   * Open an event notification listener on a specified port.
    * 
-   * The listener waits for TCP connections and then validates them by
-   * checking that the connecting client is defined as a module in the
-   * plugin configuration.
+   * The listener responds to 'connection' and 'data' events.
    * 
-   * Clients which fail this test are summarily disconnected. Clients
-   * which pass have their connection allowed and subsequent data
-   * transmissions are viewed as valid device status reports.
-   * 
-   * A check is made to determine if a validated client has an open
-   * command connection, and if not, an attempt is made to open a TCP
-   * channel to the remote device over which the plugin can send relay
-   * operating commands.
+   * In both cases the client triggering the event is validated by
+   * checking that it is defined as a module in the plugin
+   * configuration.
    *  
    * @param {*} port - the port on which to listen for DS device client connections.
    */
-  function startTCPServer(port) {
-    const server = net.createServer((client) => {
+  function startStatusListener(port) {
+    statusListener = net.createServer((client) => {
 
-      client.on('connection', (stream) => {
+      client.on('connection', (socket) => {
+        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
         var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == client.remoteAddress)?m:a), null);
         if (module) {
+          statusListenerClients.push(socket);
+          socket.on('close', () => { statusListenerClients.splice(statusListenerClients.indexOf(socket), 1); });
           if (module.connection == null) {
-            app.debug("opening command connection for device at '%s' (module %s)", client.remoteAddress, module.id);
+            app.debug("opening command connection for device at '%s' (module %s)", clientIP, module.id);
             connectModule(module, globalOptions);
-          } else {
-            app.debug("device at %s (module '%s') already has a command connection", client.remoteAddress, module.id);
           }
         } else {
-          app.debug("device at %s is attempting to connect but is not configured", client.remoteAddress);
+          app.debug("ignoring connection attempt from unconfigured device at %s", clientIP);
           client.destroy();
         }
       });
 
       client.on("data", (data) => {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-        app.debug("received data from %s (%s)", clientIP, data.toString());
         var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
         if (module) {
           if (module.connection == null) {
             app.debug("opening command connection for device at '%s' (module %s)", clientIP, module.id);
             connectModule(module, globalOptions);
-          } else {
-            app.debug("device at %s (module '%s') already has a command connection", clientIP, module.id);
           }
-          var status = data.toString().split('\n');
-          status = status[1].trim();
-          if (status.length == 32) {
-            var delta = new Delta(app, plugin.id);
-            for (var i = 0; i < module.size; i++) {
-              var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
-              var value = (status.charAt(i) == '0')?0:1;
-              delta.addValue(path, value);
-            }
-            delta.commit().clear();
-            delete delta;
+          try {
+            var status = data.toString().split('\n')[1].trim();
+            if (status.length == 32) {
+              app.debug("received status '%s' from device at %s (module %s)", status, clientIP, module.id);
+              var delta = new Delta(app, plugin.id);
+              for (var i = 0; i < module.size; i++) {
+                var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
+                var value = (status.charAt(i) == '0')?0:1;
+                delta.addValue(path, value);
+              }
+              delta.commit().clear();
+              delete delta;
+            } else throw new Error();
+          } catch(e) {
+            app.debug("ignoring garbled data '%s' received from device at %s (module %s)", status, clientIP, module.id);
           }
+        } else {
+          app.debug("ignoring data received from unconfigured device at %s", clientIP);
+          client.destroy();
         }
       });
 
-      client.on("end", () => {} );
-
-      client.on("error", () => {});
-
     });
 
-    server.listen(port, () => { app.debug("TCP server started on port %d", port); });
+    statusListener.listen(port, () => { app.debug("status listener started on port %d", port); });
   }
 
 

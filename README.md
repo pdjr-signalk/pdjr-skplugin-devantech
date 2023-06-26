@@ -7,14 +7,14 @@ range of general-purpose relay modules.
 ## Background
 
 I have a number of remote domestic switching requirements on my boat
-that don't warrant the expense of NMEA 2000 hardware and/or are not
-easily serviced by the installed NMEA bus.
+that either don't warrant the expense of NMEA 2000 hardware or are in
+locations that are difficult to reach from the installed NMEA bus.
 
-The UK supplier Devantech manufactures a range of widely available
-USB, wireless and wired Ethernet relay modules that I felt could serve
-as N2K switchbank alternatives in some situations.
+The UK supplier Devantech manufactures the DS range of wireless and
+wired Ethernet relay modules that I felt could serve as N2K switchbank
+alternatives in some situations.
 
-This plugin integrates support for Devantech devices into Signal K.
+This plugin integrates support for Devantech DS devices into Signal K.
 
 Devantech Ltd\
 Maurice Gaymer Road\
@@ -30,12 +30,13 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 ## Description
 
 This plugin implements a control interface for the multi-channel
-'DS-series' Ethernet relay devices manufactured by the UK company
+'DS series' Ethernet relay devices manufactured by the UK company
 Devantech.
-DS devices have a configuration option that causes them to issue event
-notifications on relay state change and this feature must be enabled
-for them to be used with this plugin.
-See below for a description of how to do this.
+DS devices can be configured in a way which allows them to issue
+event notifications on relay state change and also at timed intervals
+and together these features allow DS devices to echo the familiar
+behaviour of standard NMEA complient switchbanks whilst operating
+over an Ethernet TCP connection.
 
 DS devices which are to be used with the plugin must have a 'module'
 entry in the plugin configuration which specifies their configured IP
