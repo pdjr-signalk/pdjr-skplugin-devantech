@@ -32,23 +32,27 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 This plugin implements a control interface for the multi-channel
 'DS-series' Ethernet relay devices manufactured by the UK company
 Devantech.
-DS devices that are to be used with this plugin must be configured
-to issue relay status reports periodically and on any relay state
-change.
+DS devices have a configuration option that causes them to issue event
+notifications on relay state change and this feature must be enabled
+for them to be used with this plugin.
 See below for a description of how to do this.
 
-The plugin listens on a specified TCP 'status' port for incoming
-device status notifications.
-When a report is received from a previously unconnected device which
-is identified in the module configuration then the plugin opens a TCP
-'command' connection to the device and begins controlling the module
-remotely.
-If the command connection is lost for whatever reason, then it will
-simply be re-made as soon as a new status report is receved.
+DS devices which are to be used with the plugin must have a 'module'
+entry in the plugin configuration which specifies their configured IP
+address and control port.
 
-The control mechanism is resilient to network outage and allows ad-hoc
-connection of devices as long as they are defined in the module
-configuration.
+The plugin listens on a specified TCP 'status' port for incoming
+event notifications from configured devices.
+The module status information supplied in received notifications is
+used to update Signal K switch paths associated with the transmitting
+DS device states so that they reflect reported relay states.
+
+Receipt of notifications from a DS device causes the plugin to naintain
+a TCP 'command' connection to the device which supports remote relay
+operation through PUT requests on associated Signal K paths.
+
+This control mechanism is resilient to network outage and allows ad-hoc
+connection of DS devices.
 
 In the Signal K context the plugin offers two distinct services.
 
@@ -66,60 +70,44 @@ path into relay device operating commands.
 
 ### Configuring a DS module for use with this plugin
 
-1. Enable 'Event Notifications' for all the relays on the host module
-   and also for the virtual relay R32. 'Target IP' should be set to the
-   IP address of the Signal K host and 'Target Port' to the same value
-   as the 'statusListenerPort' property in the plugin configuration.
-   Set 'TCP/IP Timeout' to 5000.
+1. If not already done, configure the DS device's IP address and
+   control port number. Make a note of these values so that they can be
+   used in the 'cstring' property of the module's plugin configuration
+   entry.
 
-2. Set up a  
+2. Event Notifications. 'Triggers' should identify all the relays on
+   the device and host also the virtual relay R32. 'Target IP' should
+   be set to the IP address of the Signal K host and 'Target Port' to
+   the same value as the 'statusListenerPort' property in the plugin
+   configuration. Set 'TCP/IP Timeout' to 5000.
 
-This plugin includes a patch for the firmware of DS series Devantech
-relay modules which adds two new commands to the TCP ASCII control
-groups.
+3. Timers. Select 'Counter No.' 1 and set 'Counter Input' to 'T1' and
+   'Reset Input' to 'C1>9'.
 
-Why is the patch necessary and what does it do? The TCP ASCII interface
-to Devantech modules is not all that useful for real-time applications
-that need accurate, up-to-date, status information about the remote
-device.
+4. Relays. Select 'Relay No' 32 and set 'Pulse/Follow' to 'C1>4'.
 
-In particular, the modules respond to a relay operation command with
-the message "Ok".
-Exactly what this means is unfathomable.
-
-Additionally, there is no command which reports the current status of
-the module (i.e. what the state of every relay is at that moment in
-time).
-
-The provided patch corrects this by:
-
-1. Updating the module's SR (**S**et **R**elay) command so that it
-   responds with the status of the module's relays.
-
-2. Replacing the module's ST (**St**atus) command so that the module
-   returns the status of the module's relays.
-
-Install the patch using the firmware update mechanism described in the
-Devantech user guide and then follow the set-up instructions by setting
-up the device's IP address and port number.
+These settings will ensure that an event notification message is sent
+to the plugin whenever a physical relay changes state and at least once
+every five seconds.
 
 ### Plugin configuration
 
 The plugin configuration has the following properties.
 
-| Property   | Default | Description |
-| :--------- | :------ | :---------- |
-| modules    | []      | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
-| devices    | (none)  | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes definitions for most Devantech devices currently in production, but additional devices can be specified here. |
+| Property           | Default | Description |
+| :----------------- | :------ | :---------- |
+| statusListenerPort | 24281 | Required TCP port number on which the plugin will listen for DS event notificataions. |
+| modules            | []      | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
+| devices            | (none)  | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes definitions for most Devantech devices currently in production, but additional devices can be specified here. |
 
 Each 'module' object has the following properties.
 
 | Property           | Default | Description |
 | :----------------- | :------ | :---------- |
 | id                 | (none)  | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay switch channel. |
-| size               | (none)  | Required number property specifying the number of relay channels supported by the device. |
 | description        | (none)  | Optional string property can be used to supply some documentary text about the module. |
-| deviceid           | (none)  | Required string property specifying the physical device to which this module definition relates. The value supplied here must be one of the device 'id's defined in the 'devices' section (see below). |
+| size               | (none)  | Required number property specifying the number of relay channels supported by the device. |
+| deviceid           | 'DS'    | Required string property specifying the physical device to which this module definition relates. The value supplied here must be one of the device 'id's defined in the 'devices' section (see below). |
 | cstring            | (none)  | Required string property supplying a connection string that tells the plugin how to connect to the physical device implementing the module. |
 | channels           | []      | Array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
 

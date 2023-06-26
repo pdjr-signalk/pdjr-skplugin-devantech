@@ -114,7 +114,7 @@ const STATUS_INTERVAL = 5000;
 const MODULE_ROOT = "electrical.switches.bank.";
 const DEFAULT_DEVICES = [
   {
-    "id": "DS2824",
+    "id": "DS",
     "statuscommand": "ST",
     "channels": [
       { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
