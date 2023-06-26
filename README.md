@@ -134,7 +134,20 @@ A device must be defined here before it can be configured for use in a
 module definition.
 The plugin includes a single device definition suitable for all
 DS-series Devantech relay modules that were available at the time of
-release.
+release:
+```
+{
+  "id": "DS",
+  "statuscommand": "ST",
+  "channels": [
+    {
+      "address": 0,
+      "oncommand": "SR {c} ON",
+      "offcommand": "SR {c} OFF"
+    }
+  ]
+}
+```
 Each device definition has the following properties.
 
 | Property      | Default | Description |
@@ -142,7 +155,6 @@ Each device definition has the following properties.
 | id            | (none)  | Required string property supplying a space-separated list of identifiers, one
 for each of the relay devices to which the definition applies. Typically these identifiers should be the model number assigned by the
 device manufacturer. |
-| series        | (none)  | One of 'eth', 'ds' or 'usb' specifying the product range which includes the devices being defined. |
 | statuscommand | (none)  | String property supplying the string that must be transmitted to the device to elicit a status report. |
 | channels            | []      | Array property introduces a list of *channel* definitions each of which specifies the commands required to operate a particular relay on the device being defined. |
 
