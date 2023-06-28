@@ -445,7 +445,7 @@ module.exports = function(app) {
           statusListenerClients.push(socket);
           socket.on('close', () => { statusListenerClients.splice(statusListenerClients.indexOf(socket), 1); });
           if (module.connection == null) {
-            app.debug("opening command connection for device at %s (module '%s')", clientIP, module.id);
+            log.N("opening command connection for device at %s (module '%s')", clientIP, module.id, false);
             connectModule(module, globalOptions);
           }
         } else {
@@ -459,7 +459,7 @@ module.exports = function(app) {
         var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
         if (module) {
           if (module.connection == null) {
-            app.debug("opening command connection for device at '%s' (module '%s')", clientIP, module.id);
+            log.N("opening command connection for device at '%s' (module '%s')", clientIP, module.id, false);
             connectModule(module, globalOptions);
           }
           try {
