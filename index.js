@@ -96,7 +96,6 @@ const PLUGIN_SCHEMA = {
 };
 const PLUGIN_UISCHEMA = {};
 
-const STATUS_INTERVAL = 5000;
 const MODULE_ROOT = "electrical.switches.bank.";
 const OPTIONS_DEFAULTS = {
   "statusListenerPort": 28241,
@@ -224,18 +223,21 @@ module.exports = function(app) {
   }
 
   /**
-   * Callback function triggered by a PUT request on a switch path. The
-   * function translates the PUT request into a Devantec DS TCP ASCII
-   * command and places this command in the module's command queue,
-   * returning a PENDING response to Signal K. The process will resolve
-   * when processTransmitQueues() actually transmits the command the
-   * target device and the device confirms action.
+   * Handler function triggered by a PUT request on a switch path.
+   * 
+   * The function translates the PUT request into a command string and
+   * places this and the passed callback into the module's command queue,
+   * returning a PENDING response to Signal K.
+   * 
+   * The process will resolve when processTransmitQueues() actually
+   * transmits the command to the target device and the device confirms
+   * action.
    * 
    * @param {*} context - not used. 
    * @param {*} path - path of the switch to be updated.
    * @param {*} value - requested state (0 or 1).
    * @param {*} callback - saved for use by processTransmitQueues().
-   * @returns 
+   * @returns PENDING on success, COMPLETED/400 on error.
    */
   function putHandler(context, path, value, callback) {
     var moduleId, module, channelIndex, channel, relayCommand;
@@ -245,7 +247,7 @@ module.exports = function(app) {
         if (module.connection) {
           if (channelIndex = getChannelIndexFromPath(path)) {
             if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
-              relayCommand = ((value)?channel.oncommand:channel.offcommand) + "\n";
+              relayCommand = ((value)?channel.oncommand:channel.offcommand);
               module.commandQueue.push({ "command": relayCommand, "callback": callback });
               retval = { "state": "PENDING" };
             }
@@ -253,6 +255,8 @@ module.exports = function(app) {
         } else {
           app.debug("PUT request cannot be actioned (module '%s' has no open command connection)", module.id);
         }
+      } else {
+        app.debug("module '%s' is not defined", moduleId);
       }
     }
     return(retval);
@@ -271,54 +275,6 @@ module.exports = function(app) {
       return(globalOptions.modules.reduce((a,m) => ((m.id == moduleId)?m:a), null));
     }
     
-  }
-  
-  /**
-   * @param {*} module - the module from which the status was received.
-   * @param {*} status - the module status.
-   * 
-   * Update the Signal K switch paths associated with module so that
-   * they conform to status.
-   */
-  function updatePathsFromStatus(module, status) {
-    clearTimeout(module.connection.intervalId);
-    var delta = new Delta(app, plugin.id);
-    var error = false;
-    for (var channel = 1; channel <= module.size; channel++) {
-      var path = MODULE_ROOT + module.id + "." + channel + ".state";
-      try {
-        var value;
-        switch (module.series) {
-          case 'usb': value = getUsbChannelState(status, channel); break;
-          case 'ds':  value = getDsChannelState(status, channel); break;
-          case 'eth': value = 0;
-        }
-        delta.addValue(path, value);
-      } catch(e) {
-        error = true;
-      }
-    }
-    delta.commit().clear();
-    delete delta;
-    module.connection.intervalId = setTimeout(() => module.connection.stream.write(module.statuscommand), STATUS_INTERVAL);
-    if (error) throw new Error('invalid status value');
-
-    function getDsChannelState(status, channel) {
-      if (status.length == 32) {
-        return((status.charAt(channel - 1) == '0')?0:1);
-      } else {
-        throw new Error();
-      }
-    }
-
-    function getUsbChannelState(status, channel) {
-      if (status.length == 1) {
-        return((status.charCodeAt(0) & (1 << (channel - 1)))?1:0);
-      } else {
-        throw new Error();
-      }
-    }
-
   }
   
   function elaborateModuleConfiguration(module, devices) {  
@@ -480,8 +436,8 @@ module.exports = function(app) {
     globalOptions.modules.forEach(module => {
       if ((module.connection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
         module.currentCommand = module.commandQueue.shift();
-        module.connection.write(module.currentCommand.command);
-        log.N("sending '%s' to module '%s'", module.currentCommand.command.trim(), module.id);
+        module.connection.write(module.currentCommand.command + "\n");
+        log.N("sending '%s' to module '%s'", module.currentCommand.command, module.id);
       }
     });
   }
