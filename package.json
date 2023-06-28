@@ -22,9 +22,7 @@
   },
   "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-devantech#readme",
   "dependencies": {
-    "serialport": "^8.0.8",
-    "sprintf-js": "^1.1.2",
-    "uuid": "^8.3.1"
+    "sprintf-js": "^1.1.2"
   },
   "directories": {
     "lib": "lib"
