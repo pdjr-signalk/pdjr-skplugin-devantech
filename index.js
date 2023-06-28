@@ -1,5 +1,5 @@
 /**********************************************************************
- * Copyright 2018 Paul Reeve <preeve@pdjr.eu>
+ * Copyright 2023 Paul Reeve <preeve@pdjr.eu>
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You may
@@ -23,6 +23,7 @@ const PLUGIN_NAME = "pdjr-skplugin-devantech";
 const PLUGIN_DESCRIPTION = "Signal K interface to the Devantech range of general-purpose relay modules";
 const PLUGIN_SCHEMA = {
   "type": "object",
+  "required": [ "modules" ],
   "properties": {
     "statusListenerPort": {
       "type": "number",
@@ -38,16 +39,18 @@ const PLUGIN_SCHEMA = {
       "default": [],
       "items": {
         "type": "object",
-        "required": [ "id", "deviceid", "cstring", "channels" ],
+        "required": [ "id", "size", "deviceid", "cstring", "channels" ],
         "properties": {
-          "id": { "title": "Signal K module id", "type": "string" },
+          "id": { "title": "Module id", "type": "string" },
           "description": { "title": "Module description", "type": "string" },
+          "size": { "title": "No of relay output channels", "type": "number" },
           "deviceid": { "title": "Device id", "type": "string" },
-          "devicecstring": { "title": "Connection string", "type": "string" },
+          "cstring": { "title": "Connection string (address:port)", "type": "string" },
           "channels": {
             "type": "array",
             "items": {
               "type": "object",
+              "required": [ "index" ],
               "properties": {
                 "index": {
                   "title": "Channel index",
@@ -72,42 +75,23 @@ const PLUGIN_SCHEMA = {
       "type": "array",
       "items": {
         "type": "object",
-        "required" : [ "id", "size", "protocols" ],
+        "required" : [ "id", "channels" ],
         "properties": {
           "id": { "title": "Device identifier", "type": "string" },
-          "size": { "title": "Number of relay channels", "type": "number" },
-          "protocols": {
-            "title": "Protocols supported by this module",
+          "channels" : {
             "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": { "title": "Protocol id", "type": "string", "enum": [ "http", "https", "tcp", "usb" ] },
-                "statuscommand": { "title": "Status command", "type": "string" },
-                "statuslength": { "title": "Status result length in bytes", "type": "number", "default": 1 },
-                "channels" : {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "address": { "title": "Relay channel address/index", "type": "number" },
-                      "oncommand": { "title": "ON command", "type": "string" },
-                      "offcommand": { "title": "OFF command", "type": "string" },
-                      "statuscommand": { "title": "Status command", "type": "string" },
-                      "statusmask": { "title": "Mask to reveal channel state", "type": "number" }
-                    }
-                  }
+              "items": {
+                "type": "object",
+                "properties": {
+                  "address": { "title": "Relay channel address/index", "type": "number" },
+                  "oncommand": { "title": "ON command", "type": "string" },
+                  "offcommand": { "title": "OFF command", "type": "string" }
                 }
               }
             }
           } 
         }
-      }
     }
-  },
-  "default": {
-    "modules": [],
-    "devices": []
   }
 };
 const PLUGIN_UISCHEMA = {};
@@ -121,7 +105,6 @@ const OPTIONS_DEFAULTS = {
   "devices": [
     {
       "id": "DS",
-      "statuscommand": "ST",
       "channels": [
         { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
       ]

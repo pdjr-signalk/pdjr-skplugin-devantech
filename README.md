@@ -177,7 +177,6 @@ Devantech relay modules that were available at the time of release:
 ```
 {
   "id": "DS",
-  "statuscommand": "ST",
   "channels": [
     {
       "address": 0,
@@ -194,7 +193,6 @@ Each device definition has the following properties.
 | id            | (none)  | Required string property supplying a space-separated list of identifiers, one
 for each of the relay devices to which the definition applies. Typically these identifiers should be the model number assigned by the
 device manufacturer. |
-| statuscommand | (none)  | String property supplying the string that must be transmitted to the device to elicit a status report. |
 | channels            | []      | Array property introduces a list of *channel* definitions each of which specifies the commands required to operate a particular relay on the device being defined. |
 
 Relays are identified by an ordinal address in the range 1..[size] and
@@ -207,7 +205,7 @@ Each channel definition has the following properties.
 
 | Property            | Default | Description |
 | :------------------ | ------- | :---------- |
-| index               | (none)  | Number property giving the ordinal number of the relay channel that is being defined (or 0 for a generic definition). |
+| address             | (none)  | Number property giving the ordinal number of the relay channel that is being defined (or 0 for a generic definition). |
 | oncommand           | (none)  | String property specifying the character sequence that should be transmitted to the device to turn the relay identified by 'address' ON. |
 | offcommand          | (none)  | String property specifying the character sequence that should be transmitted to the device to turn the relay identified by 'address' OFF. |
 
