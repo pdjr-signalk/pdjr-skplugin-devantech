@@ -6,9 +6,9 @@ range of general-purpose relay modules.
 
 ## Background
 
-I have a number of remote domestic switching requirements on my boat
-that either don't warrant the expense of NMEA 2000 hardware or are in
-locations that are difficult to reach from the installed NMEA bus.
+I have a number of remote switching requirements on my boat that either
+don't warrant the expense of NMEA 2000 hardware or are in locations
+that are difficult to reach from the installed NMEA bus.
 
 The UK supplier Devantech manufactures the DS range of wireless and
 wired Ethernet relay modules that I felt could serve as N2K switchbank
@@ -29,9 +29,8 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 
 ## Description
 
-This plugin implements a control interface for the multi-channel
-'DS series' Ethernet relay devices manufactured by the UK company
-Devantech.
+This plugin implements a control interface for multi-channel DS series
+Ethernet relay devices manufactured by the UK company Devantech.
 DS devices can be configured in a way which allows them to issue
 event notifications on relay state change and also at timed intervals
 and together these features allow DS devices to echo the familiar
@@ -41,19 +40,18 @@ over an Ethernet TCP connection.
 DS devices which are to be used with the plugin must have a 'module'
 entry in the plugin configuration which specifies their configured IP
 address and control port.
+Connection attempts from unconfigured devices are ignored.
 
-The plugin listens on a specified TCP 'status' port for incoming
-event notifications from configured devices.
-The module status information supplied in received notifications is
-used to update Signal K switch paths associated with the transmitting
-DS device states so that they reflect reported relay states.
+The plugin listens on a specified TCP port for incoming event
+notifications and uses these to update Signal K switch paths
+associated with the transmitting DS device.
 
-Receipt of notifications from a DS device causes the plugin to naintain
+Receipt of notifications from a DS device causes the plugin to maintain
 a TCP 'command' connection to the device which supports remote relay
 operation through PUT requests on associated Signal K paths.
 
-This control mechanism is resilient to network outage and allows ad-hoc
-connection of DS devices.
+This operating strategy is resilient to network outage and allows
+*ad-hoc* connection of DS devices.
 
 In the Signal K context the plugin offers two distinct services.
 
@@ -64,8 +62,10 @@ terms of their function or application.
 
 Secondly, the plugin installs a PUT handler on each Signal K switch
 path that is associated with a relay device channel.
-The PUT handler translates state change requests directed at a switch
-path into relay device operating commands.
+The PUT handler translates a state change request directed at a switch
+path into a relay operating command and queues the command for
+transmission to the associated device as soon as it becomes ready to
+accept a command.
 
 ## Configuration
 
@@ -95,11 +95,15 @@ every five seconds.
 
 The plugin configuration has the following properties.
 
-| Property           | Default | Description |
-| :----------------- | :------ | :---------- |
-| statusListenerPort | 24281   | Required TCP port number on which the plugin will listen for DS event notificataions. |
-| modules            | []      | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
-| devices            | (none)  | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. The plugin includes a single definition suitable for all Devantech DS devices. |
+| Property               | Default     | Description |
+| :--------------------- | :---------- | :---------- |
+| statusListenerPort     | 24281       | Optional TCP port number on which the plugin will listen for DS event notificataions. |
+| transmitQueueHeartbeat | 25          | Optional transmit queue processing interval in milliseconds. This defines the frequency at which the plugin checks the DS device for command completion and so defines the maximum rate at which relay operating commands can be sent to a remote device. |
+| devices                | (see below) | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. A single device with the id 'DS'is defined by default. |
+| modules                | []          | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
+
+Typically, all that is required to get a working installation is the
+definition of a 'modules' property. 
 
 Each 'module' object has the following properties.
 
@@ -189,14 +193,6 @@ with appropriate values before string transmission.
 
 The plugin will start immediately it is installed but must be
 configured before use.
-At startup the module writes a list of supported device identifiers
-to the Signal K log.
-
-Support for status reportind across the Devantec range is not
-consistently implemented and the plugin seeks to manage this issue
-by requiring that supported devices must (i) report all module relay
-states immediately a relay operation has completed, and (ii)
-provide a mechanism for ad-hoc interrogation of module status.
 
 ## Author
 
