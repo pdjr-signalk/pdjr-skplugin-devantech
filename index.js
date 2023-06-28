@@ -16,10 +16,7 @@
 
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 const Log = require("./lib/signalk-liblog/Log.js");
-const SerialPort = require('./node_modules/serialport');
-const ByteLength = require('./node_modules/@serialport/parser-byte-length')
 const net = require('net');
-const fs = require('fs');
 
 const PLUGIN_ID = "devantech";
 const PLUGIN_NAME = "pdjr-skplugin-devantech";
@@ -27,6 +24,14 @@ const PLUGIN_DESCRIPTION = "Signal K interface to the Devantech range of general
 const PLUGIN_SCHEMA = {
   "type": "object",
   "properties": {
+    "statusListenerPort": {
+      "type": "number",
+      "default": 24281
+    },
+    "transmitQueueHeartbeat": {
+      "type": "number",
+      "default": 25
+    },
     "modules" : {
       "title": "Modules",
       "type": "array",
@@ -109,31 +114,20 @@ const PLUGIN_UISCHEMA = {};
 
 const STATUS_INTERVAL = 5000;
 const MODULE_ROOT = "electrical.switches.bank.";
-const DEFAULT_DEVICES = [
-  {
-    "id": "USB-RLY02-SN USB-RLY02 USB-RLY82 USB-RLY08B USB-RLY16 USB-RLY16L USB-OPTO-RLY88 USB-OPTO-RLY816",
-    "series": "usb",
-    "statuscommand": "[",
-    "channels": [
-      { "address": 1, "oncommand": "e", "offcommand": "o" },
-      { "address": 2, "oncommand": "f", "offcommand": "p" },
-      { "address": 3, "oncommand": "g", "offcommand": "q" },
-      { "address": 4, "oncommand": "h", "offcommand": "r" },
-      { "address": 5, "oncommand": "i", "offcommand": "s" },
-      { "address": 6, "oncommand": "j", "offcommand": "t" },
-      { "address": 7, "oncommand": "k", "offcommand": "u" },
-      { "address": 8, "oncommand": "l", "offcommand": "v" }
-    ]
-  },
-  {
-    "id": "DS2824",
-    "series": "ds",
-    "statuscommand": "ST",
-    "channels": [
-      { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
-    ]
-  }
-];
+const OPTIONS_DEFAULTS = {
+  "statusListenerPort": 28241,
+  "commandQueueHeartbeat" : 25,
+  "modules": [],
+  "devices": [
+    {
+      "id": "DS",
+      "statuscommand": "ST",
+      "channels": [
+        { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
+      ]
+    }
+  ]
+};
 
 module.exports = function(app) {
   var plugin = {};
@@ -148,20 +142,27 @@ module.exports = function(app) {
 
   const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
+  var statusListener = null;
+  var statusListenerClients = [];
+  var transmitQueueTimer = null;
 
   plugin.start = function(options) {
-  
+
+    if (Object.keys(options).length == 0) {
+      options = OPTIONS_DEFAULTS;
+    } else {
+      options.statusListenerPort = (options.statusListenerPort || OPTIONS_DEFAULTS.statusListenerPort);
+      options.transmitQueueHeartbeat = (options.transmitQueueHeartbeat || OPTIONS_DEFAULTS.transmitQueueHeartbeat);
+      options.devices = (options.devices || []).concat(OPTIONS_DEFAULTS.devices);
+    }
+    app.debug("supported devices: %s", options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", "));
+
     // Context-free event handlers need access to the plugin
     // configuration options, so we elevate them to the plugin global
     // namespace. 
     globalOptions = options;
     options = globalOptions;
-
-    // If the user has configured their own devices, then add them
-    // to the embedded defaults.
-    options.devices = (options.devices || []).concat(DEFAULT_DEVICES);
-    app.debug("supported devices: %s", options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", "));
-
+    
     // Process each defined module, interpolating data from the
     // specified device definition, then filter the result to eliminate
     // any broken modules.
@@ -176,7 +177,6 @@ module.exports = function(app) {
       });
 
     // So now we have a list of prepared, valid, modules.
-    log.N("started: operating %d module%s (%s)", options.modules.length, ((options.modules.length == 1)?"":"s"), options.modules.map(m => m.id).join(","));
 
     if (options.modules.length) {
 
@@ -214,45 +214,28 @@ module.exports = function(app) {
         });
       });
 
-      options.modules.forEach(module => {
-        app.debug("module %s: trying to connect... (%s)", module.id, module.cstring);
-
-        connectModule(module, {
-          // Once module is open, request a status update and register
-          // a PUT handler for every channel path.
-          onopen: (module) => { 
-            app.debug("module %s: ...connected", module.id); 
-            module.connection.stream.write(module.statuscommand);
-          },
-          // Incoming data is either a response to a channel update
-          // or a response to a status request. We use the received
-          // data to update Signal K paths with the channel states.
-          ondata: (module, status) => {
-            app.debug("module %s: received '%s'", module.id, status);
-            try {
-              updatePathsFromStatus(module, status);
-            } catch(e) {
-              app.debug("module '%s': %s", e.message);
-            }
-          },
-          // TCP connection closed by remote module. This is really an
-          // error.
-          onclose: (module) => {
-            if (module.connection.intervalId) { clearInterval(module.connection.intervalId); module.connection.intervalId = null; }
-            log.E("module '%s' closed comms connection", module.id); 
-          },
-          onerror: (module) => {
-            log.E("module '%s' connection error", module.id); 
-          }
-        });
-      });
+      log.N("started: listening for client connections on port %d", options.statusListenerPort);
+      startStatusListener(options.statusListenerPort);
+      transmitQueueTimer = setInterval(processTransmitQueues, options.transmitQueueHeartbeat);
+      
     } else {
       log.W("stopped: there are no usable module definitions.");
     }
   }
 
+  /**
+   * Stop the plugin by:
+   * 
+   * 1. Destroying all open client connections.
+   * 2. Stopping the status listener.
+   * 3. Stopping the transmit queue processor. 
+   */
   plugin.stop = function() {
-    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    if (statusListener) {
+      statusListenerClients.forEach(client => client.destroy());
+      statusListener.close();
+    }
+    clearTimeout(transmitQueueTimer);
     unsubscribes.forEach(f => f());
     unsubscribes = [];
   }
@@ -260,12 +243,15 @@ module.exports = function(app) {
   /**
    * Callback function triggered by a PUT request on a switch path. The
    * function translates the PUT request into a Devantec DS TCP ASCII
-   * command and transmits this to the associated relay device.
+   * command and places this command in the module's command queue,
+   * returning a PENDING response to Signal K. The process will resolve
+   * when processTransmitQueues() actually transmits the command the
+   * target device and the device confirms action.
    * 
    * @param {*} context - not used. 
    * @param {*} path - path of the switch to be updated.
    * @param {*} value - requested state (0 or 1).
-   * @param {*} callback - not used.
+   * @param {*} callback - saved for use by processTransmitQueues().
    * @returns 
    */
   function putHandler(context, path, value, callback) {
@@ -273,13 +259,16 @@ module.exports = function(app) {
     var retval = { "state": "COMPLETED", "statusCode": 400 };
     if (moduleId = getModuleIdFromPath(path)) {
       if (module = getModuleFromModuleId(moduleId)) {
-        if (channelIndex = getChannelIndexFromPath(path)) {
-          if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
-            relayCommand = ((value)?channel.oncommand:channel.offcommand) + "\n";
-            module.connection.stream.write(relayCommand);
-            retval.statusCode = 200;
-            log.N("sending '%s' to module '%s'", relayCommand.trim(), moduleId);
+        if (module.connection) {
+          if (channelIndex = getChannelIndexFromPath(path)) {
+            if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
+              relayCommand = ((value)?channel.oncommand:channel.offcommand) + "\n";
+              module.commandQueue.push({ "command": relayCommand, "callback": callback });
+              retval = { "state": "PENDING" };
+            }
           }
+        } else {
+          app.debug("PUT request cannot be actioned (module '%s' has no open command connection)", module.id);
         }
       }
     }
@@ -355,9 +344,10 @@ module.exports = function(app) {
 
     if (module.deviceid) {
       if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
-        module.series = device.series;
         module.statuscommand = device.statuscommand;
         module.authenticationtoken = device.authenticationtoken;
+        module.commandQueue = [];
+        module.currentCommand = null;
         if (module.size) {
           if (module.cobject = parseConnectionString(module.cstring)) {
             module.channels.forEach(channel => {
@@ -395,60 +385,122 @@ module.exports = function(app) {
     function parseConnectionString(cstring) {
       var retval = null;
 
-      if (matches = cstring.match(/^(.*)\:(.*)@(.*)\:(.*)$/)) {
-        retval = { "username": matches[1], "password": matches[2], "host": matches[3], "port": matches[4] };
-      } else if (matches = cstring.match(/^(.*)@(.*)\:(.*)$/)) {
+      if (matches = cstring.match(/^(.*)@(.*)\:(.*)$/)) {
         retval = { "password": matches[1], "host": matches[2], "port": matches[3] };
       } else if (matches = cstring.match(/^(.*)\:(.*)$/)) {
         retval = { "host": matches[1], "port": matches[2] };
-      } else if (matches = cstring.match(/^(.*)$/)) {
-        retval = { "device": matches[1] };
       }
       return(retval);
     }
   }
 
   function connectModule(module, options) {
-    switch (module.series) {
-      case 'ds':
-        module.connection = { stream: false };
-        module.connection.socket = net.createConnection(module.cobject.port, module.cobject.host);
-        module.connection.socket.on('open', () => { module.connection.stream = module.connection.socket; options.onopen(module); })
-        module.connection.socket.on('data', (buffer) => { options.ondata(module, buffer.toString().trim()) });
-        module.connection.socket.on('close', () => { options.onclose(module); });
-        module.connection.socket.on('timeout', () => { module.connection.socket.end(); });
-        module.connection.socket.on('error', () => { module.connection.socket = net.createConnection(module.cobject.port, module.cobject.host) });
-        break;
-      case 'usb':
-        module.connection = { stream: false };
-        module.connection.serialport = new SerialPort(module.cobject.device, { baudRate: 19200 }, (err) => {
-          if (err) {
-            options.onerror(module);
-          } else {
-            module.connection.stream = module.connection.serialport;
-            module.connection.parser = new ByteLength({ length: 1 });
-            module.connection.serialport.pipe(module.connection.parser);
-            options.onopen(module);
-        
-            module.connection.parser.on('data', (buffer) => {
-              options.ondata(module, buffer.toString().trim());
-            });
+    module.connection = net.createConnection(module.cobject.port, module.cobject.host);
+    
+    module.connection.on('open', () => {
+      app.debug("command connection to module '%s' is open", module.id);
+      module.commandQueue = [];
+      module.currentCommand = null;
+    });
 
-            module.connection.serialport.on('close', () => {
-              module.connection.stream = false;
-              options.onclose(module);
-            });
+    module.connection.on('close', () => {
+      app.debug("command connection to module '%s' has closed", module.id);
+      module.connection = null;
+      module.commandQueue = [];
+      module.currentCommand = null;
+    });
 
-            module.connection.serialport.on('error', (err) => {
-              module.connection.stream = false;
-              options.onerror(module);
-            });
+    module.connection.on('data', (data) => {
+      if (data.toString().trim() == "Ok") {
+        if (module.currentCommand) {
+          module.currentCommand.callback({ "state": "COMPLETED", "statusCode": 200});
+          module.currentCommand = null;
+        } else {
+          app.debug("orphan command response received from module '%s'", module.id);
+        }
+      }
+    });
+
+  }
+
+  /**
+   * Open an event notification listener on a specified port.
+   * 
+   * The listener responds to 'connection' and 'data' events.
+   * 
+   * In both cases the client triggering the event is validated by
+   * checking that it is defined as a module in the plugin
+   * configuration.
+   *  
+   * @param {*} port - the port on which to listen for DS device client connections.
+   */
+  function startStatusListener(port) {
+    statusListener = net.createServer((client) => {
+
+      client.on('connection', (socket) => {
+        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+        var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == client.remoteAddress)?m:a), null);
+        if (module) {
+          app.debug("accepting connection for device at %s (module '%s')", clientIP, module.id);
+          statusListenerClients.push(socket);
+          socket.on('close', () => { statusListenerClients.splice(statusListenerClients.indexOf(socket), 1); });
+          if (module.connection == null) {
+            log.N("opening command connection for device at %s (module '%s')", clientIP, module.id, false);
+            connectModule(module, globalOptions);
           }
-        });
-        break;
-      default:
-        break;
-    }
+        } else {
+          app.debug("ignoring connection attempt from unconfigured device at %s", clientIP);
+          client.destroy();
+        }
+      });
+
+      client.on("data", (data) => {
+        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+        var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
+        if (module) {
+          if (module.connection == null) {
+            log.N("opening command connection for device at '%s' (module '%s')", clientIP, module.id, false);
+            connectModule(module, globalOptions);
+          }
+          try {
+            var status = data.toString().split('\n')[1].trim();
+            if (status.length == 32) {
+              app.debug("received status '%s' from device at %s (module '%s')", status, clientIP, module.id);
+              var delta = new Delta(app, plugin.id);
+              for (var i = 0; i < module.size; i++) {
+                var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
+                var value = (status.charAt(i) == '0')?0:1;
+                delta.addValue(path, value);
+              }
+              delta.commit().clear();
+              delete delta;
+            } else throw new Error();
+          } catch(e) {
+            app.debug("ignoring garbled data '%s' received from device at %s (module '%s')", status, clientIP, module.id);
+          }
+        } else {
+          app.debug("ignoring data received from unconfigured device at %s", clientIP);
+          client.destroy();
+        }
+      });
+
+    });
+
+    statusListener.listen(port, () => { app.debug("status listener started on port %d", port); });
+  }
+
+  /**
+   * Iterates over every module sending any available next message in
+   * the command queue to the remote device.
+   */
+  function processTransmitQueues() {
+    globalOptions.modules.forEach(module => {
+      if ((module.connection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
+        module.currentCommand = module.commandQueue.shift();
+        module.connection.write(module.currentCommand.command);
+        log.N("sending '%s' to module '%s'", module.currentCommand.command.trim(), module.id);
+      }
+    });
   }
 
   return(plugin);
