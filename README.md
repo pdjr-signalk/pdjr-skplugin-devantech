@@ -27,35 +27,22 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 ## Description
 
 **pdjr-skplugin-devantech** implements a control interface for
-multi-channel Devantech DS series Ethernet relay devices.
-It was developed an tested on one of
-[these](https://www.robot-electronics.co.uk/catalog/product/view/id/159/s/ds2824-24-x-16a-ethernet-relay/category/7/).
+multi-channel Devantech DS Ethernet relay devices.
+It was developed and tested with
+[this product](https://www.robot-electronics.co.uk/catalog/product/view/id/159/s/ds2824-24-x-16a-ethernet-relay/category/7/).
 
-DS devices can be configured in a way which allows them to issue
-event notifications on relay state change.
-The modules include a number of virtual relays which can be toggled
-under timer control.
-Together these features allow DS devices to echo the familiar
-behaviour of standard NMEA complient switchbanks: i.e. issuing status
-reports at regular intervals and also immediately on relay state
-change.
+DS devices used with this plugin should be configured so that they
+mimic the familiar behaviour of NMEA complient switchbanks where status
+reports are issues at regular intervals and also immediately on any
+relay state change.
 
-DS devices which are to be used with the plugin must have a 'module'
-entry in the plugin configuration which specifies their configured IP
-address and control port.
-
-Connection attempts from unconfigured devices are rejected, but
-otherwise
-
-The plugin listens on a specified TCP port for incoming event
-notifications and, if these originate from a module that is listed in
-the plugin configuration, uses these to update Signal K switch paths
-associated with the transmitting device.
+The plugin listens on a specified TCP port for status reports from
+configured DS devices and uses the received data to update the Signal K
+switch paths associated with the transmitting device.
 
 Receipt of notifications from a device also causes the plugin to open
-and maintain a TCP 'command' connection to the remote device allowing
-remote relay operation through PUT requests on the associated Signal K
-paths.
+and maintain a TCP 'command' connection to the remote device which
+allows PUT requests on associated Signal K paths to operate its relays.
 
 This operating strategy is resilient to network outage and allows
 *ad-hoc* connection of DS devices without the need for a plugin or

@@ -113,7 +113,6 @@ const OPTIONS_DEFAULTS = {
 
 module.exports = function(app) {
   var plugin = {};
-  var unsubscribes = [];
   var globalOptions = null;
 
   plugin.id = PLUGIN_ID;
@@ -124,6 +123,7 @@ module.exports = function(app) {
 
   const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
+
   var statusListener = null;
   var statusListenerClients = [];
   var transmitQueueTimer = null;
@@ -206,32 +206,29 @@ module.exports = function(app) {
   }
 
   /**
-   * Stop the plugin by:
-   * 
-   * 1. Destroying all open client connections.
-   * 2. Stopping the status listener.
-   * 3. Stopping the transmit queue processor. 
+   * Clean uo plugin resources and services by destroying open client
+   * connections, stopping the status listener and stopping the
+   * transmit queue processor. 
    */
   plugin.stop = function() {
-    if (statusListener) {
-      statusListenerClients.forEach(client => client.destroy());
-      statusListener.close();
-    }
+    options.modules.forEach(module => {
+      if (module.listenerConnection) module.listenerConnection.destroy();
+      if (module.commandConnection) module.commandConnection.destroy();
+    });
+    if (statusListener) statusListener.close();
     clearTimeout(transmitQueueTimer);
-    unsubscribes.forEach(f => f());
-    unsubscribes = [];
   }
 
   /**
    * Handler function triggered by a PUT request on a switch path.
    * 
-   * The function translates the PUT request into a command string and
-   * places this and the passed callback into the module's command queue,
-   * returning a PENDING response to Signal K.
+   * The function recovers a command string dictated by path and value
+   * and places this and the passed callback into the module's command
+   * queue returning a PENDING response to Signal K.
    * 
-   * The process will resolve when processTransmitQueues() actually
-   * transmits the command to the target device and the device confirms
-   * action.
+   * The PUT handling process will resolve when processTransmitQueues() 
+   * actually transmits the command to the target device and the device
+   * confirms action.
    * 
    * @param {*} context - not used. 
    * @param {*} path - path of the switch to be updated.
@@ -244,7 +241,7 @@ module.exports = function(app) {
     var retval = { "state": "COMPLETED", "statusCode": 400 };
     if (moduleId = getModuleIdFromPath(path)) {
       if (module = getModuleFromModuleId(moduleId)) {
-        if (module.connection) {
+        if (module.commandConnection) {
           if (channelIndex = getChannelIndexFromPath(path)) {
             if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
               relayCommand = ((value)?channel.oncommand:channel.offcommand);
@@ -283,8 +280,6 @@ module.exports = function(app) {
 
     if (module.deviceid) {
       if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
-        module.statuscommand = device.statuscommand;
-        module.authenticationtoken = device.authenticationtoken;
         module.commandQueue = [];
         module.currentCommand = null;
         if (module.size) {
@@ -333,23 +328,31 @@ module.exports = function(app) {
     }
   }
 
-  function connectModule(module, options) {
-    module.connection = net.createConnection(module.cobject.port, module.cobject.host);
+  /**
+   * Connects module to the TCP command connection specified by
+   * module.cobject, setting module.commandConnection to the new
+   * connection stream and arranging for subsequent processing.
+   * 
+   * @param {*} module - the module to be connected.
+   */
+  function openCommandConnection(module) {
+    module.commandConnection = net.createConnection(module.cobject.port, module.cobject.host);
     
-    module.connection.on('open', () => {
+    module.commandConnection.on('open', (socket) => {
       app.debug("command connection to module '%s' is open", module.id);
+      module.commandConnection = socket;
       module.commandQueue = [];
       module.currentCommand = null;
     });
 
-    module.connection.on('close', () => {
+    module.commandConnection.on('close', () => {
       app.debug("command connection to module '%s' has closed", module.id);
-      module.connection = null;
+      module.commandConnection.destroy();
       module.commandQueue = [];
       module.currentCommand = null;
     });
 
-    module.connection.on('data', (data) => {
+    module.commandConnection.on('data', (data) => {
       if (data.toString().trim() == "Ok") {
         if (module.currentCommand) {
           module.currentCommand.callback({ "state": "COMPLETED", "statusCode": 200});
@@ -376,16 +379,22 @@ module.exports = function(app) {
   function startStatusListener(port) {
     statusListener = net.createServer((client) => {
 
-      client.on('connection', (socket) => {
+      client.on('open', (socket) => {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
         var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == client.remoteAddress)?m:a), null);
         if (module) {
           app.debug("accepting connection for device at %s (module '%s')", clientIP, module.id);
-          statusListenerClients.push(socket);
-          socket.on('close', () => { statusListenerClients.splice(statusListenerClients.indexOf(socket), 1); });
-          if (module.connection == null) {
+          if (module.listenerConnection) module.listenerConnection.destroy();
+          module.listenerConnection = client;
+
+          socket.on('close', () => {
+            module.listenerConnection.destroy();
+            module.listenerConnection = null;
+          });
+
+          if (module.commandConnection == null) {
             log.N("opening command connection for device at %s (module '%s')", clientIP, module.id, false);
-            connectModule(module, globalOptions);
+            openCommandConnection(module);
           }
         } else {
           app.debug("ignoring connection attempt from unconfigured device at %s", clientIP);
@@ -397,9 +406,9 @@ module.exports = function(app) {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
         var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
         if (module) {
-          if (module.connection == null) {
+          if (module.commandConnection == null) {
             log.N("opening command connection for device at '%s' (module '%s')", clientIP, module.id, false);
-            connectModule(module, globalOptions);
+            openCommandConnection(module);
           }
           try {
             var status = data.toString().split('\n')[1].trim();
@@ -429,15 +438,19 @@ module.exports = function(app) {
   }
 
   /**
-   * Iterates over every module sending any available next message in
-   * the command queue to the remote device.
+   * Iterates over every module sending any available message in the
+   * command queue to the remote device.
    */
   function processTransmitQueues() {
     globalOptions.modules.forEach(module => {
-      if ((module.connection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
+      if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
         module.currentCommand = module.commandQueue.shift();
-        module.connection.write(module.currentCommand.command + "\n");
-        log.N("sending '%s' to module '%s'", module.currentCommand.command, module.id);
+        if (module.commandConnection) {
+          module.commandConnection.write(module.currentCommand.command + "\n");
+          log.N("sending '%s' to module '%s'", module.currentCommand.command, module.id);
+        } else {
+          log.E("cannot send command to module '%s' (no connection)", module.id);
+        }
       }
     });
   }
