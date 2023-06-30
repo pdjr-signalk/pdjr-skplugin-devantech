@@ -383,14 +383,10 @@ module.exports = function(app) {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
         var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
         if (module) {
-          if (module.commandConnection == null) {
-            log.N("opening command connection for device at '%s' (module '%s')", clientIP, module.id, false);
-            openCommandConnection(module);
-          }
           try {
             var status = data.toString().split('\n')[1].trim();
             if (status.length == 32) {
-              app.debug("received status '%s' from device at %s (module '%s')", status, clientIP, module.id);
+              app.debug("status listener: received status '%s' from device at %s (module '%s')", status, clientIP, module.id);
               var delta = new Delta(app, plugin.id);
               for (var i = 0; i < module.size; i++) {
                 var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
@@ -401,38 +397,36 @@ module.exports = function(app) {
               delete delta;
             } else throw new Error();
           } catch(e) {
-            app.debug("ignoring garbled data '%s' received from device at %s (module '%s')", status, clientIP, module.id);
+            app.debug("status listener: ignoring non-status data ('%s') received from device at %s (module '%s')", status, clientIP, module.id);
           }
-        } else {
-          app.debug("ignoring data received from unconfigured device at %s", clientIP);
-          client.destroy();
         }
       });
 
       client.on('close', () => {
+        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+        app.debug("status listener: closing connection for device at %s", clientIP)
         module.listenerConnection.destroy();
         module.listenerConnection = null;
       });
 
-      app.debug("OK");
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
       var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
       if (module) {
-        app.debug("accepting connection for device at %s (module '%s')", clientIP, module.id);
+        app.debug("status listener: opening connection for device at %s (module '%s')", clientIP, module.id);
         if (module.listenerConnection) module.listenerConnection.destroy();
         module.listenerConnection = client;
 
         if (module.commandConnection == null) {
-          log.N("opening command connection for device at %s (module '%s')", clientIP, module.id, false);
+          log.N("status listener: opening command connection for module '%s'", clientIP, module.id, false);
           openCommandConnection(module);
         }
       } else {
-        app.debug("ignoring connection attempt from unconfigured device at %s", clientIP);
+        app.debug("status listener: ignoring connection attempt from device %s (not a module)", clientIP);
         client.destroy();
       }
     });
     
-    statusListener.listen(port, () => { app.debug("status listener started on port %d", port); });
+    statusListener.listen(port, () => { app.debug("status listener: listening on port %d", port); });
   }
 
   /**
