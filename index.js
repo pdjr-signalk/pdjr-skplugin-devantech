@@ -421,7 +421,7 @@ module.exports = function(app) {
           openCommandConnection(module);
         }
       } else {
-        app.debug("status listener: ignoring connection attempt from device %s (not a module)", clientIP);
+        log.W("status listener: ignoring connection attempt from device %s (not a module)", clientIP, false);
         client.destroy();
       }
     });
