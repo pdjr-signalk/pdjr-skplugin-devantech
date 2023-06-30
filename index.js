@@ -368,11 +368,10 @@ module.exports = function(app) {
   /**
    * Open an event notification listener on a specified port.
    * 
-   * The listener responds to 'connection' and 'data' events.
-   * 
-   * In both cases the client triggering the event is validated by
-   * checking that it is defined as a module in the plugin
-   * configuration.
+   * DS modules create a new connection for every event notification,
+   * so things here get a little busy. When a valid module connects a
+   * new command connection is made, but this is preserved when the
+   * remote device closes the status reporting connection.
    *  
    * @param {*} port - the port on which to listen for DS device client connections.
    */
