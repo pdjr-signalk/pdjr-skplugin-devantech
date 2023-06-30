@@ -379,29 +379,6 @@ module.exports = function(app) {
   function startStatusListener(port) {
     statusListener = net.createServer((client) => {
 
-      client.on('open', (socket) => {
-        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-        var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == client.remoteAddress)?m:a), null);
-        if (module) {
-          app.debug("accepting connection for device at %s (module '%s')", clientIP, module.id);
-          if (module.listenerConnection) module.listenerConnection.destroy();
-          module.listenerConnection = client;
-
-          socket.on('close', () => {
-            module.listenerConnection.destroy();
-            module.listenerConnection = null;
-          });
-
-          if (module.commandConnection == null) {
-            log.N("opening command connection for device at %s (module '%s')", clientIP, module.id, false);
-            openCommandConnection(module);
-          }
-        } else {
-          app.debug("ignoring connection attempt from unconfigured device at %s", clientIP);
-          client.destroy();
-        }
-      });
-
       client.on("data", (data) => {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
         var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
@@ -432,8 +409,29 @@ module.exports = function(app) {
         }
       });
 
-    });
+      client.on('close', () => {
+        module.listenerConnection.destroy();
+        module.listenerConnection = null;
+      });
 
+      app.debug("OK");
+      var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+      var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
+      if (module) {
+        app.debug("accepting connection for device at %s (module '%s')", clientIP, module.id);
+        if (module.listenerConnection) module.listenerConnection.destroy();
+        module.listenerConnection = client;
+
+        if (module.commandConnection == null) {
+          log.N("opening command connection for device at %s (module '%s')", clientIP, module.id, false);
+          openCommandConnection(module);
+        }
+      } else {
+        app.debug("ignoring connection attempt from unconfigured device at %s", clientIP);
+        client.destroy();
+      }
+    });
+    
     statusListener.listen(port, () => { app.debug("status listener started on port %d", port); });
   }
 
