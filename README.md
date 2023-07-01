@@ -11,7 +11,13 @@ don't warrant the expense of NMEA 2000 hardware or are in locations
 that are difficult to reach from the installed NMEA bus or are
 otherwise more suited to Ethernet connection.
 
-This plugin integrates support for Devantech DS devices into Signal K.
+The DS series of Ethernet relay modules are interesting because they can
+be configured to autonomously transmit status reports in a way which
+mimics the familiar behaviour of NMEA complient switchbanks and which
+allows some measure of application resilience. 
+
+This plugin was developed and tested with
+[this product](https://www.robot-electronics.co.uk/catalog/product/view/id/159/s/ds2824-24-x-16a-ethernet-relay/category/7/).
 
 Devantech Ltd\
 Maurice Gaymer Road\
@@ -28,20 +34,14 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 
 **pdjr-skplugin-devantech** implements a control interface for
 multi-channel Devantech DS Ethernet relay devices.
-It was developed and tested with
-[this product](https://www.robot-electronics.co.uk/catalog/product/view/id/159/s/ds2824-24-x-16a-ethernet-relay/category/7/).
-
-DS devices used with this plugin should be configured so that they
-mimic the familiar behaviour of NMEA complient switchbanks where status
-reports are issues at regular intervals and also immediately on any
-relay state change.
 
 The plugin listens on a specified TCP port for status reports from
 configured DS devices and uses the received data to update the Signal K
 switch paths associated with the transmitting device.
 
-Receipt of notifications from a device also causes the plugin to open
-and maintain a TCP 'command' connection to the remote device which
+Receipt of status notifications from a DS device causes the plugin to
+establish and maintain a persistent TCP 'command' connection to the
+remote device which
 allows PUT requests on associated Signal K paths to operate its relays.
 
 This operating strategy is resilient to network outage and allows
