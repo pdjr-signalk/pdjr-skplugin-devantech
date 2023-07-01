@@ -13,11 +13,12 @@ otherwise more suited to Ethernet connection.
 
 The DS series of Ethernet relay modules are interesting because they can
 be configured to autonomously transmit status reports in a way which
-mimics the familiar behaviour of NMEA complient switchbanks and which
+can mimic the familiar behaviour of NMEA complient switchbanks and which
 allows some measure of application resilience. 
 
 This plugin was developed and tested with
-[this product](https://www.robot-electronics.co.uk/catalog/product/view/id/159/s/ds2824-24-x-16a-ethernet-relay/category/7/).
+[this product](https://www.robot-electronics.co.uk/catalog/product/view/id/159/s/ds2824-24-x-16a-ethernet-relay/category/7/)
+kindly supplied for evaluation by:
 
 Devantech Ltd\
 Maurice Gaymer Road\
@@ -41,25 +42,18 @@ switch paths associated with the transmitting device.
 
 Receipt of status notifications from a DS device causes the plugin to
 establish and maintain a persistent TCP 'command' connection to the
-remote device which
-allows PUT requests on associated Signal K paths to operate its relays.
+remote device that allows it to operate relays in response to Signal K
+PUT requests.
 
 This operating strategy is resilient to network outage and allows
 *ad-hoc* connection of DS devices without the need for a plugin or
 server re-start.
 
-In the Signal K context the plugin offers two distinct services.
-
-Firstly, it provides a mechanism for decorating Signal K's data
-hierarchy with user supplied meta-data that documents a relay module
-in a meaningful way and allows relay channels to be described in
-terms of their function or application.
-
-Secondly, the plugin installs a PUT handler on each Signal K switch
-path that is associated with a relay device channel.
-The PUT handler translates a state change request into a relay
-operating command and queues the command for transmission to the
-associated device as soon as it becomes ready to accept a command.
+In addition to the relay control service the plugin also provides a
+mechanism for decorating Signal K's data hierarchy with user supplied
+meta-data that documents a DS device in a meaningful way and allows
+relay channels to be described in terms of their function or
+application.
 
 ## Configuration
 
@@ -71,10 +65,10 @@ associated device as soon as it becomes ready to accept a command.
    entry.
 
 2. Event Notifications. 'Triggers' should identify all the relays on
-   the device and host also the virtual relay R32. 'Target IP' should
-   be set to the IP address of the Signal K host and 'Target Port' to
-   the same value as the 'statusListenerPort' property in the plugin
-   configuration. Set 'TCP/IP Timeout' to 5000.
+   the device and also the virtual relay R32. 'Target IP' should be set
+   to the IP address of the Signal K host and 'Target Port' to the same
+   value as the 'statusListenerPort' property in the plugin 
+   onfiguration. Set 'TCP/IP Timeout' to 5000.
 
 3. Timers. Select 'Counter No.' 1 and set 'Counter Input' to 'T1' and
    'Reset Input' to 'C1>9'.
@@ -208,8 +202,8 @@ with appropriate values before string transmission.
 
 ## Operation
 
-The plugin will start immediately it is installed but must be
-configured with at least one 'module' definition before use.
+The plugin will start immediately it is installed but must be configured
+with at least one 'module' definition before it can do something useful.
 
 ## Author
 
