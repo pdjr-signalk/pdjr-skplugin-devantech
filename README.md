@@ -6,17 +6,19 @@ DS range of general-purpose relay modules.
 
 ## Background
 
-I have a number of remote switching requirements on my boat that either
-don't warrant the expense of NMEA 2000 hardware or are in locations
-that are difficult to reach from the installed NMEA bus or are
-otherwise more suited to Ethernet connection.
+Recently I had an idea for a project that required multi-channel remote
+switching over Ethernet and, ideally, direct integration with Signal K.
+For consistency of experience and expectation I wanted to use devices
+that as far as possible behaved in a similar way to my existing NMEA
+2000 switchbank relays.
 
-The DS series of Ethernet relay modules are interesting because they can
-be configured to autonomously transmit status reports in a way which
-can mimic the familiar behaviour of NMEA complient switchbanks and which
-allows some measure of application resilience. 
+The Devantec DS series of Ethernet relay modules caught my eye because
+they can be configured to autonomously transmit status reports in a way
+which can mimic the familiar behaviour of NMEA compliant switchbanks.
 
-This plugin was developed and tested with
+This plugin provides an interface between Signal K's electrical switch
+data model and Devantec DS relay modules and was developed and tested
+with
 [this product](https://www.robot-electronics.co.uk/catalog/product/view/id/159/s/ds2824-24-x-16a-ethernet-relay/category/7/)
 kindly supplied for evaluation by:
 
@@ -34,7 +36,7 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 ## Description
 
 **pdjr-skplugin-devantech** implements a control interface for
-multi-channel Devantech DS Ethernet relay devices.
+multi-channel Devantech DS-series Ethernet relay devices.
 
 The plugin listens on a specified TCP port for status reports from
 configured DS devices and uses the received data to update the Signal K
@@ -43,11 +45,11 @@ switch paths associated with the transmitting device.
 Receipt of status notifications from a DS device causes the plugin to
 establish and maintain a persistent TCP 'command' connection to the
 remote device that allows it to operate relays in response to Signal K
-PUT requests.
+PUT requests on the associated switch channels.
 
 This operating strategy is resilient to network outage and allows
-*ad-hoc* connection of DS devices without the need for a plugin or
-server re-start.
+*ad-hoc* connection of DS devices without the need for a plugin,
+server or remote module re-start.
 
 In addition to the relay control service the plugin also provides a
 mechanism for decorating Signal K's data hierarchy with user supplied
@@ -76,8 +78,8 @@ application.
 4. Relays. Select 'Relay No' 32 and set 'Pulse/Follow' to 'C1>4'.
 
 These settings will ensure that an event notification message is sent
-to the plugin whenever a physical relay changes state and at least once
-every five seconds.
+to the plugin once every five seconds and immediately a physical relay
+changs state.
 
 ### Plugin configuration
 
