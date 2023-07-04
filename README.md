@@ -70,7 +70,7 @@ application.
    the device and also the virtual relay R32. 'Target IP' should be set
    to the IP address of the Signal K host and 'Target Port' to the same
    value as the 'statusListenerPort' property in the plugin 
-   onfiguration. Set 'TCP/IP Timeout' to 5000.
+   configuration. Set 'TCP/IP Timeout' to 5000.
 
 3. Timers. Select 'Counter No.' 1 and set 'Counter Input' to 'T1' and
    'Reset Input' to 'C1>9'.
@@ -87,18 +87,18 @@ The plugin configuration has the following properties.
 
 | Property               | Default     | Description |
 | :--------------------- | :---------- | :---------- |
+| modules                | []          | Required array property consisting of a collection of 'module' object properties each of which describes a particular DS relay device you wish the plugin to operate. |
 | statusListenerPort     | 24281       | Optional TCP port number on which the plugin will listen for DS event notificataions. |
-| transmitQueueHeartbeat | 25          | Optional transmit queue processing interval in milliseconds. This defines the frequency at which the plugin checks the DS device for command completion and so defines the maximum rate at which relay operating commands can be sent to a remote device. |
+| transmitQueueHeartbeat | 25          | Optional transmit queue processing interval in milliseconds. This defines the frequency at which the plugin will check that a previously issued command has completed and so defines the maximum rate at which relay operating commands can be sent to a remote device. |
 | devices                | (see below) | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. A single device with the id 'DS' is defined by default. |
-| modules                | []          | Required array property consisting of a collection of 'module' object properties each of which describes a particular relay device you wish the plugin to operate. |
 
-Typically, all that is required to get a working installation is the
-definition of a 'modules' property.
+All that is required to get a working installation is the definition of a
+'modules' property.
 The test configuration for my DS2824 looks like this:
 ```
 {
   "enabled": true,
-  "enableDebug": false,
+  "enableDebug": true,
   "configuration": {
     "modules": [
       {
