@@ -39,11 +39,10 @@ const PLUGIN_SCHEMA = {
       "default": [],
       "items": {
         "type": "object",
-        "required": [ "id", "size", "deviceid", "cstring", "channels" ],
+        "required": [ "id", "deviceid", "cstring", "channels" ],
         "properties": {
           "id": { "title": "Module id", "type": "string" },
           "description": { "title": "Module description", "type": "string" },
-          "size": { "title": "Number of relay output channels", "type": "number" },
           "deviceid": { "title": "Device id", "type": "string" },
           "cstring": { "title": "Connection string (address:port)", "type": "string" },
           "channels": {
@@ -149,13 +148,15 @@ module.exports = function(app) {
     // specified device definition, then filter the result to eliminate
     // any broken modules.
     options.modules = options.modules
-      .map(module => elaborateModuleConfiguration(module, options.devices))
+      .map(module => normaliseModuleConfiguration(module, options.devices))
       .filter(module => {
-        if (Object.keys(module).length == 1) {
-          log.W("dropping module '%s' (bad configuration)", module.id);
+        try {
+          validateModuleConfiguration(module);
+          return(true);
+        } catch(e) {
+          log.E("invalid configuration for module '%s' (%s)", module.id, e.message);
           return(false);
         }
-        return(true);
       });
 
     // So now we have a list of prepared, valid, modules.
@@ -274,48 +275,39 @@ module.exports = function(app) {
     
   }
   
-  function elaborateModuleConfiguration(module, devices) {  
+  function normaliseModuleConfiguration(module, devices) {  
     var device, oncommand, offcommand;
-    var retval = { "id": module.id };
+    var retval = { };
 
-    if (module.deviceid) {
-      if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
-        module.commandQueue = [];
-        module.currentCommand = null;
-        if (module.size) {
+    if (module.id && (module.id != "")) {
+      if (module.deviceid || (module.deviceid = 'DS')) {
+        if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
           if (module.cobject = parseConnectionString(module.cstring)) {
-            module.channels.forEach(channel => {
-              oncommand = null;
-              offcommand = null;
-              if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
-                oncommand = device.channels[0].oncommand;
-                offcommand = device.channels[0].offcommand;
-              } else {
-                oncommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.oncommand:a), null);
-                offcommand = device.channels.reduce((a,c) => ((c.address == channel.index)?c.offcommand:a), null);
-              }
-              if (oncommand) oncommand = oncommand
-                .replace('{A}', module.authenticationtoken)
-                .replace("{c}", channel.index)
-                .replace('{C}', String.fromCharCode(channel.index))
-                .replace("{p}", module.cobject.password)
-                .replace("{u}", channel.index)
-              if (offcommand) offcommand = offcommand
-                .replace('{A}', module.authenticationtoken)
-                .replace("{c}", channel.index)
-                .replace('{C}', String.fromCharCode(channel.index))
-                .replace("{p}", module.cobject.password)
-                .replace("{u}", channel.index)
-              channel.oncommand = oncommand;
-              channel.offcommand = offcommand;
-            });
-            retval = module;
+            module.commandQueue = [];
+            module.currentCommand = null;
+            if (module.channels.length) {
+              module.channels.forEach(channel => {
+                channel.address = (channel.address || channel.index);
+                oncommand = null;
+                offcommand = null;
+                if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
+                  oncommand = device.channels[0].oncommand;
+                  offcommand = device.channels[0].offcommand;
+                } else {
+                  oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
+                  offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
+                }
+                channel.oncommand = (oncommand)?oncommand.replace("{c}", channel.address):null;
+                channel.offcommand = (offcommand)?offcommand.replace("{c}", channel.address):null;
+              });
+              retval = module;
+            }
           }
         }
       }
     }
     return(retval);
-  
+
     function parseConnectionString(cstring) {
       var retval = null;
 
@@ -326,6 +318,13 @@ module.exports = function(app) {
       }
       return(retval);
     }
+  }
+
+  function validateModuleConfiguration(module) {
+    if (!module.id) throw new Error("bad or missing 'id'");
+    if (!module.deviceid) throw new Error("bad or missing 'deviceid'");
+    if (!module.cobject) throw new Error("bad or missing 'cstring'");
+    if (!module.channels.length) throw new Error("bad or missing channel definitions");
   }
 
   /**
@@ -387,8 +386,8 @@ module.exports = function(app) {
             if (status.length == 32) {
               app.debug("status listener: received status '%s' from device at %s (module '%s')", status, clientIP, module.id);
               var delta = new Delta(app, plugin.id);
-              for (var i = 0; i < module.size; i++) {
-                var path = MODULE_ROOT + module.id + "." + (i + 1) + ".state";
+              for (var i = 0; i < module.channels.length; i++) {
+                var path = MODULE_ROOT + module.id + "." + module.channels[i].index + ".state";
                 var value = (status.charAt(i) == '0')?0:1;
                 delta.addValue(path, value);
               }
