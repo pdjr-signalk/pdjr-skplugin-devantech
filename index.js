@@ -43,7 +43,7 @@ const PLUGIN_SCHEMA = {
         "properties": {
           "id": { "title": "Module id", "type": "string" },
           "description": { "title": "Module description", "type": "string" },
-          "size": { "title": "No of relay output channels", "type": "number" },
+          "size": { "title": "Number of relay output channels", "type": "number" },
           "deviceid": { "title": "Device id", "type": "string" },
           "cstring": { "title": "Connection string (address:port)", "type": "string" },
           "channels": {
