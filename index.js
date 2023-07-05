@@ -39,12 +39,12 @@ const PLUGIN_SCHEMA = {
       "default": [],
       "items": {
         "type": "object",
-        "required": [ "id", "deviceid", "cstring", "channels" ],
+        "required": [ "id", "cstring", "channels" ],
         "properties": {
           "id": { "title": "Module id", "type": "string" },
+          "cstring": { "title": "Connection string (address:port)", "type": "string" },
           "description": { "title": "Module description", "type": "string" },
           "deviceid": { "title": "Device id", "type": "string" },
-          "cstring": { "title": "Connection string (address:port)", "type": "string" },
           "channels": {
             "type": "array",
             "items": {
@@ -275,9 +275,17 @@ module.exports = function(app) {
     
   }
   
+  /**
+   * Takes a perhaps partial module definition and does what it can to
+   * parse encoded bits and add important defaults.
+   * 
+   * @param {*} module - the module object to be processed. 
+   * @param {*} devices - array of available device definitions.
+   * @returns - the dressed-up module or {} on error.
+   */
   function normaliseModuleConfiguration(module, devices) {  
     var device, oncommand, offcommand;
-    var retval = { };
+    var retval = {};
 
     if (module.id && (module.id != "")) {
       if (module.deviceid || (module.deviceid = 'DS')) {
@@ -308,6 +316,13 @@ module.exports = function(app) {
     }
     return(retval);
 
+    /**
+     * Make a connection object with properties 'host', 'port' and
+     * optionally 'password' from \ref cstring.
+     * 
+     * @param {*} cstring - the string to be parsed. 
+     * @returns - on success, an object, otherwise null.
+     */
     function parseConnectionString(cstring) {
       var retval = null;
 
@@ -320,6 +335,12 @@ module.exports = function(app) {
     }
   }
 
+  /**
+   * Checks a module definition for the essential bits, throwing an
+   * exception if things aren't usable.
+   * 
+   * @param {*} module - the module to be validated. 
+   */
   function validateModuleConfiguration(module) {
     if (!module.id) throw new Error("bad or missing 'id'");
     if (!module.deviceid) throw new Error("bad or missing 'deviceid'");
