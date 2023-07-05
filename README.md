@@ -39,17 +39,16 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 multi-channel Devantech DS-series Ethernet relay devices.
 
 The plugin listens on a specified TCP port for status reports from
-configured DS devices and uses the received data to update the Signal K
+configured DS devices and uses the received data to update Signal K
 switch paths associated with the transmitting device.
 
 Receipt of status notifications from a DS device causes the plugin to
-establish and maintain a persistent TCP 'command' connection to the
-remote device that allows it to operate relays in response to Signal K
-PUT requests on the associated switch channels.
+establish and maintain a persistent TCP connection to the remote
+device that allows it to operate relays in response to Signal K PUT
+requests on the associated switch channels.
 
 This operating strategy is resilient to network outage and allows
-*ad-hoc* connection of DS devices without the need for a plugin,
-server or remote module re-start.
+*ad-hoc* connection of DS devices.
 
 In addition to the relay control service the plugin also provides a
 mechanism for decorating Signal K's data hierarchy with user supplied
@@ -105,7 +104,6 @@ The test configuration for my DS2824 looks like this:
         "id": "DS2824",
         "description": "DS2824 Test Module",
         "deviceid": "DS",
-        "size": 24,
         "cstring": "192.168.1.145:17123",
         "channels": [
           { "index": 1, "description": "Relay 1" },
@@ -130,7 +128,6 @@ Each 'module' object has the following properties.
 | id                 | (none)  | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay switch channel. |
 | description        | (none)  | Optional string property can be used to supply some documentary text about the module. |
 | deviceid           | 'DS'    | Optional string property specifying the physical device to which this module definition relates. The value supplied here must be one of the device 'id's defined in the 'devices' section (see below). |
-| size               | (none)  | Required number property specifying the number of relay channels supported by the device. |
 | cstring            | (none)  | Required string property supplying a connection string of the form '*address*:*port*' that identifes the physical device implementing this module and the TCP port number on which it listens for commands. |
 | channels           | []      | Array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
 
@@ -148,7 +145,7 @@ properties.
 
 A 'devices' array property can be included at the top-level of the
 plugin configuration to add relay device definitions to those which are
-pre-defined in the plugin or to override an existing definition.
+pre-defined in the plugin or to override the existing 'DS' definition.
 Each item in the 'devices' array is a *device* definition object which
 describes the physical and interfacing characteristics of a supported
 relay device.
