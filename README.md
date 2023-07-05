@@ -126,10 +126,10 @@ Each 'module' object has the following properties.
 | Property           | Default | Description |
 | :----------------- | :------ | :---------- |
 | id                 | (none)  | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay switch channel. |
-| description        | (none)  | Optional string property can be used to supply some documentary text about the module. |
-| deviceid           | 'DS'    | Optional string property specifying the physical device to which this module definition relates. The value supplied here must be one of the device 'id's defined in the 'devices' section (see below). |
 | cstring            | (none)  | Required string property supplying a connection string of the form '*address*:*port*' that identifes the physical device implementing this module and the TCP port number on which it listens for commands. |
-| channels           | []      | Array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
+| channels           | []      | Required array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
+| description        | ''      | Optional string property can be used to supply some documentary text about the module. |
+| deviceid           | 'DS'    | Optional string property specifying the physical device to which this module definition relates. The value supplied here must be either the identifier of the plugin's default device (i.e. 'DS') or the identifier of a user-defined device (see below). |
 
 Each *channel* object in the *channels* array has the following
 properties.
@@ -150,10 +150,8 @@ Each item in the 'devices' array is a *device* definition object which
 describes the physical and interfacing characteristics of a supported
 relay device.
 
-A device must be defined here before it can be configured for use in a
-module definition.
-The plugin includes a single device definition suitable for DS-series
-Devantech relay modules that were available at the time of release:
+The plugin includes this device definition suitable for DS-series relay
+modules:
 ```
 {
   "id": "DS",
@@ -173,7 +171,7 @@ Each device definition has the following properties.
 | id            | (none)  | Required string property supplying a space-separated list of identifiers, one
 for each of the relay devices to which the definition applies. Typically these identifiers should be the model number assigned by the
 device manufacturer. |
-| channels            | []      | Array property introduces a list of *channel* definitions each of which specifies the commands required to operate a particular relay on the device being defined. |
+| channels      | []      | Required array property introduces a list of *channel* definitions each of which specifies the commands required to operate a particular relay on the device being defined. |
 
 Relays are identified by an ordinal address in the range 1..[size] and
 each channel can be defined explicitly, but if there is a common format
