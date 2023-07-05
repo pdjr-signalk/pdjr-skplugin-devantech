@@ -7,7 +7,7 @@ DS range of general-purpose relay modules.
 ## Background
 
 Recently I had an idea for a project that required multi-channel remote
-switching over Ethernet and, ideally, direct integration with Signal K.
+switching over Ethernet.
 For consistency of experience and expectation I wanted to use devices
 that as far as possible behaved in a similar way to my existing NMEA
 2000 switchbank relays.
