@@ -197,6 +197,8 @@ module.exports = function(app) {
         });
       });
 
+      // Start listening for remote DS status reports and begin checking
+      // the transmit queue.
       log.N("started: listening for client connections on port %d", options.statusListenerPort);
       startStatusListener(options.statusListenerPort);
       transmitQueueTimer = setInterval(processTransmitQueues, options.transmitQueueHeartbeat);
