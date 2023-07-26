@@ -129,82 +129,72 @@ module.exports = function(app) {
 
   plugin.start = function(options) {
 
-    if (Object.keys(options).length == 0) {
-      options = OPTIONS_DEFAULTS;
-    } else {
+    if (Object.keys(options).length > 0) {  
       options.statusListenerPort = (options.statusListenerPort || OPTIONS_DEFAULTS.statusListenerPort);
       options.transmitQueueHeartbeat = (options.transmitQueueHeartbeat || OPTIONS_DEFAULTS.transmitQueueHeartbeat);
       options.devices = (options.devices || []).concat(OPTIONS_DEFAULTS.devices);
-    }
-    app.debug("supported devices: %s", options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", "));
+      app.debug("supported devices: %s", options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", "));
+      if ((options.modules) && (Array.isArray(options.modules)) && (options.modules.length > 0)) {
 
-    // Context-free event handlers need access to the plugin
-    // configuration options, so we elevate them to the plugin global
-    // namespace. 
-    globalOptions = options;
-    options = globalOptions;
+        // Context-free event handlers need access to the plugin
+        // configuration options, so we elevate them to the plugin global
+        // namespace. 
+        globalOptions = options;
+        options = globalOptions;
     
-    // Process each defined module, interpolating data from the
-    // specified device definition, then filter the result to eliminate
-    // any broken modules.
-    options.modules = options.modules
-      .map(module => normaliseModuleConfiguration(module, options.devices))
-      .filter(module => {
-        try {
-          validateModuleConfiguration(module);
-          return(true);
-        } catch(e) {
-          log.E("invalid configuration for module '%s' (%s)", module.id, e.message);
-          return(false);
-        }
-      });
+        // Process each defined module, interpolating data from the
+        // specified device definition, then filter the result to eliminate
+        // any broken modules.
+        options.modules = options.modules
+          .map(module => normaliseModuleConfiguration(module, options.devices))
+          .filter(module => {
+            try {
+              validateModuleConfiguration(module);
+              return(true);
+            } catch(e) {
+              log.E("invalid configuration for module '%s' (%s)", module.id, e.message);
+              return(false);
+            }
+          });
 
-    // So now we have a list of prepared, valid, modules.
+        // So now we have a list of prepared, valid, modules.
+        if (options.modules.length > 0) {
+          // Save meta data for modules and channels.
+          var path, value; 
+          options.modules.forEach(module => {
+            path = (MODULE_ROOT + module.id);
+            value = { "description": module.description, "shortName": module.id, "longName": "Relay module " + module.id, "displayName": "Relay module " + module.id };
+            delta.addMeta(path, value);
+            module.channels.forEach(c => {
+              path = (MODULE_ROOT +  module.id + "." + c.index + ".state");
+              value = { "description": "Relay state (0=OFF, 1=ON)", "shortName": "[" + module.id + "," + c.index + "]", "longName": c.description + " [" + module.id + "," + c.index + "]", "displayName": c.description, "unit": "Binary switch state (0/1)", "type": "relay" };
+              delta.addMeta(path, value);
+            });
+          });
+          delta.commit().clear();
 
-    if (options.modules.length) {
+          // Install put handlers.
+          options.modules.forEach(module => {
+            module.channels.forEach(ch => {
+              var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
+              app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
+            });
+          });
 
-      // Save meta data for modules and channels.
-      var path, value; 
-      options.modules.forEach(module => {
-        path = (MODULE_ROOT + module.id);
-        value = {
-          "description": module.description,
-          "shortName": module.id,
-          "longName": "Relay module " + module.id,
-          "displayName": "Relay module " + module.id
-        };
-        delta.addMeta(path, value);
-        module.channels.forEach(c => {
-          path = (MODULE_ROOT +  module.id + "." + c.index + ".state");
-          value = {
-            "description": "Relay state (0=OFF, 1=ON)",
-            "shortName": "[" + module.id + "," + c.index + "]",
-            "longName": c.description + " [" + module.id + "," + c.index + "]",
-            "displayName": c.description,
-            "unit": "Binary switch state (0/1)",
-            "type": "relay"
-          };
-          delta.addMeta(path, value);
-        });
-      });
-      delta.commit().clear();
-
-      // Install put handlers.
-      options.modules.forEach(module => {
-        module.channels.forEach(ch => {
-          var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
-          app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
-        });
-      });
-
-      // Start listening for remote DS status reports and begin checking
-      // the transmit queue.
-      log.N("started: listening for client connections on port %d", options.statusListenerPort);
-      startStatusListener(options.statusListenerPort);
-      transmitQueueTimer = setInterval(processTransmitQueues, options.transmitQueueHeartbeat);
+          // Start listening for remote DS status reports and begin checking
+          // the transmit queue.
+          log.N("listening for DS module connections on port %d", options.statusListenerPort);
+          startStatusListener(options.statusListenerPort);
+          transmitQueueTimer = setInterval(processTransmitQueues, options.transmitQueueHeartbeat);
       
+        } else {
+          log.E("there are no usable module definitions.");
+        }
+      } else {
+        log.E("plugin configuration contains no usable module definitions.");
+      }
     } else {
-      log.W("stopped: there are no usable module definitions.");
+      log.E("plugin configuration file is missing or unusable");
     }
   }
 
