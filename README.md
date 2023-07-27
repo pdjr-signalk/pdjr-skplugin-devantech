@@ -77,23 +77,50 @@ application.
 4. Relays. Select 'Relay No' 32 and set 'Pulse/Follow' to 'C1>4'.
 
 These settings will ensure that an event notification message is sent
-to the plugin once every five seconds and immediately a physical relay
-changs state.
+to the plugin immediately a relay on the DS device changes state.
+The virtual relay R32 is configured to automatically change state once
+every five seconds.
 
 ### Plugin configuration
 
 The plugin configuration has the following properties.
 
-| Property               | Default     | Description |
-| :--------------------- | :---------- | :---------- |
-| modules                | []          | Required array property consisting of a collection of 'module' object properties each of which describes a particular DS relay device you wish the plugin to operate. |
-| statusListenerPort     | 24281       | Optional TCP port number on which the plugin will listen for DS event notificataions. |
-| transmitQueueHeartbeat | 25          | Optional transmit queue processing interval in milliseconds. This defines the frequency at which the plugin will check that a previously issued command has completed and so defines the maximum rate at which relay operating commands can be sent to a remote device. |
-| devices                | (see below) | Optional array property consisting of a collection of 'device' objects each of which defines the operating characteristics of a Devantech product. A single device with the id 'DS' is defined by default. |
+| Property name          | Value type | Value default | Description |
+| :--------------------- | :---------- | :----------- | :---------- |
+| modules                | Array       | (none)       | Collection of *module* objects. |
+| statusListenerPort     | Number      | 24281        | The TCP port on which the plugin will listen for DS event notificataions. |
+| transmitQueueHeartbeat | Number      | 25           | Transmit queue processing interval in milliseconds. |
+| devices                | Array       | (see below)  | Collection of *device* objects.|
 
-All that is required to get a working installation is the definition of a
-'modules' property.
-The test configuration for my DS2824 looks like this:
+Each *module* object in the *modules* array defines a Devantech DS
+device that will be controlled by the plugin.
+Most installations will only need to specify entries in this array,
+leaving other properties to assume their defaults.
+
+The *devices* array can be used to introduce new operating commands
+for particular Devantech relay devices.
+The plugin includes a definition with the id 'DS' for operating a
+device using the DS ASCII protocol.
+
+Each *module* object has the following properties.
+
+| Property name      | Value type | Value default | Description |
+| :----------------- | :--------- | :------------ | :---------- |
+| id                 | String     | (none)        | Unique identifier that will be used as the 'bank' part of the Signal K switch path used to identify thus module's switch channels. |
+| cstring            | String     | (none)        | Connection specification of the form '*address*:*port*' that gives the IP address of the physical device implementing this module and the TCP port number on which it listens for commands. |
+| channels           | Array      | (none)        | Array of *channel* objects. |
+| description        | String     | ''            | Text for the meta data 'description' property that will be associated with the Signal K switch bank *id*. |
+| deviceid           | String     | 'DS'          | Id of the *device* defining the operating characteristics of this module. |
+
+Each *channel* object has the following properties.
+
+| Property name | Value type | Value default | Description |
+| :----------   | :--------- | :------------ | :---------- |
+| index         | Number     | (none)        | Identifier that will be used as the 'channel' part of the Signal K switch path used to identify this relay. Signal K convention starts channel numbering at 1. |
+| address       | Number     | *index*       | Address of the physical channel on the remote device with which this channel is associated. |
+| description   | String     | ''            | Text for the meta data 'description' property that will be associated with this channel in Signal K. |
+
+My test configuration for a DS2824 looks like this:
 ```
 {
   "enabled": true,
@@ -119,31 +146,11 @@ The test configuration for my DS2824 looks like this:
     ]
   }
 }
-``` 
-
-Each 'module' object has the following properties.
-
-| Property           | Default | Description |
-| :----------------- | :------ | :---------- |
-| id                 | (none)  | Required string property supplying a unique Signal K identifier for the module being defined. This value will be used as part of the Signal K path used to identify each relay switch channel. |
-| cstring            | (none)  | Required string property supplying a connection string of the form '*address*:*port*' that identifes the physical device implementing this module and the TCP port number on which it listens for commands. |
-| channels           | []      | Required array property containing a collection of *channel* definitions each of which describes one of the module's relay bank channels. |
-| description        | ''      | Optional string property can be used to supply some documentary text about the module. |
-| deviceid           | 'DS'    | Optional string property specifying the physical device to which this module definition relates. The value supplied here must be either the identifier of the plugin's default device (i.e. 'DS') or the identifier of a user-defined device (see below). |
-
-Each *channel* object in the *channels* array has the following
-properties.
-
-| Property    | Default | Description |
-| :---------- | ------- | :---------- |
-| index       | (none)  | Required number property specifying the Signal K index of the module channel being defined (Signal K convention starts channel numbering at 1).  This value will be used as part of the Signal K path used to identify each relay switch channel. |
-| address     | (none)  | Optional number property specifying the address of the physical channel on the remote device with which this channel is associated. If this property is omitted, then the plugin will use the value of the
-'index' property as the channel address. |
-| description | (none)  | Optional string property supplying some text for the meta data 'description' property that will be associated with the channel in Signal K. |
+```
 
 ### Device definitions
 
-A 'devices' array property can be included at the top-level of the
+A *devices* array property can be included at the top-level of the
 plugin configuration to add relay device definitions to those which are
 pre-defined in the plugin or to override the existing 'DS' definition.
 Each item in the 'devices' array is a *device* definition object which
@@ -166,28 +173,26 @@ modules:
 ```
 Each device definition has the following properties.
 
-| Property      | Default | Description |
-| :------------ | ------- | :---------- |
-| id            | (none)  | Required string property supplying a space-separated list of identifiers, one
-for each of the relay devices to which the definition applies. Typically these identifiers should be the model number assigned by the
-device manufacturer. |
-| channels      | []      | Required array property introduces a list of *channel* definitions each of which specifies the commands required to operate a particular relay on the device being defined. |
+| Property name | Value type | Value default | Description |
+| :------------ | :--------- | :------------ | :---------- |
+| id            | String     | (none)        | Space-separated list of identifiers, one for each of the relay devices to which the definition applies. Typically these identifiers should be the model number or model group name assigned by the device manufacturer. |
+| channels      | Array      | (none)        | Array of *channel* definitions each of which specifies the commands required to operate a particular relay on the device being defined. |
 
-Relays are identified by an ordinal address in the range 1..[size] and
+Relays are identified by an ordinal *address* in the range 1..[size] and
 each channel can be defined explicitly, but if there is a common format
 for commands that applies to all channels, then a pattern can be defined
-for a fake, generic, channel with address 0 and this will be elaborated
-for each of the real channels on the device.
+for a fake channel with address 0 that will be elaborated for each of the
+real channels on the device.
 
 Each channel definition has the following properties.
 
-| Property            | Default | Description |
-| :------------------ | ------- | :---------- |
-| address             | (none)  | Number property giving the ordinal number of the relay channel that is being defined (or 0 for a generic definition). |
-| oncommand           | (none)  | String property specifying the character sequence that should be transmitted to the device to turn the relay identified by 'address' ON. |
-| offcommand          | (none)  | String property specifying the character sequence that should be transmitted to the device to turn the relay identified by 'address' OFF. |
+| Property name | Value type | Value default | Description |
+| :------------ | ---------- | :------------ | :---------- |
+| address       | Number     | (none)        | Physical address of the relay that is being defined (or 0 for a generic definition). |
+| oncommand     | String     | (none)        | Command that should be transmitted to the device to turn relay ON. |
+| offcommand    | String     | (none)        | Command that should be transmitted to the device to turn relay OFF. |
 
-Both 'oncommand' and 'offcommand' can contain embedded JSON escape
+Both *oncommand* and *offcommand* can contain embedded JSON escape
 sequences.
 Additionally, the following wildcard tokens will be substituted
 with appropriate values before string transmission.
