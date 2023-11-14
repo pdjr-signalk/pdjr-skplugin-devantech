@@ -23,8 +23,7 @@
   "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-devantech#readme",
   "dependencies": {
     "signalk-libdelta": "github:pdjr-signalk/signalk-libdelta",
-    "signalk-liblog": "github:pdjr-signalk/signalk-liblog",
-    "sprintf-js": "^1.1.2"
+    "signalk-liblog": "github:pdjr-signalk/signalk-liblog"
   },
   "directories": {}
 }
