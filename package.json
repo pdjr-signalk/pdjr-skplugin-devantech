@@ -5,6 +5,7 @@
   "main": "index.js",
   "signalk-plugin-enabled-by-default": true,
   "scripts": {
+    "publish": "yq -o=json -I=2 resources/openApi.yaml > resources/openApi.json",
     "test": "echo \"Error: no test specified\""
   },
   "repository": {
