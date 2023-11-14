@@ -165,7 +165,6 @@ const PLUGIN_UISCHEMA = {};
 
 module.exports = function(app) {
   var plugin = {};
-  var globalOptions = null;
 
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
@@ -173,11 +172,9 @@ module.exports = function(app) {
   plugin.schema = PLUGIN_SCHEMA;
   plugin.uiSchema = PLUGIN_UISCHEMA;
 
-  const delta = new Delta(app, plugin.id);
-  const log = new Log(plugin.id, { "ncallback": app.setPluginStatus, "ecallback": app.setPluginError });
+  const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
   var statusListener = null;
-  var statusListenerClients = [];
   var transmitQueueTimer = null;
 
   plugin.start = function(options) {
@@ -321,22 +318,22 @@ module.exports = function(app) {
    */
   function putHandler(context, path, value, callback) {
     var moduleId, module, channelIndex, channel, relayCommand;
-    var retval = { "state": "COMPLETED", "statusCode": 400 };
+    var retval = { state: 'COMPLETED', statusCode: 400 };
     if (moduleId = getModuleIdFromPath(path)) {
       if (module = getModuleFromModuleId(moduleId)) {
         if (module.commandConnection) {
           if (channelIndex = getChannelIndexFromPath(path)) {
             if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
               relayCommand = ((value)?channel.oncommand:channel.offcommand);
-              module.commandQueue.push({ "command": relayCommand, "callback": callback });
-              retval = { "state": "PENDING" };
+              module.commandQueue.push({ command: relayCommand, callback: callback });
+              retval = { state: 'PENDING' };
             }
           }
         } else {
-          app.debug("PUT request cannot be actioned (module '%s' has no open command connection)", module.id);
+          app.debug(`PUT request cannot be actioned (module '${module.id}' has no open command connection)`);
         }
       } else {
-        app.debug("module '%s' is not defined", moduleId);
+        app.debug(`module '${moduleId}' is not defined`);
       }
     }
     return(retval);
@@ -369,7 +366,7 @@ module.exports = function(app) {
     var device, oncommand, offcommand;
     var retval = {};
 
-    if (module.id && (module.id != "")) {
+    if (module.id && (module.id != '')) {
       if (module.deviceId || (module.deviceId = 'DS')) {
         if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null)) {
           if (module.cobject = parseConnectionString(module.connectionString)) {
@@ -387,8 +384,8 @@ module.exports = function(app) {
                   oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
                   offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
                 }
-                channel.oncommand = (oncommand)?oncommand.replace("{c}", channel.address):null;
-                channel.offcommand = (offcommand)?offcommand.replace("{c}", channel.address):null;
+                channel.oncommand = (oncommand)?oncommand.replace('{c}', channel.address):null;
+                channel.offcommand = (offcommand)?offcommand.replace('{c}', channel.address):null;
               });
               retval = module;
             }
@@ -409,9 +406,9 @@ module.exports = function(app) {
       var retval = null;
 
       if (matches = connectionString.match(/^(.*)@(.*)\:(.*)$/)) {
-        retval = { "password": matches[1], "host": matches[2], "port": matches[3] };
+        retval = { password: matches[1], host: matches[2], port: matches[3] };
       } else if (matches = connectionString.match(/^(.*)\:(.*)$/)) {
-        retval = { "host": matches[1], "port": matches[2] };
+        retval = { host: matches[1], port: matches[2] };
       }
       return(retval);
     }
@@ -441,26 +438,26 @@ module.exports = function(app) {
     module.commandConnection = net.createConnection(module.cobject.port, module.cobject.host);
     
     module.commandConnection.on('open', (socket) => {
-      app.debug("command connection to module '%s' is open", module.id);
+      app.debug(`command connection to module '${module.id}' is open`);
       module.commandConnection = socket;
       module.commandQueue = [];
       module.currentCommand = null;
     });
 
     module.commandConnection.on('close', () => {
-      app.debug("command connection to module '%s' has closed", module.id);
+      app.debug(`command connection to module '${module.id}' has closed`);
       module.commandConnection.destroy();
       module.commandQueue = [];
       module.currentCommand = null;
     });
 
     module.commandConnection.on('data', (data) => {
-      if (data.toString().trim() == "Ok") {
+      if (data.toString().trim() == 'Ok') {
         if (module.currentCommand) {
-          module.currentCommand.callback({ "state": "COMPLETED", "statusCode": 200});
+          module.currentCommand.callback({ state: 'COMPLETED', statusCode: 200 });
           module.currentCommand = null;
         } else {
-          app.debug("orphan command response received from module '%s'", module.id);
+          app.debug(`orphan command response received from module '${module.id}'`);
         }
       }
     });
@@ -480,17 +477,17 @@ module.exports = function(app) {
   function startStatusListener(port) {
     statusListener = net.createServer((client) => {
 
-      client.on("data", (data) => {
+      client.on('data', (data) => {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
         var module = plugin.options.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
         if (module) {
           try {
             var status = data.toString().split('\n')[1].trim();
             if (status.length == 32) {
-              app.debug("status listener: received status '%s' from device at %s (module '%s')", status, clientIP, module.id);
+              app.debug(`status listener: received status '${status}' from device at ${clientIP} (module '${module.id}')`);
               var delta = new Delta(app, plugin.id);
               for (var i = 0; i < module.channels.length; i++) {
-                var path = MODULE_ROOT + module.id + "." + module.channels[i].index + ".state";
+                var path = `${plugin.options.root}${module.id}.${module.channels[i].index}.state`;
                 var value = (status.charAt(i) == '0')?0:1;
                 delta.addValue(path, value);
               }
@@ -498,14 +495,14 @@ module.exports = function(app) {
               delete delta;
             } else throw new Error();
           } catch(e) {
-            app.debug("status listener: ignoring non-status data ('%s') received from device at %s (module '%s')", status, clientIP, module.id);
+            app.debug(`status listener: ignoring non-status data ('${status}') received from device at ${clientIP} (module '${module.id}')`);
           }
         }
       });
 
       client.on('close', () => {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-        app.debug("status listener: closing connection for device at %s", clientIP)
+        app.debug(`status listener: closing connection for device at ${clientIP}`)
         module.listenerConnection.destroy();
         module.listenerConnection = null;
       });
@@ -513,21 +510,21 @@ module.exports = function(app) {
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
       var module = plugin.ptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
       if (module) {
-        app.debug("status listener: opening connection for device at %s (module '%s')", clientIP, module.id);
+        app.debug(`status listener: opening connection for device at ${clientIP} (module '${module.id}')`);
         if (module.listenerConnection) module.listenerConnection.destroy();
         module.listenerConnection = client;
 
         if (module.commandConnection == null) {
-          log.N("status listener: opening command connection for module '%s'", clientIP, module.id, false);
+          log.N(`status listener: opening command connection for module '${module.id}'`, false);
           openCommandConnection(module);
         }
       } else {
-        log.W("status listener: ignoring connection attempt from device %s (not a module)", clientIP, false);
+        log.W(`status listener: ignoring connection attempt from device ${clientIP} (not a module)`, false);
         client.destroy();
       }
     });
     
-    statusListener.listen(port, () => { app.debug("status listener: listening on port %d", port); });
+    statusListener.listen(port, () => { app.debug(`status listener: listening on port ${port}`); });
   }
 
   /**
@@ -539,10 +536,10 @@ module.exports = function(app) {
       if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
         module.currentCommand = module.commandQueue.shift();
         if (module.commandConnection) {
-          module.commandConnection.write(module.currentCommand.command + "\n");
-          log.N("sending '%s' to module '%s'", module.currentCommand.command, module.id);
+          module.commandConnection.write(`${module.currentCommand.command}\n`);
+          log.N(`sending '${module.currentCommand.command}' to module '${module.id}'`);
         } else {
-          log.E("cannot send command to module '%s' (no connection)", module.id);
+          log.E(`cannot send command to module '${module.id}' (no connection)`);
         }
       }
     });
