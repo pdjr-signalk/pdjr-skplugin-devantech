@@ -14,9 +14,9 @@
  * permissions and limitations under the License.
  */
 
-const Delta = require("./lib/signalk-libdelta/Delta.js");
-const Log = require("./lib/signalk-liblog/Log.js");
 const net = require('net');
+const Delta = require('signalk-libdelta/Delta.js');
+const Log = require('signalk-liblog/Log.js');
 
 const PLUGIN_ID = "devantech";
 const PLUGIN_NAME = "pdjr-skplugin-devantech";
