@@ -51,25 +51,37 @@ const PLUGIN_SCHEMA = {
       }
     },
     "statusListenerPort": {
-      "type": "number",
-      "default": 24281
+      "title": "Port on which to listen for module status reports",
+      "type": "number"
     },
     "transmitQueueHeartbeat": {
-      "type": "number",
-      "default": 25
+      "title": "Process the transmit queue every this many miliseconds",
+      "type": "number"
     },
     "modules" : {
-      "title": "Modules",
+      "title": "Module configurations",
       "type": "array",
       "default": [],
       "items": {
         "type": "object",
-        "required": [ "id", "cstring", "channels" ],
+        "required": [ "id", "connectionString", "channels" ],
         "properties": {
-          "id": { "title": "Module id", "type": "string" },
-          "cstring": { "title": "Connection string (address:port)", "type": "string" },
-          "description": { "title": "Module description", "type": "string" },
-          "deviceid": { "title": "Device id", "type": "string" },
+          "id": {
+            "title": "Module id",
+            "type": "string"
+          },
+          "connectionString": {
+            "title": "Connection string (address:port)",
+            "type": "string"
+          },
+          "description": {
+            "title": "Module description",
+            "type": "string"
+          },
+          "deviceId": {
+            "title": "Device id",
+            "type": "string"
+          },
           "channels": {
             "type": "array",
             "items": {
@@ -101,15 +113,27 @@ const PLUGIN_SCHEMA = {
         "type": "object",
         "required" : [ "id", "channels" ],
         "properties": {
-          "id": { "title": "Device identifier", "type": "string" },
+          "id": {
+            "title": "Device identifier",
+            "type": "string"
+          },
           "channels" : {
             "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "address": { "title": "Relay channel address/index", "type": "number" },
-                  "oncommand": { "title": "ON command", "type": "string" },
-                  "offcommand": { "title": "OFF command", "type": "string" }
+                  "address": {
+                    "title": "Relay channel address/index",
+                    "type": "number"
+                  },
+                  "oncommand": {
+                    "title": "ON command",
+                    "type": "string"
+                  },
+                  "offcommand": {
+                    "title": "OFF command",
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -127,7 +151,11 @@ const PLUGIN_SCHEMA = {
       {
         "id": "DS",
         "channels": [
-          { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
+          {
+            "address": 0,
+            "oncommand": "SR {c} ON",
+            "offcommand": "SR {c} OFF"
+          }
         ]
       }
     ]
@@ -342,9 +370,9 @@ module.exports = function(app) {
     var retval = {};
 
     if (module.id && (module.id != "")) {
-      if (module.deviceid || (module.deviceid = 'DS')) {
-        if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceid))?d:a), null)) {
-          if (module.cobject = parseConnectionString(module.cstring)) {
+      if (module.deviceId || (module.deviceId = 'DS')) {
+        if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null)) {
+          if (module.cobject = parseConnectionString(module.connectionString)) {
             module.commandQueue = [];
             module.currentCommand = null;
             if (module.channels.length) {
@@ -372,17 +400,17 @@ module.exports = function(app) {
 
     /**
      * Make a connection object with properties 'host', 'port' and
-     * optionally 'password' from \ref cstring.
+     * optionally 'password' from \ref connectionString.
      * 
-     * @param {*} cstring - the string to be parsed. 
+     * @param {*} connectionString - the string to be parsed. 
      * @returns - on success, an object, otherwise null.
      */
-    function parseConnectionString(cstring) {
+    function parseConnectionString(connectionString) {
       var retval = null;
 
-      if (matches = cstring.match(/^(.*)@(.*)\:(.*)$/)) {
+      if (matches = connectionString.match(/^(.*)@(.*)\:(.*)$/)) {
         retval = { "password": matches[1], "host": matches[2], "port": matches[3] };
-      } else if (matches = cstring.match(/^(.*)\:(.*)$/)) {
+      } else if (matches = connectionString.match(/^(.*)\:(.*)$/)) {
         retval = { "host": matches[1], "port": matches[2] };
       }
       return(retval);
@@ -397,8 +425,8 @@ module.exports = function(app) {
    */
   function validateModuleConfiguration(module) {
     if (!module.id) throw new Error("bad or missing 'id'");
-    if (!module.deviceid) throw new Error("bad or missing 'deviceid'");
-    if (!module.cobject) throw new Error("bad or missing 'cstring'");
+    if (!module.deviceId) throw new Error("bad or missing 'deviceId'");
+    if (!module.cobject) throw new Error("bad or missing 'connectionString'");
     if (!module.channels.length) throw new Error("bad or missing channel definitions");
   }
 
