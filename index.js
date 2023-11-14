@@ -17,6 +17,7 @@
 const net = require('net');
 const _ = require('lodash');
 const Delta = require('signalk-libdelta/Delta.js');
+const HttpInterface = require('signalk-libhttpinterface/HttpInterface.js');
 const Log = require('signalk-liblog/Log.js');
 
 const PLUGIN_ID = 'devantech';
@@ -26,6 +27,29 @@ const PLUGIN_SCHEMA = {
   "type": "object",
   "required": [ "modules" ],
   "properties": {
+    "root": {
+      "title": "Root path for all switchbank keys",
+      "type": "string"
+    },
+    "metadataPublisher": {
+      "title": "Metadata publication service configuration",
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "title": "Metadata publication endpoint",
+          "type": "string"
+        },
+        "method": {
+          "title": "Metadata publication method",
+          "type": "string",
+          "enum": [ "PATCH", "POST", "PUT" ]
+        },
+        "credentials": {
+          "title": "Metadata publisher credentials",
+          "type": "string"
+        }
+      }
+    },
     "statusListenerPort": {
       "type": "number",
       "default": 24281
@@ -94,6 +118,8 @@ const PLUGIN_SCHEMA = {
     }
   },
   "default": {
+    "root": "electrical.switches.bank.",
+    "metadataPublisher": { "method": "POST" },
     "statusListenerPort": 28241,
     "commandQueueHeartbeat" : 25,
     "modules": [],
@@ -108,21 +134,6 @@ const PLUGIN_SCHEMA = {
   }
 };
 const PLUGIN_UISCHEMA = {};
-
-const MODULE_ROOT = "electrical.switches.bank.";
-const OPTIONS_DEFAULTS = {
-  "statusListenerPort": 28241,
-  "commandQueueHeartbeat" : 25,
-  "modules": [],
-  "devices": [
-    {
-      "id": "DS",
-      "channels": [
-        { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
-      ]
-    }
-  ]
-};
 
 module.exports = function(app) {
   var plugin = {};
@@ -144,62 +155,51 @@ module.exports = function(app) {
   plugin.start = function(options) {
     plugin.options = _.cloneDeep(plugin.schema.properties.default);
     _.merge(plugin.options, options);
-  app.debug("supported devices: %s", options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", "));
-    if ((options.modules) && (Array.isArray(options.modules)) && (options.modules.length > 0)) {
+    app.debug(`supported devices: ${options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", ")}`);
+  
+    if ((plugin.options.modules) && (Array.isArray(plugin.options.modules)) && (plugin.options.modules.length > 0)) {
 
-        // Process each defined module, interpolating data from the
-        // specified device definition, then filter the result to eliminate
-        // any broken modules.
-        options.modules = options.modules
-          .map(module => normaliseModuleConfiguration(module, options.devices))
-          .filter(module => {
-            try {
-              validateModuleConfiguration(module);
-              return(true);
-            } catch(e) {
-              log.E("invalid configuration for module '%s' (%s)", module.id, e.message);
-              return(false);
-            }
-          });
-
-        // So now we have a list of prepared, valid, modules.
-        if (options.modules.length > 0) {
-          // Save meta data for modules and channels.
-          var path, value; 
-          options.modules.forEach(module => {
-            path = (MODULE_ROOT + module.id);
-            value = { "description": module.description, "shortName": module.id, "longName": "Relay module " + module.id, "displayName": "Relay module " + module.id };
-            delta.addMeta(path, value);
-            module.channels.forEach(c => {
-              path = (MODULE_ROOT +  module.id + "." + c.index + ".state");
-              value = { "description": "Relay state (0=OFF, 1=ON)", "shortName": "[" + module.id + "," + c.index + "]", "longName": c.description + " [" + module.id + "," + c.index + "]", "displayName": c.description, "unit": "Binary switch state (0/1)", "type": "relay" };
-              delta.addMeta(path, value);
-            });
-          });
-          delta.commit().clear();
-
-          // Install put handlers.
-          options.modules.forEach(module => {
-            module.channels.forEach(ch => {
-              var path = MODULE_ROOT + module.id + "." + ch.index + ".state";
-              app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
-            });
-          });
-
-          // Start listening for remote DS status reports and begin checking
-          // the transmit queue.
-          log.N("listening for DS module connections on port %d", options.statusListenerPort);
-          startStatusListener(options.statusListenerPort);
-          transmitQueueTimer = setInterval(processTransmitQueues, options.transmitQueueHeartbeat);
-      
-        } else {
-          log.E("there are no usable module definitions.");
+      // Process each defined module, interpolating data from the
+      // specified device definition, then filter the result to eliminate
+      // any broken modules.
+      plugin.options.modules = plugin.options.modules.map(module => normaliseModuleConfiguration(module, plugin.options.devices)).filter(module => {
+        try {
+          validateModuleConfiguration(module);
+          return(true);
+        } catch(e) {
+          log.E(`invalid configuration for module '${module.id}' (${e.message}`);
+        return(false);
         }
+      });
+
+      // So now we have a list of prepared, valid, modules.
+      if (plugin.options.modules.length > 0) {
+        // Create and install metadata
+        publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
+          if (e) {
+            log.W(`publish failed (${e.message})`, false);
+            (new Delta(app, plugin.id)).addMetas(createMetadata()).commit().clear();
+          } else {
+            log.N(`metadata published to '${plugin.options.metadataPublisher.endpoint}'`, false);
+          }
+        });
+        // Install put handlers.
+        options.modules.forEach(module => {
+          module.channels.forEach(channel => {
+            var path = `${plugin.options.root}${module.id}.${channel.index}.state`;
+            app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
+          });
+        });
+        // Start listening for remote DS status reports and begin checking
+        // the transmit queue.
+        log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
+        startStatusListener(plugin.options.statusListenerPort);
+        transmitQueueTimer = setInterval(processTransmitQueues, plugin.options.transmitQueueHeartbeat);
       } else {
-        log.E("plugin configuration contains no usable module definitions.");
+        log.E('there are no usable module definitions.');
       }
     } else {
-      log.E("plugin configuration file is missing or unusable");
+      log.E('plugin configuration contains no usable module definitions.');
     }
   }
 
@@ -215,6 +215,63 @@ module.exports = function(app) {
     });
     if (statusListener) statusListener.close();
     clearTimeout(transmitQueueTimer);
+  }
+
+  function createMetadata() {
+    return(plugin.options.modules.reduce((a,module) => {
+      a[`${plugin.options.root}${module.id}`] = {
+        description: module.description,
+        shortName: module.id,
+        longName: `Relay module ${module.id}`,
+        displayName: `Relay module ${module.id}`,
+        type: 'relay',
+        channelCount: (module.channels || []).length,
+        $source: `plugin:${plugin.id}`
+      };
+      (module.channels || []).forEach(channel => {
+        a[`${plugin.options.root}${module.id}.${channel.index}.state`] = {
+          description: 'Relay state (0=OFF, 1=ON)',
+          shortName: `[${module.id},${channel.index}]`,
+          longName: `${channel.description} [${module.id},${channel.index}]`,
+          displayName: `${channel.description}`
+          unit: 'Binary switch state (0/1)',
+          type: 'relay'
+        };
+      });
+      return(a);
+    },{}));
+  }
+
+
+  // Publish metadata object to publisher.
+  function publishMetadata(metadata, publisher, callback, options={ retries: 3, interval: 10000 }) {
+    if ((publisher) && (publisher.endpoint) && (publisher.method) && (publisher.credentials)) {
+      const httpInterface = new HttpInterface(app.getSelfPath('uuid'));
+      httpInterface.getServerAddress().then((serverAddress) => {
+        httpInterface.getServerInfo().then((serverInfo) => {
+          const [ username, password ] = publisher.credentials.split(':');
+          httpInterface.getAuthenticationToken(username, password).then((token) => {
+            const intervalId = setInterval(() => {
+              if (options.retries-- === 0) {
+                clearInterval(intervalId);
+                callback(new Error(`tried ${options.retries} times with no success`));
+              }
+              fetch(`${serverAddress}${publisher.endpoint}`, { "method": publisher.method, "headers": { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, "body": JSON.stringify(metadata) }).then((response) => {
+                if (response.status == 200) {
+                  clearInterval(intervalId);
+                  callback();
+                }
+              }).catch((e) => {
+                clearInterval(intervalId);
+                callback(new Error(e));
+              });
+            }, options.interval);
+          })
+        })
+      })
+    } else {
+      callback(new Error(`'metadataPublisher' configuration is invalid`));
+    }
   }
 
   /**
@@ -267,7 +324,7 @@ module.exports = function(app) {
     }
   
     function getModuleFromModuleId(moduleId) {
-      return(globalOptions.modules.reduce((a,m) => ((m.id == moduleId)?m:a), null));
+      return(plugin.options.modules.reduce((a,m) => ((m.id == moduleId)?m:a), null));
     }
     
   }
@@ -397,7 +454,7 @@ module.exports = function(app) {
 
       client.on("data", (data) => {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-        var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
+        var module = plugin.options.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
         if (module) {
           try {
             var status = data.toString().split('\n')[1].trim();
@@ -426,7 +483,7 @@ module.exports = function(app) {
       });
 
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-      var module = globalOptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
+      var module = plugin.ptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
       if (module) {
         app.debug("status listener: opening connection for device at %s (module '%s')", clientIP, module.id);
         if (module.listenerConnection) module.listenerConnection.destroy();
@@ -450,7 +507,7 @@ module.exports = function(app) {
    * command queue to the remote device.
    */
   function processTransmitQueues() {
-    globalOptions.modules.forEach(module => {
+    plugin.ptions.modules.forEach(module => {
       if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
         module.currentCommand = module.commandQueue.shift();
         if (module.commandConnection) {
