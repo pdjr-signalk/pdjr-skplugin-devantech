@@ -15,6 +15,7 @@
  */
 
 const net = require('net');
+const _ = require('lodash');
 const Delta = require('signalk-libdelta/Delta.js');
 const Log = require('signalk-liblog/Log.js');
 
@@ -141,20 +142,11 @@ module.exports = function(app) {
   var transmitQueueTimer = null;
 
   plugin.start = function(options) {
+    plugin.options = _.cloneDeep(plugin.schema.properties.default);
+    _.merge(plugin.options, options);
+  app.debug("supported devices: %s", options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", "));
+    if ((options.modules) && (Array.isArray(options.modules)) && (options.modules.length > 0)) {
 
-    if (Object.keys(options).length > 0) {  
-      options.statusListenerPort = (options.statusListenerPort || OPTIONS_DEFAULTS.statusListenerPort);
-      options.transmitQueueHeartbeat = (options.transmitQueueHeartbeat || OPTIONS_DEFAULTS.transmitQueueHeartbeat);
-      options.devices = (options.devices || []).concat(OPTIONS_DEFAULTS.devices);
-      app.debug("supported devices: %s", options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", "));
-      if ((options.modules) && (Array.isArray(options.modules)) && (options.modules.length > 0)) {
-
-        // Context-free event handlers need access to the plugin
-        // configuration options, so we elevate them to the plugin global
-        // namespace. 
-        globalOptions = options;
-        options = globalOptions;
-    
         // Process each defined module, interpolating data from the
         // specified device definition, then filter the result to eliminate
         // any broken modules.
