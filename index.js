@@ -18,9 +18,9 @@ const net = require('net');
 const Delta = require('signalk-libdelta/Delta.js');
 const Log = require('signalk-liblog/Log.js');
 
-const PLUGIN_ID = "devantech";
-const PLUGIN_NAME = "pdjr-skplugin-devantech";
-const PLUGIN_DESCRIPTION = "Signal K interface to the Devantech range of general-purpose relay modules";
+const PLUGIN_ID = 'devantech';
+const PLUGIN_NAME = 'pdjr-skplugin-devantech';
+const PLUGIN_DESCRIPTION = 'Signal K interface to the Devantech DS range of general-purpose relay modules';
 const PLUGIN_SCHEMA = {
   "type": "object",
   "required": [ "modules" ],
@@ -91,6 +91,19 @@ const PLUGIN_SCHEMA = {
           } 
         }
     }
+  },
+  "default": {
+    "statusListenerPort": 28241,
+    "commandQueueHeartbeat" : 25,
+    "modules": [],
+    "devices": [
+      {
+        "id": "DS",
+        "channels": [
+          { "address": 0, "oncommand": "SR {c} ON", "offcommand": "SR {c} OFF" }
+        ]
+      }
+    ]
   }
 };
 const PLUGIN_UISCHEMA = {};
