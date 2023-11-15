@@ -410,7 +410,7 @@ module.exports = function(app) {
     
     if (!module.id) throw new Error("missing module 'id'");
     if (!module.deviceId) throw new Error("missing 'deviceId'");
-    if (!module.cobject) throw new Error("missing 'connectionString'");
+    if (!module.connectionString) throw new Error("missing 'connectionString'");
 
     const device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null);
     if (!device) throw new Error(`device '${module.deviceId}' is not configured`);
