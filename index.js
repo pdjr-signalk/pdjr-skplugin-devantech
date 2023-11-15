@@ -201,52 +201,50 @@ module.exports = function(app) {
   plugin.start = function(options) {
     plugin.options = _.cloneDeep(plugin.schema.default);
     _.merge(plugin.options, options);
+    
+    // Process each defined module, interpolating data from the
+    // specified device definition, then filter the result to eliminate
+    // any broken modules.
+    plugin.options.modules = plugin.options.modules.reduce((a,module) => {
+      try {
+        a.push(canonicaliseModule(module, plugin.options.devices));
+      } catch(e) {
+        log.E(`invalid configuration for module '${module.id}' (${e.message}`);
+      }
+      return(a);
+    },[]);
 
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
   
-    if ((plugin.options.modules) && (Array.isArray(plugin.options.modules)) && (plugin.options.modules.length > 0)) {
+    if (plugin.options.modules.length > 0) {
 
-      // Process each defined module, interpolating data from the
-      // specified device definition, then filter the result to eliminate
-      // any broken modules.
-      plugin.options.modules = plugin.options.modules.reduce((a,module) => {
-        try {
-          a.push(canonicaliseModule(module, plugin.options.devices));
-        } catch(e) {
-          log.E(`invalid configuration for module '${module.id}' (${e.message}`);
+      app.debug(JSON.stringify(createMetadata(), null, 2));
+      
+      // Create and install metadata
+      publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
+        if (e) {
+          log.W(`publish failed (${e.message})`, false);
+          (new Delta(app, plugin.id)).addMetas(createMetadata()).commit().clear();  
+        } else {
+          app.debug('metadata published');
         }
-        return(a);
-      },[]);
+      });
 
-      // So now we have a list of prepared, valid, modules.
-      if (plugin.options.modules.length > 0) {
-        // Create and install metadata
-        publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
-          if (e) {
-            log.W(`publish failed (${e.message})`, false);
-            (new Delta(app, plugin.id)).addMetas(createMetadata()).commit().clear();  
-          } else {
-            app.debug('metadata published');
-          }
+      // Install put handlers.
+      options.modules.forEach(module => {
+        module.relayChannels.forEach(channel => {
+          var path = `${plugin.options.root}${module.id}R.${channel.index}.state`;
+          app.registerPutHandler('vessels.self', path, relayPutHandler, plugin.id);
         });
+      });
 
-        // Install put handlers.
-        options.modules.forEach(module => {
-          module.relayChannels.forEach(channel => {
-            var path = `${plugin.options.root}${module.id}R.${channel.index}.state`;
-            app.registerPutHandler('vessels.self', path, relayPutHandler, plugin.id);
-          });
-        });
-        // Start listening for remote DS status reports and begin checking
-        // the transmit queue.
-        log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
-        startStatusListener(plugin.options.statusListenerPort);
-        transmitQueueTimer = setInterval(processTransmitQueues, plugin.options.transmitQueueHeartbeat);
-      } else {
-        log.E('there are no usable module definitions.');
-      }
+      // Start listening for remote DS status reports and begin checking
+      // the transmit queue.
+      log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
+      startStatusListener(plugin.options.statusListenerPort);
+      transmitQueueTimer = setInterval(processTransmitQueues, plugin.options.transmitQueueHeartbeat);
     } else {
-      log.E('plugin configuration contains no usable module definitions.');
+      log.E('there are no usable module definitions.');
     }
   }
 
@@ -256,7 +254,7 @@ module.exports = function(app) {
    * transmit queue processor. 
    */
   plugin.stop = function() {
-    options.modules.forEach(module => {
+    plugin.options.modules.forEach(module => {
       if (module.listenerConnection) module.listenerConnection.destroy();
       if (module.commandConnection) module.commandConnection.destroy();
     });
@@ -407,8 +405,7 @@ module.exports = function(app) {
    * @param {*} devices - array of available device definitions.
    * @returns - the dressed-up module or {} on error.
    */
-  function canonicaliseModule(module, devices) {  
-    
+  function canonicaliseModule(module, devices) {     
     if (!module.id) throw new Error("missing module 'id'");
     if (!module.deviceId) throw new Error("missing 'deviceId'");
     if (!module.connectionString) throw new Error("missing 'connectionString'");
