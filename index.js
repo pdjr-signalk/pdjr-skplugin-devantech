@@ -535,7 +535,7 @@ module.exports = function(app) {
               app.debug(`status listener: received switch status '${switchStatus.join('')}' from device at ${clientIP}'} (module '${module.id}')`)
               for (var i = 0; i < module.switchChannels.length; i++) {
                 var path = `${plugin.options.root}${module.id}S.${module.switchChannels[i].index}.state`;
-                var value = switchStatus[module.switchChannels[i].address];
+                var value = (switchStatus[module.switchChannels[i].address] == '1')?1:0;
                 delta.addValue(path, value);
               }
             }
