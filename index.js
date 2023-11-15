@@ -201,7 +201,7 @@ module.exports = function(app) {
   plugin.start = function(options) {
     plugin.options = _.cloneDeep(plugin.schema.properties.default);
     _.merge(plugin.options, options);
-    app.debug(`supported devices: ${options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", ")}`);
+    app.debug(`supported devices: ${plugin.options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", ")}`);
   
     if ((plugin.options.modules) && (Array.isArray(plugin.options.modules)) && (plugin.options.modules.length > 0)) {
 
