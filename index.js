@@ -579,7 +579,7 @@ module.exports = function(app) {
    * command queue to the remote device.
    */
   function processTransmitQueues() {
-    plugin.ptions.modules.forEach(module => {
+    plugin.options.modules.forEach(module => {
       if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
         module.currentCommand = module.commandQueue.shift();
         if (module.commandConnection) {
