@@ -221,12 +221,15 @@ module.exports = function(app) {
       // So now we have a list of prepared, valid, modules.
       if (plugin.options.modules.length > 0) {
         // Create and install metadata
-        try {
-          publishMetadata(createMetadata(), plugin.options.metadataPublisher);
-        } catch(e) {
-          log.W(`publish failed (${e.message})`, false);
-          (new Delta(app, plugin.id)).addMetas(createMetadata()).commit().clear();
-        }
+        publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
+          if (e) {
+            log.W(`publish failed (${e.message})`, false);
+            (new Delta(app, plugin.id)).addMetas(createMetadata()).commit().clear();  
+          } else {
+            app.debug('metadata published');
+          }
+        });
+
         // Install put handlers.
         options.modules.forEach(module => {
           module.relayChannels.forEach(channel => {
