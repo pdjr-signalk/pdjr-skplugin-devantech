@@ -82,18 +82,39 @@ const PLUGIN_SCHEMA = {
             "title": "Device id",
             "type": "string"
           },
-          "channels": {
+          "relayChannels": {
             "type": "array",
             "items": {
               "type": "object",
               "required": [ "index" ],
               "properties": {
                 "index": {
-                  "title": "Channel index",
+                  "title": "Signal K channel index",
                   "type": "number"
                 },
                 "address": {
-                  "title": "Address of associated relay on physical device",
+                  "title": "Address of associated relay channel on physical device",
+                  "type": "number"
+                },
+                "description": {
+                  "title": "Channel description",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "switchChannels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [ "index" ],
+              "properties": {
+                "index": {
+                  "title": "Signal K channel index",
+                  "type": "number"
+                },
+                "address": {
+                  "title": "Address of associated switch channel on physical device",
                   "type": "number"
                 },
                 "description": {
@@ -187,15 +208,14 @@ module.exports = function(app) {
       // Process each defined module, interpolating data from the
       // specified device definition, then filter the result to eliminate
       // any broken modules.
-      plugin.options.modules = plugin.options.modules.map(module => normaliseModuleConfiguration(module, plugin.options.devices)).filter(module => {
+      plugin.options.modules = plugin.options.modules.reduce((a,module) => {
         try {
-          validateModuleConfiguration(module);
-          return(true);
+          a.push(canonicaliseModule(module));
         } catch(e) {
           log.E(`invalid configuration for module '${module.id}' (${e.message}`);
-        return(false);
         }
-      });
+        return(a);
+      },[]);
 
       // So now we have a list of prepared, valid, modules.
       if (plugin.options.modules.length > 0) {
@@ -210,9 +230,9 @@ module.exports = function(app) {
         });
         // Install put handlers.
         options.modules.forEach(module => {
-          module.channels.forEach(channel => {
-            var path = `${plugin.options.root}${module.id}.${channel.index}.state`;
-            app.registerPutHandler('vessels.self', path, putHandler, plugin.id);
+          module.relayChannels.forEach(channel => {
+            var path = `${plugin.options.root}${module.id}R.${channel.index}.state`;
+            app.registerPutHandler('vessels.self', path, relayPutHandler, plugin.id);
           });
         });
         // Start listening for remote DS status reports and begin checking
@@ -244,29 +264,51 @@ module.exports = function(app) {
 
   function createMetadata() {
     return(plugin.options.modules.reduce((a,module) => {
-      a[`${plugin.options.root}${module.id}`] = {
-        description: module.description,
-        shortName: module.id,
-        longName: `Relay module ${module.id}`,
-        displayName: `Relay module ${module.id}`,
-        type: 'relay',
-        channelCount: (module.channels || []).length,
-        $source: `plugin:${plugin.id}`
-      };
-      (module.channels || []).forEach(channel => {
-        a[`${plugin.options.root}${module.id}.${channel.index}.state`] = {
-          description: 'Relay state (0=OFF, 1=ON)',
-          shortName: `[${module.id},${channel.index}]`,
-          longName: `${channel.description} [${module.id},${channel.index}]`,
-          displayName: `${channel.description}`
-          unit: 'Binary switch state (0/1)',
-          type: 'relay'
+      if (module.relayChannels) { // We have a relay module
+        a[`${plugin.options.root}${module.id}R`] = {
+          description: module.description,
+          shortName: module.id,
+          longName: `Relay module ${module.id}`,
+          displayName: `Relay module ${module.id}`,
+          type: 'relay',
+          channelCount: (module.relayChannels || []).length,
+          $source: `plugin:${plugin.id}`
         };
-      });
+        (module.relayChannels || []).forEach(channel => {
+          a[`${plugin.options.root}${module.id}R.${channel.index}.state`] = {
+            description: 'Relay state (0=OFF, 1=ON)',
+            shortName: `[${module.id},${channel.index}]`,
+            longName: `${channel.description} [${module.id},${channel.index}]`,
+            displayName: `${channel.description}`,
+            unit: 'Binary switch state (0/1)',
+            type: 'relay'
+          };
+        });
+      }
+      if (module.switchChannels) { // We have a switch module
+        a[`${plugin.options.root}${module.id}S`] = {
+          description: module.description,
+          shortName: module.id,
+          longName: `Switch module ${module.id}`,
+          displayName: `Switch module ${module.id}`,
+          type: 'switch',
+          channelCount: (module.switchChannels || []).length,
+          $source: `plugin:${plugin.id}`
+        };
+        (module.switchChannels || []).forEach(channel => {
+          a[`${plugin.options.root}${module.id}S.${channel.index}.state`] = {
+            description: 'Switch state (0=OFF, 1=ON)',
+            shortName: `[${module.id},${channel.index}]`,
+            longName: `${channel.description} [${module.id},${channel.index}]`,
+            displayName: `${channel.description}`
+            unit: 'Binary switch state (0/1)',
+            type: 'switch'
+          };
+        });
+      }
       return(a);
     },{}));
   }
-
 
   // Publish metadata object to publisher.
   function publishMetadata(metadata, publisher, callback, options={ retries: 3, interval: 10000 }) {
@@ -316,14 +358,14 @@ module.exports = function(app) {
    * @param {*} callback - saved for use by processTransmitQueues().
    * @returns PENDING on success, COMPLETED/400 on error.
    */
-  function putHandler(context, path, value, callback) {
+  function relayPutHandler(context, path, value, callback) {
     var moduleId, module, channelIndex, channel, relayCommand;
     var retval = { state: 'COMPLETED', statusCode: 400 };
     if (moduleId = getModuleIdFromPath(path)) {
       if (module = getModuleFromModuleId(moduleId)) {
         if (module.commandConnection) {
           if (channelIndex = getChannelIndexFromPath(path)) {
-            if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
+            if (channel = module.relayChannels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
               relayCommand = ((value)?channel.oncommand:channel.offcommand);
               module.commandQueue.push({ command: relayCommand, callback: callback });
               retval = { state: 'PENDING' };
@@ -362,38 +404,44 @@ module.exports = function(app) {
    * @param {*} devices - array of available device definitions.
    * @returns - the dressed-up module or {} on error.
    */
-  function normaliseModuleConfiguration(module, devices) {  
+  function canonicaliseModule(module, devices) {  
     var device, oncommand, offcommand;
-    var retval = {};
 
-    if (module.id && (module.id != '')) {
-      if (module.deviceId || (module.deviceId = 'DS')) {
-        if (device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null)) {
-          if (module.cobject = parseConnectionString(module.connectionString)) {
-            module.commandQueue = [];
-            module.currentCommand = null;
-            if (module.channels.length) {
-              module.channels.forEach(channel => {
-                channel.address = (channel.address || channel.index);
-                oncommand = null;
-                offcommand = null;
-                if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
-                  oncommand = device.channels[0].oncommand;
-                  offcommand = device.channels[0].offcommand;
-                } else {
-                  oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
-                  offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
-                }
-                channel.oncommand = (oncommand)?oncommand.replace('{c}', channel.address):null;
-                channel.offcommand = (offcommand)?offcommand.replace('{c}', channel.address):null;
-              });
-              retval = module;
-            }
-          }
+    if (!module.id) throw new Error("missing module 'id'");
+    if (!module.deviceId) throw new Error("missing 'deviceId'");
+    if (!module.cobject) throw new Error("missing 'connectionString'");
+
+    const device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null);
+    if (!device) throw new Error(`device '${module.deviceId}' is not configured`);
+
+    module.connectionObject = parseConnectionString(module.connectionString);
+    module.commandQueue = [];
+    module.currentCommand = null;
+
+    if ((!module.relayChannels) && (!module.switchChannels)) throw new Error("no channels are configured");
+
+    if (module.relayChannels) {
+      module.relayChannels.forEach(channel => {
+        channel.address = (channel.address || channel.index);
+        oncommand = null;
+        offcommand = null;
+        if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
+          oncommand = device.channels[0].oncommand;
+          offcommand = device.channels[0].offcommand;
+        } else {
+          oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
+          offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
         }
-      }
+        channel.oncommand = (oncommand)?oncommand.replace('{c}', channel.address):null;
+        channel.offcommand = (offcommand)?offcommand.replace('{c}', channel.address):null;
+      });
     }
-    return(retval);
+    if (module.switchChannels) {
+      module.switchChannels.forEach(channel => {
+        channel.address = (channel.address || channel.index);        
+      })
+    }
+    return(module);
 
     /**
      * Make a connection object with properties 'host', 'port' and
@@ -403,28 +451,17 @@ module.exports = function(app) {
      * @returns - on success, an object, otherwise null.
      */
     function parseConnectionString(connectionString) {
-      var retval = null;
+      var connectionObject = null;
 
       if (matches = connectionString.match(/^(.*)@(.*)\:(.*)$/)) {
-        retval = { password: matches[1], host: matches[2], port: matches[3] };
+        connectionObject = { password: matches[1], host: matches[2], port: matches[3] };
       } else if (matches = connectionString.match(/^(.*)\:(.*)$/)) {
-        retval = { host: matches[1], port: matches[2] };
+        connectionObject = { host: matches[1], port: matches[2] };
+      } else {
+        throw new Error("could not parse connection string");
       }
-      return(retval);
+      return(connectionObject);
     }
-  }
-
-  /**
-   * Checks a module definition for the essential bits, throwing an
-   * exception if things aren't usable.
-   * 
-   * @param {*} module - the module to be validated. 
-   */
-  function validateModuleConfiguration(module) {
-    if (!module.id) throw new Error("bad or missing 'id'");
-    if (!module.deviceId) throw new Error("bad or missing 'deviceId'");
-    if (!module.cobject) throw new Error("bad or missing 'connectionString'");
-    if (!module.channels.length) throw new Error("bad or missing channel definitions");
   }
 
   /**
@@ -482,20 +519,30 @@ module.exports = function(app) {
         var module = plugin.options.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
         if (module) {
           try {
-            var status = data.toString().split('\n')[1].trim();
-            if (status.length == 32) {
-              app.debug(`status listener: received status '${status}' from device at ${clientIP} (module '${module.id}')`);
-              var delta = new Delta(app, plugin.id);
-              for (var i = 0; i < module.channels.length; i++) {
-                var path = `${plugin.options.root}${module.id}.${module.channels[i].index}.state`;
-                var value = (status.charAt(i) == '0')?0:1;
+            const messageLines = data.toString().split('\n');
+            var relayStatus = messageLines[1].trim();
+            var switchStatus = messageLines[2].trim().split(' ');
+            var delta = new Delta(app, plugin.id);
+            if ((module.relayChannels) && (relayStatus.length == 32)) {
+              app.debug(`status listener: received relay status '${relayStatus}' from device at ${clientIP} (module '${module.id}')`);
+              for (var i = 0; i < module.relayChannels.length; i++) {
+                var path = `${plugin.options.root}${module.id}R.${module.relayChannels[i].index}.state`;
+                var value = (relayStatus.charAt(module.relayChannels[i].address) == '0')?0:1;
                 delta.addValue(path, value);
               }
-              delta.commit().clear();
-              delete delta;
-            } else throw new Error();
+            }
+            if ((module.switchChannels) && (switchStatus.length == 8)) {
+              app.debug(`status listener: received switch status '${switchStatus.join('')}' from device at ${clientIP}'} (module '${module.id}')`)
+              for (var i = 0; i < module.switchChannels.length; i++) {
+                var path = `${plugin.options.root}${module.id}S.${module.switchChannels[i].index}.state`;
+                var value = switchStatus[module.switchChannels[i].address];
+                delta.addValue(path, value);
+              }
+            }
+            delta.commit().clear();
+            delete delta;
           } catch(e) {
-            app.debug(`status listener: ignoring non-status data ('${status}') received from device at ${clientIP} (module '${module.id}')`);
+            app.debug(`status listener: ignoring non-status data received from device at ${clientIP} (module '${module.id}')`);
           }
         }
       });
@@ -508,7 +555,7 @@ module.exports = function(app) {
       });
 
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-      var module = plugin.ptions.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
+      var module = plugin.ptions.modules.reduce((a,m) => ((m.connectionObject.host == clientIP)?m:a), null);
       if (module) {
         app.debug(`status listener: opening connection for device at ${clientIP} (module '${module.id}')`);
         if (module.listenerConnection) module.listenerConnection.destroy();
