@@ -203,7 +203,6 @@ module.exports = function(app) {
     _.merge(plugin.options, options);
 
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
-    //app.debug(`supported devices: ${plugin.options.devices.reduce((a,d) => (a.concat(d.id.split(' '))), []).join(", ")}`);
   
     if ((plugin.options.modules) && (Array.isArray(plugin.options.modules)) && (plugin.options.modules.length > 0)) {
 
@@ -212,7 +211,7 @@ module.exports = function(app) {
       // any broken modules.
       plugin.options.modules = plugin.options.modules.reduce((a,module) => {
         try {
-          a.push(canonicaliseModule(module));
+          a.push(canonicaliseModule(module, plugin.options.devices));
         } catch(e) {
           log.E(`invalid configuration for module '${module.id}' (${e.message}`);
         }
