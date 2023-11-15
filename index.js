@@ -405,8 +405,7 @@ module.exports = function(app) {
    * @returns - the dressed-up module or {} on error.
    */
   function canonicaliseModule(module, devices) {  
-    var device, oncommand, offcommand;
-
+    
     if (!module.id) throw new Error("missing module 'id'");
     if (!module.deviceId) throw new Error("missing 'deviceId'");
     if (!module.cobject) throw new Error("missing 'connectionString'");
@@ -423,8 +422,8 @@ module.exports = function(app) {
     if (module.relayChannels) {
       module.relayChannels.forEach(channel => {
         channel.address = (channel.address || channel.index);
-        oncommand = null;
-        offcommand = null;
+        var oncommand = null;
+        var offcommand = null;
         if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
           oncommand = device.channels[0].oncommand;
           offcommand = device.channels[0].offcommand;
