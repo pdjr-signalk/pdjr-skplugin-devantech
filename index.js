@@ -221,14 +221,12 @@ module.exports = function(app) {
       // So now we have a list of prepared, valid, modules.
       if (plugin.options.modules.length > 0) {
         // Create and install metadata
-        publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
-          if (e) {
-            log.W(`publish failed (${e.message})`, false);
-            (new Delta(app, plugin.id)).addMetas(createMetadata()).commit().clear();
-          } else {
-            log.N(`metadata published to '${plugin.options.metadataPublisher.endpoint}'`, false);
-          }
-        });
+        try {
+          publishMetadata(createMetadata(), plugin.options.metadataPublisher);
+        } catch(e) {
+          log.W(`publish failed (${e.message})`, false);
+          (new Delta(app, plugin.id)).addMetas(createMetadata()).commit().clear();
+        }
         // Install put handlers.
         options.modules.forEach(module => {
           module.relayChannels.forEach(channel => {
@@ -311,7 +309,8 @@ module.exports = function(app) {
     },{}));
   }
 
-  // Publish metadata object to publisher.
+  // Publish metadata object to publisher. If all goes awry, then
+  // call callback with an error.
   function publishMetadata(metadata, publisher, callback, options={ retries: 3, interval: 10000 }) {
     if ((publisher) && (publisher.endpoint) && (publisher.method) && (publisher.credentials)) {
       const httpInterface = new HttpInterface(app.getSelfPath('uuid'));
