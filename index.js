@@ -300,7 +300,7 @@ module.exports = function(app) {
             description: 'Switch state (0=OFF, 1=ON)',
             shortName: `[${module.id},${channel.index}]`,
             longName: `${channel.description} [${module.id},${channel.index}]`,
-            displayName: `${channel.description}`
+            displayName: `${channel.description},
             unit: 'Binary switch state (0/1)',
             type: 'switch'
           };
