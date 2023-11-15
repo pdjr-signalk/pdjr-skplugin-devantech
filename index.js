@@ -472,7 +472,7 @@ module.exports = function(app) {
    * @param {*} module - the module to be connected.
    */
   function openCommandConnection(module) {
-    module.commandConnection = net.createConnection(module.cobject.port, module.cobject.host);
+    module.commandConnection = net.createConnection(module.connectionObject.port, module.connectionObject.host);
     
     module.commandConnection.on('open', (socket) => {
       app.debug(`command connection to module '${module.id}' is open`);
@@ -516,7 +516,7 @@ module.exports = function(app) {
 
       client.on('data', (data) => {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-        var module = plugin.options.modules.reduce((a,m) => ((m.cobject.host == clientIP)?m:a), null);
+        var module = plugin.options.modules.reduce((a,m) => ((m.connectionObject.host == clientIP)?m:a), null);
         if (module) {
           try {
             const messageLines = data.toString().split('\n');
