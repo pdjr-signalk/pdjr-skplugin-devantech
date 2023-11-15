@@ -199,7 +199,7 @@ module.exports = function(app) {
   var transmitQueueTimer = null;
 
   plugin.start = function(options) {
-    plugin.options = _.cloneDeep(plugin.schema.properties.default);
+    plugin.options = _.cloneDeep(plugin.schema.default);
     _.merge(plugin.options, options);
 
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
