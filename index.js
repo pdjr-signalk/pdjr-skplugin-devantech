@@ -647,7 +647,7 @@ module.exports = function(app) {
   expressGetStatus = function(req, res) {
     const body = plugin.options.modules.reduce((a,module) => {
       a[module.id] = {
-        device: module.commandConnection.remoteAddress()
+        device: module.commandConnection.remoteAddress
       }
     }, {});
     expressSend(res, 200, body, req.path);
