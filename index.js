@@ -538,27 +538,31 @@ module.exports = function(app) {
           var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
           var module = plugin.options.modules.reduce((a,m) => ((m.connectionObject.host == clientIP)?m:a), null);
           if (module) {
-            const status = data.toString().split('\n')[1].trim();
-            app.debug(`received status: ${status}`);
-            if (status.length == 32) {
-              var delta = new Delta(app, plugin.id);
-              if (module.relayChannels) {
+            const messageLines = data.toString().split('\n');
+            const relayStates = messageLines[1].trim();
+            const switchStates = messageLines[2].replaceAll(' ','');
+            app.debug(`received status: ${relayStates} ${switchStates}`);
+            var delta = new Delta(app, plugin.id);
+            if (module.relayChannels) {
+              if (relayStates.length == 32) {
                 for (var i = 0; i < module.relayChannels.length; i++) {
                   var path = `${plugin.options.root}${module.id}R.${module.relayChannels[i].index}.state`;
-                  var value = (status.charAt(module.relayChannels[i].address - 1) == '0')?0:1;
+                  var value = (relayStates.charAt(module.relayChannels[i].address - 1) == '0')?0:1;
                   delta.addValue(path, value);
                 }
-              }
-              if (module.switchChannels) {
+              } else throw new Error(`invalid relay status '${relayStates}'`);
+            }
+            if (module.switchChannels) {
+              if (switchStates.length == 8) {
                 for (var i = 0; i < module.switchChannels.length; i++) {
                   var path = `${plugin.options.root}${module.id}S.${module.switchChannels[i].index}.state`;
-                  var value = (status.charAt(module.switchChannels[i].address - 1) == '0')?0:1;
+                  var value = (switchStates.charAt(module.switchChannels[i].address - 1) == '0')?0:1;
                   delta.addValue(path, value);
                 }
-              }
-              delta.commit().clear();
-              delete delta;
-            } else throw new Error(`invalid status message '${status}'`);
+              } else throw new Error(`invalid switch status '${switchStates}'`);
+            }
+            delta.commit().clear();
+            delete delta;
           } else throw new Error(`status received from unknown module at ${clientIP}`);
         } catch(e) {
           app.debug(e.message);
