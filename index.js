@@ -219,7 +219,7 @@ module.exports = function(app) {
     if (plugin.options.modules.length > 0) {
 
       app.debug(JSON.stringify(createMetadata(), null, 2));
-      
+
       // Create and install metadata
       publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
         if (e) {
@@ -266,20 +266,23 @@ module.exports = function(app) {
     return(plugin.options.modules.reduce((a,module) => {
       if (module.relayChannels) { // We have a relay module
         a[`${plugin.options.root}${module.id}R`] = {
-          description: module.description,
+          description: module.description || module.deviceId,
+          instance: module.id,
+          type: 'relay',
+          channelCount: module.relayChannels.length,
           shortName: module.id,
           longName: `Relay module ${module.id}`,
           displayName: `Relay module ${module.id}`,
-          type: 'relay',
-          channelCount: (module.relayChannels || []).length,
           $source: `plugin:${plugin.id}`
         };
         (module.relayChannels || []).forEach(channel => {
           a[`${plugin.options.root}${module.id}R.${channel.index}.state`] = {
-            description: 'Relay state (0=OFF, 1=ON)',
+            description: channel.description || `Channel ${channel.index}`,
+            index: channel.index,
+            address: channel.address,
             shortName: `[${module.id},${channel.index}]`,
-            longName: `${channel.description} [${module.id},${channel.index}]`,
-            displayName: `${channel.description}`,
+            longName: `[${module.id},${channel.index}]`,
+            displayName: channel.description || `[${module.id},${channel.index}]`,
             unit: 'Binary switch state (0/1)',
             type: 'relay'
           };
@@ -287,20 +290,23 @@ module.exports = function(app) {
       }
       if (module.switchChannels) { // We have a switch module
         a[`${plugin.options.root}${module.id}S`] = {
-          description: module.description,
+          description: module.description || module.deviceId,
+          instance: module.id,
+          type: 'switch',
+          channelCount: module.switchChannels.length,
           shortName: module.id,
           longName: `Switch module ${module.id}`,
           displayName: `Switch module ${module.id}`,
-          type: 'switch',
-          channelCount: (module.switchChannels || []).length,
           $source: `plugin:${plugin.id}`
         };
         (module.switchChannels || []).forEach(channel => {
           a[`${plugin.options.root}${module.id}S.${channel.index}.state`] = {
-            description: 'Switch state (0=OFF, 1=ON)',
+            description: channel.description || `Channel ${channel.index}`,
+            index: channel.index,
+            address: channel.address,
             shortName: `[${module.id},${channel.index}]`,
-            longName: `${channel.description} [${module.id},${channel.index}]`,
-            displayName: `${channel.description}`,
+            longName: `[${module.id},${channel.index}]`,
+            displayName: channel.description || `[${module.id},${channel.index}]`,
             unit: 'Binary switch state (0/1)',
             type: 'switch'
           };
