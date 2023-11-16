@@ -266,13 +266,13 @@ module.exports = function(app) {
     return(plugin.options.modules.reduce((a,module) => {
       if (module.relayChannels) { // We have a relay module
         a[`${plugin.options.root}${module.id}R`] = {
-          description: module.description || module.deviceId,
-          instance: module.id,
+          description: module.description || `Relay module ${module.id}R`,
+          instance: `${module.id}R`,
           type: 'relay',
           channelCount: module.relayChannels.length,
-          shortName: module.id,
-          longName: `Relay module ${module.id}`,
-          displayName: `Relay module ${module.id}`,
+          shortName: `${module.id}R`,
+          longName: `Relay module ${module.id}R`,
+          displayName: `Relay module ${module.id}R`,
           $source: `plugin:${plugin.id}`
         };
         (module.relayChannels || []).forEach(channel => {
@@ -280,9 +280,9 @@ module.exports = function(app) {
             description: channel.description || `Channel ${channel.index}`,
             index: channel.index,
             address: channel.address,
-            shortName: `[${module.id},${channel.index}]`,
-            longName: `[${module.id},${channel.index}]`,
-            displayName: channel.description || `[${module.id},${channel.index}]`,
+            shortName: `[${module.id}R,${channel.index}]`,
+            longName: `[${module.id}R,${channel.index}]`,
+            displayName: channel.description || `[${module.id}R,${channel.index}]`,
             unit: 'Binary switch state (0/1)',
             type: 'relay'
           };
@@ -290,13 +290,13 @@ module.exports = function(app) {
       }
       if (module.switchChannels) { // We have a switch module
         a[`${plugin.options.root}${module.id}S`] = {
-          description: module.description || module.deviceId,
-          instance: module.id,
+          description: module.description || `Switch module ${module.id}S`,
+          instance: `${module.id}S`,
           type: 'switch',
           channelCount: module.switchChannels.length,
-          shortName: module.id,
-          longName: `Switch module ${module.id}`,
-          displayName: `Switch module ${module.id}`,
+          shortName: `${module.id}S`,
+          longName: `Switch module ${module.id}S`,
+          displayName: `Switch module ${module.id}S`,
           $source: `plugin:${plugin.id}`
         };
         (module.switchChannels || []).forEach(channel => {
@@ -304,9 +304,9 @@ module.exports = function(app) {
             description: channel.description || `Channel ${channel.index}`,
             index: channel.index,
             address: channel.address,
-            shortName: `[${module.id},${channel.index}]`,
-            longName: `[${module.id},${channel.index}]`,
-            displayName: channel.description || `[${module.id},${channel.index}]`,
+            shortName: `[${module.id}S,${channel.index}]`,
+            longName: `[${module.id}S,${channel.index}]`,
+            displayName: channel.description || `[${module.id}S,${channel.index}]`,
             unit: 'Binary switch state (0/1)',
             type: 'switch'
           };
