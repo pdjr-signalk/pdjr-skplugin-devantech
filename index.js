@@ -489,6 +489,7 @@ module.exports = function(app) {
    * @param {*} module - the module to be connected.
    */
   function openCommandConnection(module) {
+    app.debug(`opening command connection`);
     module.commandConnection = net.createConnection(module.connectionObject.port, module.connectionObject.host);
     
     module.commandConnection.on('open', (socket) => {
