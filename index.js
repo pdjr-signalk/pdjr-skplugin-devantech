@@ -605,7 +605,7 @@ module.exports = function(app) {
         module.listenerConnection = client;
 
         if (!module.commandConnection) {
-          log.N(`status listener: opening command connection for module '${module.id}'`, false);
+          app.debug(`status listener: opening command connection for module '${module.id}'`);
           openCommandConnection(module);
         }
       } else {
