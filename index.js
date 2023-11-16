@@ -575,6 +575,7 @@ module.exports = function(app) {
 
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
       var module = plugin.options.modules.reduce((a,m) => ((m.connectionObject.host == clientIP)?m:a), null);
+      console.log(">>>>>>>>>>> got module " + module.id);
       if (module) {
         app.debug(`status listener: opening connection for device at ${clientIP} (module '${module.id}')`);
         if (module.listenerConnection) module.listenerConnection.destroy();
