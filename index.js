@@ -540,7 +540,7 @@ module.exports = function(app) {
           if (module) {
             const messageLines = data.toString().split('\n');
             const relayStates = messageLines[1].trim();
-            const switchStates = messageLines[2].replaceAll(' ','');
+            const switchStates = messageLines[2].replaceAll(' ','').trim();
             app.debug(`received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
             if (module.relayChannels) {
