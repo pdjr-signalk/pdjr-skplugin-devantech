@@ -262,6 +262,10 @@ module.exports = function(app) {
     clearTimeout(transmitQueueTimer);
   }
 
+  plugin.registerWithRouter = function(router) {
+    router.get('/status', (req,res) => handleExpress(req, res, expressGetStatus));
+  }
+
   /**
    * Generate an object containing path => { metadata } mappings for
    * switchbanks and relay/switch channels.
@@ -629,6 +633,44 @@ module.exports = function(app) {
         }
       }
     });
+  }
+
+  /********************************************************************
+   * Express handlers...
+   */
+
+  handleExpress = function(req, res, handler) {
+    app.debug(`processing ${req.method} request on '${req.path}`);
+    handler(req, res);
+  }
+
+  expressGetStatus = function(req, res) {
+    const body = plugin.options.modules.reduce((a,module) => {
+      a[module.id] = {
+        device: module.commandConnection.remoteAddress();
+      }
+    }, {});
+    expressSend(res, 200, body, req.path);
+  }
+  
+  const FETCH_RESPONSES = {
+    200: "OK",
+    201: "Created",
+    207: "Multi-Status",
+    400: "Bad Request",
+    404: "Not Found",
+    503: "Service Unavailable",
+    500: "Internal Server Error"
+  };
+
+  expressSend = function(res, code, body = null, debugPrefix = null) {
+    res.status(code).send((body)?body:((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null));
+    if (debugPrefix) app.debug("%s: %d %s", debugPrefix, code, ((body)?JSON.stringify(body):((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null)));
+    return(false);
+  }
+
+  isValidKey = function(key) {
+    return((key) && (key.trim().length > 0) && (!plugin.options.excludePaths.reduce((a,ep) => (a || (key.startsWith('.')?key.slice(1):key).startsWith(ep)), false)));
   }
 
   return(plugin);
