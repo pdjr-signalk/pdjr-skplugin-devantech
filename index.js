@@ -534,36 +534,34 @@ module.exports = function(app) {
     statusListener = net.createServer((client) => {
 
       client.on('data', (data) => {
-        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-        var module = plugin.options.modules.reduce((a,m) => ((m.connectionObject.host == clientIP)?m:a), null);
-        if (module) {
-          try {
-            const messageLines = data.toString().split('\n');
-            var relayStatus = messageLines[1].trim();
-            var switchStatus = messageLines[2].trim().split(' ');
-
-            var delta = new Delta(app, plugin.id);
-            if ((module.relayChannels) && (relayStatus.length == 32)) {
-              app.debug(`status listener: received relay status '${relayStatus}' from device at ${clientIP} (module '${module.id}')`);
-              for (var i = 0; i < module.relayChannels.length; i++) {
-                var path = `${plugin.options.root}${module.id}R.${module.relayChannels[i].index}.state`;
-                var value = (relayStatus.charAt(module.relayChannels[i].address) == '0')?0:1;
-                delta.addValue(path, value);
+        try {
+          var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+          var module = plugin.options.modules.reduce((a,m) => ((m.connectionObject.host == clientIP)?m:a), null);
+          if (module) {
+            const status = data.toString().split('\n')[1].trim();
+            app.debug(`received status: ${status}`);
+            if (status.length == 32) {
+              var delta = new Delta(app, plugin.id);
+              if (module.relayChannels) {
+                for (var i = 0; i < module.relayChannels.length; i++) {
+                  var path = `${plugin.options.root}${module.id}R.${module.relayChannels[i].index}.state`;
+                  var value = (status.charAt(module.relayChannels[i].address) == '0')?0:1;
+                  delta.addValue(path, value);
+                }
               }
-            }
-            if ((module.switchChannels) && (switchStatus.length == 8)) {
-              app.debug(`status listener: received switch status '${switchStatus.join('')}' from device at ${clientIP}'} (module '${module.id}')`)
-              for (var i = 0; i < module.switchChannels.length; i++) {
-                var path = `${plugin.options.root}${module.id}S.${module.switchChannels[i].index}.state`;
-                var value = (switchStatus[(module.switchChannels[i].address) - 1] === '0')?0:1;
-                delta.addValue(path, value);
+              if (module.switchChannels) {
+                for (var i = 0; i < module.switchChannels.length; i++) {
+                  var path = `${plugin.options.root}${module.id}S.${module.switchChannels[i].index}.state`;
+                  var value = (status.charAt(module.switchChannels[i].address) == '0')?0:1;
+                  delta.addValue(path, value);
+                }
               }
-            }
-            delta.commit().dump().clear();
-            delete delta;
-          } catch(e) {
-            app.debug(`status listener: ignoring non-status data received from device at ${clientIP} (module '${module.id}')`);
-          }
+              delta.commit().dump().clear();
+              delete delta;
+            } else throw new Error(`invalid status message '${status}'`);
+          } else throw new Error(`status received from unknown module at ${clientIP}`);
+        } catch(e) {
+          app.debug(e.message);
         }
       });
 
