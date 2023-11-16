@@ -262,6 +262,12 @@ module.exports = function(app) {
     clearTimeout(transmitQueueTimer);
   }
 
+  /**
+   * Generate an object containing path => { metadata } mappings for
+   * switchbanks and relay/switch channels.
+   * 
+   * @returns metadata for every path maintained by the plugin
+   */
   function createMetadata() {
     return(plugin.options.modules.reduce((a,module) => {
       if (module.relayChannels) { // We have a relay module
@@ -340,9 +346,9 @@ module.exports = function(app) {
                 callback(new Error(e));
               });
             }, options.interval);
-          })
-        })
-      })
+          }).catch((e) => callback(new Error('error recovering access token')));
+        }).catch((e) => callback(new Error('error recovering server info')));
+      }).catch((e) => callback(new Error('error recovering server address')));
     } else {
       callback(new Error(`'metadataPublisher' configuration is invalid`));
     }
@@ -412,12 +418,12 @@ module.exports = function(app) {
    * @returns - the dressed-up module or {} on error.
    */
   function canonicaliseModule(module, devices) {     
+    const device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null);
+    if (!device) throw new Error(`device '${module.deviceId}' is not configured`);
+
     if (!module.id) throw new Error("missing module 'id'");
     if (!module.deviceId) throw new Error("missing 'deviceId'");
     if (!module.connectionString) throw new Error("missing 'connectionString'");
-
-    const device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null);
-    if (!device) throw new Error(`device '${module.deviceId}' is not configured`);
 
     module.connectionObject = parseConnectionString(module.connectionString);
     module.commandQueue = [];
@@ -427,23 +433,28 @@ module.exports = function(app) {
 
     if (module.relayChannels) {
       module.relayChannels.forEach(channel => {
+        if (!channel.index) throw new Error("missing channel index");
         channel.address = (channel.address || channel.index);
-        var oncommand = null;
-        var offcommand = null;
-        if ((device.channels.length == 1) && (device.channels[0].address == 0)) {
-          oncommand = device.channels[0].oncommand;
-          offcommand = device.channels[0].offcommand;
+        channel.description = (channel.description || `Relay channel ${channel.index}`);
+
+        if (!device.channels) throw new Error(`missing channel configuration for device '${device.id}'`);
+        if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
+          channel.oncommand = device.channels[0].oncommand;
+          channel.offcommand = device.channels[0].offcommand;
         } else {
-          oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
-          offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
+          channel.oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
+          channel.offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
         }
-        channel.oncommand = (oncommand)?oncommand.replace('{c}', channel.address):null;
-        channel.offcommand = (offcommand)?offcommand.replace('{c}', channel.address):null;
+        if ((channel.oncommand === null) || (channel.offcommand === null)) throw new Error(`missing operating command for channel ${channel.id}`);
+        channel.oncommand = channel.oncommand.replace('{c}', channel.address);
+        channel.offcommand = channel.offcommand.replace('{c}', channel.address);
       });
     }
     if (module.switchChannels) {
       module.switchChannels.forEach(channel => {
-        channel.address = (channel.address || channel.index);        
+        if (!channel.index) throw new Error("missing channel index");
+        channel.address = (channel.address || channel.index);
+        channel.description = (channel.description || `Switch channel ${channel.index}`);  
       })
     }
     return(module);
