@@ -559,7 +559,7 @@ module.exports = function(app) {
                 delta.addValue(path, value);
               }
             }
-            delta.commit().clear();
+            delta.commit().dump().clear();
             delete delta;
           } catch(e) {
             app.debug(`status listener: ignoring non-status data received from device at ${clientIP} (module '${module.id}')`);
