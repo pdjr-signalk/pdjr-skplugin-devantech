@@ -396,7 +396,7 @@ module.exports = function(app) {
 
     function getModuleIdFromPath(path) {
       var parts = path.split('.');
-      return((parts.length >= 4)?parts[3]:null);
+      return((parts.length >= 4)?parts[3].slice(0,-1):null);
     }
   
     function getChannelIndexFromPath(path) {
