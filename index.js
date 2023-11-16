@@ -372,7 +372,7 @@ module.exports = function(app) {
    * @returns PENDING on success, COMPLETED/400 on error.
    */
   function relayPutHandler(context, path, value, callback) {
-    app.debug("PUT!!!!");
+    app.debug(`relayPutHandler(${context},${path},${value})`);
     var moduleId, module, channelIndex, channel, relayCommand;
     var retval = { state: 'COMPLETED', statusCode: 400 };
     if (moduleId = getModuleIdFromPath(path)) {
