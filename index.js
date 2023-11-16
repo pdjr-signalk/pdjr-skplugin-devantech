@@ -545,14 +545,14 @@ module.exports = function(app) {
               if (module.relayChannels) {
                 for (var i = 0; i < module.relayChannels.length; i++) {
                   var path = `${plugin.options.root}${module.id}R.${module.relayChannels[i].index}.state`;
-                  var value = (status.charAt(module.relayChannels[i].address) == '0')?0:1;
+                  var value = (status.charAt(module.relayChannels[i].address - 1) == '0')?0:1;
                   delta.addValue(path, value);
                 }
               }
               if (module.switchChannels) {
                 for (var i = 0; i < module.switchChannels.length; i++) {
                   var path = `${plugin.options.root}${module.id}S.${module.switchChannels[i].index}.state`;
-                  var value = (status.charAt(module.switchChannels[i].address) == '0')?0:1;
+                  var value = (status.charAt(module.switchChannels[i].address - 1) == '0')?0:1;
                   delta.addValue(path, value);
                 }
               }
