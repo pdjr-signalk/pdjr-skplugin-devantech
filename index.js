@@ -541,6 +541,7 @@ module.exports = function(app) {
             const messageLines = data.toString().split('\n');
             var relayStatus = messageLines[1].trim();
             var switchStatus = messageLines[2].trim().split(' ');
+
             var delta = new Delta(app, plugin.id);
             if ((module.relayChannels) && (relayStatus.length == 32)) {
               app.debug(`status listener: received relay status '${relayStatus}' from device at ${clientIP} (module '${module.id}')`);
@@ -554,7 +555,7 @@ module.exports = function(app) {
               app.debug(`status listener: received switch status '${switchStatus.join('')}' from device at ${clientIP}'} (module '${module.id}')`)
               for (var i = 0; i < module.switchChannels.length; i++) {
                 var path = `${plugin.options.root}${module.id}S.${module.switchChannels[i].index}.state`;
-                var value = (switchStatus[module.switchChannels[i].address - 1] == '0')?0:1;
+                var value = (switchStatus[(module.switchChannels[i].address) - 1] === '0')?0:1;
                 delta.addValue(path, value);
               }
             }
