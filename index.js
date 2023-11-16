@@ -242,7 +242,7 @@ module.exports = function(app) {
       // the transmit queue.
       log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
       startStatusListener(plugin.options.statusListenerPort);
-      transmitQueueTimer = setInterval(processTransmitQueues, plugin.options.transmitQueueHeartbeat);
+      transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat);
     } else {
       log.E('there are no usable module definitions.');
     }
@@ -354,21 +354,21 @@ module.exports = function(app) {
     }
   }
 
-  /**
+  /********************************************************************
    * Handler function triggered by a PUT request on a switch path.
    * 
    * The function recovers a command string dictated by path and value
    * and places this and the passed callback into the module's command
    * queue returning a PENDING response to Signal K.
    * 
-   * The PUT handling process will resolve when processTransmitQueues() 
+   * The PUT handling process will resolve when processCommandQueues() 
    * actually transmits the command to the target device and the device
    * confirms action.
    * 
    * @param {*} context - not used. 
    * @param {*} path - path of the switch to be updated.
    * @param {*} value - requested state (0 or 1).
-   * @param {*} callback - saved for use by processTransmitQueues().
+   * @param {*} callback - saved for use by processCommandQueues().
    * @returns PENDING on success, COMPLETED/400 on error.
    */
   function relayPutHandler(context, path, value, callback) {
@@ -410,7 +410,7 @@ module.exports = function(app) {
     
   }
   
-  /**
+  /********************************************************************
    * Takes a perhaps partial module definition and does what it can to
    * parse encoded bits and add important defaults.
    * 
@@ -481,7 +481,7 @@ module.exports = function(app) {
     }
   }
 
-  /**
+  /********************************************************************
    * Connects module to the TCP command connection specified by
    * module.cobject, setting module.commandConnection to the new
    * connection stream and arranging for subsequent processing.
@@ -520,19 +520,28 @@ module.exports = function(app) {
 
   }
 
-  /**
-   * Open an event notification listener on a specified port.
+  /********************************************************************
+   * Open an event notification listener on the specified port.
    * 
    * DS modules create a new connection for every event notification,
-   * so things here get a little busy. When a valid module connects a
-   * new command connection is made, but this is preserved when the
-   * remote device closes the status reporting connection.
+   * so things on the receive side get a little busy in a way which is
+   * out of our control.
+   * 
+   * When a valid module connects a new command connection is made if
+   * one does not already exist and this is preserved indefinitely
+   * across the shenanigans of event notification client connection
+   * dynamics.
    *  
-   * @param {*} port - the port on which to listen for DS device client connections.
+   * @param {*} port - the port on which to listen for DS device client
+   *                   connections.
    */
   function startStatusListener(port) {
     statusListener = net.createServer((client) => {
 
+      /**
+       * Extracts relay and digital input state information from <data>
+       * and updates configured Signal K relay and switchbanks.
+       */
       client.on('data', (data) => {
         try {
           var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
@@ -569,6 +578,11 @@ module.exports = function(app) {
         }
       });
 
+      /**
+       * Closes the client connection. Not a problem since the remote
+       * device will recreate it the next time it needs to transmit a
+       * status report.
+       */
       client.on('close', () => {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
         app.debug(`status listener: closing connection for device at ${clientIP}`)
@@ -576,6 +590,9 @@ module.exports = function(app) {
         module.listenerConnection = null;
       });
 
+      /**
+       * Only allow connections from configured modules.
+       */
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
       var module = plugin.options.modules.reduce((a,m) => ((m.connectionObject.host == clientIP)?m:a), null);
       if (module) {
@@ -596,11 +613,11 @@ module.exports = function(app) {
     statusListener.listen(port, () => { app.debug(`status listener: listening on port ${port}`); });
   }
 
-  /**
-   * Iterates over every module sending any available message in the
-   * command queue to the remote device.
+  /********************************************************************
+   * Iterates over every module sending any available message in each
+   * module's commandQueue.
    */
-  function processTransmitQueues() {
+  function processCommandQueues() {
     plugin.options.modules.forEach(module => {
       if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
         module.currentCommand = module.commandQueue.shift();

@@ -35,26 +35,28 @@ Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
 
 ## Description
 
-**pdjr-skplugin-devantech** implements a control interface for
-multi-channel Devantech DS-series Ethernet relay devices.
+**pdjr-skplugin-devantech** implements an interface for Devantech
+DS-series Ethernet relay devices.
+Each DS device provides both switch inputs and relay outputs which are
+represented in Signal K as two separate switchbanks.
 
 The plugin listens on a specified TCP port for status reports from
 configured DS devices and uses the received data to update Signal K
-switch paths associated with the transmitting device.
+switchbank paths associated with the transmitting device.
 
 Receipt of status notifications from a DS device causes the plugin to
 establish and maintain a persistent TCP connection to the remote
-device that allows it to operate relays in response to Signal K PUT
-requests on the associated switch channels.
+device which allows it to operate relays in response to Signal K PUT
+requests on the associated relay switchbank channels.
 
 This operating strategy is resilient to network outage and allows
 *ad-hoc* connection of DS devices.
 
-In addition to the relay control service the plugin also provides a
-mechanism for decorating Signal K's data hierarchy with user supplied
-meta-data that documents a DS device in a meaningful way and allows
-relay channels to be described in terms of their function or
-application.
+In addition to switchbank monitoring and control the plugin also
+provides a mechanism for decorating Signal K's data hierarchy with user
+supplied metadata that can document a DS device in a meaningful way and
+which allows relay channels to be described in terms of their function
+or application.
 
 ## Configuration
 
@@ -62,14 +64,15 @@ application.
 
 1. If not already done, configure the DS device's IP address and
    control port number. Make a note of these values so that they can be
-   used in the 'cstring' property of the module's plugin configuration
-   entry.
+   used in the plugin configuration.
 
-2. Event Notifications. 'Triggers' should identify all the relays on
-   the device and also the virtual relay R32. 'Target IP' should be set
-   to the IP address of the Signal K host and 'Target Port' to the same
-   value as the 'statusListenerPort' property in the plugin 
-   configuration. Set 'TCP/IP Timeout' to 5000.
+2. In the DS device configuration 'Event Notifications' page, the
+   'Triggers' property should identify the physical switch inputs and
+   relay outputs that you intend to use and also the virtual relay R32.
+   'Target IP' should be set to the IP address of the Signal K host and
+   'Target Port' to the same value as the 'statusListenerPort' property
+   in the plugin configuration (make sure any firewalls permit the use
+   of this port). Set 'TCP/IP Timeout' to 100.
 
 3. Timers. Select 'Counter No.' 1 and set 'Counter Input' to 'T1' and
    'Reset Input' to 'C1>9'.
