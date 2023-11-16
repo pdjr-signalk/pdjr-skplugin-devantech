@@ -649,6 +649,7 @@ module.exports = function(app) {
       a[module.id] = {
         device: module.commandConnection.remoteAddress
       }
+      return(a);
     }, {});
     expressSend(res, 200, body, req.path);
   }
