@@ -500,6 +500,7 @@ module.exports = function(app) {
     module.commandConnection.on('close', () => {
       app.debug(`command connection to module '${module.id}' has closed`);
       module.commandConnection.destroy();
+      module.commandConnection = null;
       module.commandQueue = [];
       module.currentCommand = null;
     });
@@ -577,7 +578,7 @@ module.exports = function(app) {
         if (module.listenerConnection) module.listenerConnection.destroy();
         module.listenerConnection = client;
 
-        if (module.commandConnection == null) {
+        if (module.commandConnection === null) {
           log.N(`status listener: opening command connection for module '${module.id}'`, false);
           openCommandConnection(module);
         }
