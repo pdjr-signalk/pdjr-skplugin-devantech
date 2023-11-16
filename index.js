@@ -277,7 +277,7 @@ module.exports = function(app) {
         };
         (module.relayChannels || []).forEach(channel => {
           a[`${plugin.options.root}${module.id}R.${channel.index}.state`] = {
-            description: channel.description || `Channel ${channel.index}`,
+            description: channel.description || `Relay channel ${channel.index}`,
             index: channel.index,
             address: channel.address,
             shortName: `[${module.id}R,${channel.index}]`,
@@ -301,7 +301,7 @@ module.exports = function(app) {
         };
         (module.switchChannels || []).forEach(channel => {
           a[`${plugin.options.root}${module.id}S.${channel.index}.state`] = {
-            description: channel.description || `Channel ${channel.index}`,
+            description: channel.description || `Switch channel ${channel.index}`,
             index: channel.index,
             address: channel.address,
             shortName: `[${module.id}S,${channel.index}]`,
