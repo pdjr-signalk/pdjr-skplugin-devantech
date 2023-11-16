@@ -556,7 +556,7 @@ module.exports = function(app) {
                   delta.addValue(path, value);
                 }
               }
-              delta.commit().dump().clear();
+              delta.commit().clear();
               delete delta;
             } else throw new Error(`invalid status message '${status}'`);
           } else throw new Error(`status received from unknown module at ${clientIP}`);
