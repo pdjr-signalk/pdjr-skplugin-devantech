@@ -647,7 +647,7 @@ module.exports = function(app) {
   expressGetStatus = function(req, res) {
     const body = plugin.options.modules.reduce((a,module) => {
       a[module.id] = {
-        device: module.commandConnection.remoteAddress
+        status: (module.commandConnection)?`CONNECTED ${module.commandConnection.remoteAddress}`:'NOT CONNECTED'
       }
       return(a);
     }, {});
