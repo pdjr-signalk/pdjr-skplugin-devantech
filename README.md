@@ -46,6 +46,8 @@ configuration.
     control port number.
     Make sure that the control port number you choose is not blocked by
     any firewalls on your Signal K host and/or network router.
+    If you have more than one DS device on your network, use the same
+    port number on every device.
     </p>
   </dd>
   <dt>Relays</dt>
@@ -79,9 +81,11 @@ configuration.
     'Target IP' should be set to the IP address of the Signal K host.
     </p>
     <p>
-    'Target Port' should be set to some preferred value.
-    Make sure any firewalls in your environment do not block your chosen
-    port.
+    'Target Port' should be set to some preferred value and, if you
+    have more than one DS device then the same value should be used
+    on all devices.
+    Make sure any firewalls in your environment do not block your 
+    chosen port.
     </p>
     <p>
     'TCP/IP Timeout' should be set to 100.
@@ -102,11 +106,10 @@ configuration.
   </dd>
 </dl>
 
-Steps (2) will ensure that an event notification message is sent to the
-plugin immediately a switch input or relay output on the DS device
-changes state.
-
-Steps (3) and (4) toggle virtual relay R32 every five seconds ensuring
+Together thse steps ensure that an event notification message is sent
+to the plugin immediately a switch input or relay output on the DS
+device changes state.
+Virtual relay R32 undergoes a state change every five seconds ensuring
 a regular 'heartbeat' status update.
 
 ### Plugin configuration
