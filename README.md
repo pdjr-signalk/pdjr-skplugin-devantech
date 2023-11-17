@@ -4,41 +4,15 @@ Signal K interface to the
 [Devantech](https://www.devantech.co.uk)
 DS range of general-purpose relay modules.
 
-## Background
-
-Recently I had an idea for a project that required multi-channel remote
-switching over Ethernet.
-For consistency of experience and expectation I wanted to use devices
-that as far as possible behaved in a similar way to my existing NMEA
-2000 switchbank relays.
-
-The Devantec DS series of Ethernet relay modules caught my eye because
-they can be configured to autonomously transmit status reports in a way
-which can mimic the familiar behaviour of NMEA compliant switchbanks.
-
-This plugin provides an interface between Signal K's electrical switch
-data model and Devantec DS relay modules and was developed and tested
-with
-[this product](https://www.robot-electronics.co.uk/catalog/product/view/id/159/s/ds2824-24-x-16a-ethernet-relay/category/7/)
-kindly supplied for evaluation by:
-
-Devantech Ltd\
-Maurice Gaymer Road\
-Attleborough\
-NR17 2QZ\
-England
-
-Telephone: +44 (0)1953 457387\
-Fax: +44 (0)1953 459793
-
-Website: [www.robot-electronics.co.uk](https://www.robot-electronics.co.uk/)
-
 ## Description
 
 **pdjr-skplugin-devantech** implements an interface for Devantech
-DS-series Ethernet relay devices.
-Each DS device provides both switch inputs and relay outputs which are
-represented in Signal K as two separate switchbanks.
+DS series Ethernet relay devices.
+Products in the DS range provide eight switch input channels and
+between four and 32 relay output channels dependent upon model.
+The plugin presents a single DS series device as a pair of Signal K
+switchbanks: one reporting switch inputs and another reporting and
+controlling relay outputs.
 
 The plugin listens on a specified TCP port for status reports from
 configured DS devices and uses the received data to update Signal K
@@ -46,43 +20,62 @@ switchbank paths associated with the transmitting device.
 
 Receipt of status notifications from a DS device causes the plugin to
 establish and maintain a persistent TCP connection to the remote
-device which allows it to operate relays in response to Signal K PUT
+device allowing operation of remote relays in response to Signal K PUT
 requests on the associated relay switchbank channels.
 
 This operating strategy is resilient to network outage and allows
 *ad-hoc* connection of DS devices.
 
 In addition to switchbank monitoring and control the plugin also
-provides a mechanism for decorating Signal K's data hierarchy with user
-supplied metadata that can document a DS device in a meaningful way and
-which allows relay channels to be described in terms of their function
-or application.
+provides a mechanism for decorating associated switchbank paths with
+automatically generated and user supplied metadata.
 
 ## Configuration
 
-### Configuring a DS module for use with this plugin
+### Preparing a DS module for use with this plugin
 
-1. If not already done, configure the DS device's IP address and
-   control port number. Make a note of these values so that they can be
-   used in the plugin configuration.
+Refer to the DS device user manual for details on how to install the
+device, then use the ```_config.htm``` dashboard to make the following
+configuration.
 
-2. In the DS device configuration 'Event Notifications' page, the
-   'Triggers' property should identify the physical switch inputs and
-   relay outputs that you intend to use and also the virtual relay R32.
-   'Target IP' should be set to the IP address of the Signal K host and
-   'Target Port' to the same value as the 'statusListenerPort' property
-   in the plugin configuration (make sure any firewalls permit the use
-   of this port). Set 'TCP/IP Timeout' to 100.
+1. Network
 
-3. Timers. Select 'Counter No.' 1 and set 'Counter Input' to 'T1' and
-   'Reset Input' to 'C1>9'.
+   Assign the DS device a static IP address on your LAN and specify a
+   control port number.
+   Make sure that the control port number you choose is not blocked by
+   any firewalls on your Signal K host and/or network router.
 
-4. Relays. Select 'Relay No' 32 and set 'Pulse/Follow' to 'C1>4'.
+2. Event Notifications
 
-These settings will ensure that an event notification message is sent
-to the plugin immediately a relay on the DS device changes state.
-The virtual relay R32 is configured to automatically change state once
-every five seconds.
+   'Triggers' should be set to monitor events on the switch inputs and
+   relay outputs supported by the DS device and also the virtual relay
+   R32.
+   For a four-relay DS device the trigger value will be
+   ```{D1|D2|D3|D4|D5|D6|D7|D8|R1|R2|R3|R4|R32}```.
+
+   'Target IP' should be set to the IP address of the Signal K host.
+
+   'Target Port' should be set to some preferred value.
+   Make sure any firewalls in your environment do not block your chosen
+   port.
+
+   'TCP/IP Timeout' should be set to 100.
+
+3. Timers
+
+   Select 'Counter No.' 1 and set 'Counter Input' to ```T1``` and
+   'Reset Input' to ```C1>9```.
+
+4. Relays
+
+   Select 'Relay No' 32 and set 'Pulse/Follow' to ```C1>4```.
+
+Steps (2) will ensure that an event notification message is sent to the
+plugin immediately a switch input or relay output on the DS device
+changes state.
+
+Steps (3) and (4) toggle virtual relay R32 every five seconds ensuring
+a regular 'heartbeat' status update.
 
 ### Plugin configuration
 
