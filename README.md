@@ -6,10 +6,14 @@ DS range of general-purpose relay modules.
 
 ## Description
 
-**pdjr-skplugin-devantech** implements an interface for Devantech
-DS series Ethernet relay devices.
-Products in the DS range provide eight switch input channels and
-between four and 32 relay output channels dependent upon model.
+**pdjr-skplugin-devantech** implements an interface for Devantech DS
+series Ethernet relay devices.
+Each model in the DS range provides a mix of general purpose I/O and
+relay output channels.
+The I/O channels can be configured as digital (switch) inputs or ADC
+inputs, but the current version of this plugin only supports switch
+input use.
+
 The plugin presents a single DS series device as a pair of Signal K
 switchbanks: one reporting switch inputs and another reporting and
 controlling relay outputs.
@@ -111,6 +115,9 @@ to the plugin immediately a switch input or relay output on the DS
 device changes state.
 Virtual relay R32 undergoes a state change every five seconds ensuring
 a regular 'heartbeat' status update.
+
+In Linux you can use ```nc``` to confirm status messages are being
+transmitted appropriately.
 
 ### Plugin configuration
 
