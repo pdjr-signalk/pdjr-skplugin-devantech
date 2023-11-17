@@ -38,37 +38,69 @@ Refer to the DS device user manual for details on how to install the
 device, then use the ```_config.htm``` dashboard to make the following
 configuration.
 
-1. Network
-
-   Assign the DS device a static IP address on your LAN and specify a
-   control port number.
-   Make sure that the control port number you choose is not blocked by
-   any firewalls on your Signal K host and/or network router.
-
-2. Event Notifications
-
-   'Triggers' should be set to monitor events on the switch inputs and
-   relay outputs supported by the DS device and also the virtual relay
-   R32.
-   For a four-relay DS device the trigger value will be
-   ```{D1|D2|D3|D4|D5|D6|D7|D8|R1|R2|R3|R4|R32}```.
-
-   'Target IP' should be set to the IP address of the Signal K host.
-
-   'Target Port' should be set to some preferred value.
-   Make sure any firewalls in your environment do not block your chosen
-   port.
-
-   'TCP/IP Timeout' should be set to 100.
-
-3. Timers
-
-   Select 'Counter No.' 1 and set 'Counter Input' to ```T1``` and
-   'Reset Input' to ```C1>9```.
-
-4. Relays
-
-   Select 'Relay No' 32 and set 'Pulse/Follow' to ```C1>4```.
+<dl>
+  <dt>Network</dt>
+  <dd>
+    <p>
+    Assign the DS device a static IP address on your LAN and specify a
+    control port number.
+    Make sure that the control port number you choose is not blocked by
+    any firewalls on your Signal K host and/or network router.
+    </p>
+  </dd>
+  <dt>Relays</dt>
+  <dd>
+    <p>
+    Set 'Relay Name' if you wish.
+    Set 'Pulse/Follow' to ```0```.
+    Set 'Power-up Restore' to suit your needs.
+    Set all other fields to blank.
+    </p>
+  </dd>
+  <dt>Input/Output</dt>
+  <dd>
+    <p>
+    For all I/O channels.
+    Set 'Name' if you wish.
+    Set 'Type' to ```Digital With Pullup```.
+    Set 'Attached Relay Number' to ```None```.
+    </p>
+  </dd>
+  <dt>Event Notifications</dt>
+  <dd>
+    <p>
+    'Triggers' should be set to monitor events on the switch inputs and
+    relay outputs supported by the DS device and also the virtual relay
+    R32.
+    For a four-relay DS device the trigger value will be
+    ```{D1|D2|D3|D4|D5|D6|D7|D8|R1|R2|R3|R4|R32}```.
+    </p>
+    <p>
+    'Target IP' should be set to the IP address of the Signal K host.
+    </p>
+    <p>
+    'Target Port' should be set to some preferred value.
+    Make sure any firewalls in your environment do not block your chosen
+    port.
+    </p>
+    <p>
+    'TCP/IP Timeout' should be set to 100.
+    </p>
+  </dd>
+  <dt>Timers</dt>
+  <dd>
+    <p>
+    Select 'Counter No.' 1 and set 'Counter Input' to ```T1``` and
+    'Reset Input' to ```C1>9```.
+    </p>
+  </dd>
+  <dt>Relays</dt>
+  <dd>
+    <p>
+    Select 'Relay No' 32 and set 'Pulse/Follow' to ```C1>4```.
+    </p>
+  </dd>
+</dl>
 
 Steps (2) will ensure that an event notification message is sent to the
 plugin immediately a switch input or relay output on the DS device
