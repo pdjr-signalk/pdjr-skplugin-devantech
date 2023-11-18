@@ -482,7 +482,7 @@ module.exports = function(app) {
     }
   
     function getModuleFromModuleId(moduleId) {
-      return(plugin.options.modules.reduce((a,m) => ((m.id == moduleId)?m:a), null));
+      return(plugin.options.modules.reduce((a,m) => ((m.relayInterface.id == moduleId)?m:a), null));
     }
     
   }
