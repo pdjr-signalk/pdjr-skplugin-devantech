@@ -81,60 +81,27 @@ const PLUGIN_SCHEMA = {
             "title": "Module description",
             "type": "string"
           },
-          "relayInterface": {
-            "type": "object",
-            "properties": {
-              "switchbankPath": {
-                "title": "Signal K switchbank path",
-                "type": "string"
-              },
-              "channels": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "index": {
-                      "title": "Signal K channel index",
-                      "type": "number"
-                    },
-                    "address": {
-                      "title": "Address of associated relay channel on physical device",
-                      "type": "number"
-                    },
-                    "description": {
-                      "title": "Channel description",
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "switchInterface": {
-            "type": "object",
-            "properties": {
-              "switchbankPath": {
-                "title": "Signal K switchbank path",
-                "type": "string"
-              },
-              "channels": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "index": {
-                      "title": "Signal K channel index",
-                      "type": "number"
-                    },
-                    "address": {
-                      "title": "Address of associated switch channel on physical device",
-                      "type": "number"
-                    },
-                    "description": {
-                      "title": "Channel description",
-                      "type": "string"
-                    }
-                  }
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "title": "Signal K channel index",
+                  "type": "number"
+                },
+                "address": {
+                  "title": "Address of associated relay channel on physical device",
+                  "type": "number"
+                },
+                "type": {
+                  "title": "Channel type",
+                  "type": "string",
+                  "enum": [ "relay", "switch", "sensor" ]
+                },
+                "description": {
+                  "title": "Channel description",
+                  "type": "string"
                 }
               }
             }
@@ -244,12 +211,10 @@ module.exports = function(app) {
 
       // Install put handlers.
       plugin.options.modules.forEach(module => {
-        if (module.relayInterface) {
-          module.relayInterface.channels.forEach(channel => {
-            app.debug(`registering PUT handler on '${channel.path}'`);
-            app.registerPutHandler('vessels.self', channel.path, relayPutHandler, plugin.id);
-          });
-        }
+        module.channels.filter(c => (c.type == 'relay')).forEach(channel => {
+          app.debug(`registering PUT handler on '${channel.path}'`);
+          app.registerPutHandler('vessels.self', channel.path, relayPutHandler, plugin.id);
+        });
       });
 
       // Start listening for remote DS status reports and begin checking
@@ -294,52 +259,47 @@ module.exports = function(app) {
   
     if (!module.ipAddress) throw new Error("missing 'ipAddress'");
     if (!module.commandPort) throw new Error("missing 'commandPort'");
-    module.password = (module.password)?module.password:undefined;
     if (!module.deviceId) throw new Error("missing 'deviceId'");
-    module.description = (module.description)?module.description:'';
+    module.id = `${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}`;
+    module.password = (module.password)?module.password:undefined;
+    module.description = module.description || `Devantech DS switchbank @ ${module.ipAddress}`;
 
-    if (module.relayInterface) {
-      module.relayInterface.switchbankPath = (module.relayInterface.switchbankPath)?module.relayInterface.switchbankPath:`electrical.switches.bank.${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}R`;
-      module.relayInterface.id = module.relayInterface.switchbankPath.split('.').slice(-1)[0];
-      module.relayInterface.channels = (module.relayInterface.channels)?module.relayInterface.channels:[];
-      module.relayInterface.commandQueue = [];
-      module.relayInterface.currentCommand = null;
-      module.relayInterface.commandConnection = null;
+    module.switchbankPath = `electrical.switches.bank.${module.id}`;
+    module.channels = (module.channels)?module.channels:[];
+    module.commandQueue = [];
+    module.currentCommand = null;
+    module.commandConnection = null;
 
-      module.relayInterface.channels.forEach(channel => {
-        if (!channel.index) throw new Error("missing channel index");
-        channel.address = (channel.address || channel.index);
-        channel.description = (channel.description || `Relay channel ${channel.index}`);
-        channel.path = `${module.relayInterface.switchbankPath}.${channel.index}.state`;
-  
-        if (!device.channels) throw new Error(`missing channel configuration for device '${device.id}'`);
-        if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
-          channel.oncommand = device.channels[0].oncommand;
-          channel.offcommand = device.channels[0].offcommand;
-        } else {
-          channel.oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
-          channel.offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
-        }
-        if ((channel.oncommand === null) || (channel.offcommand === null)) throw new Error(`missing operating command for channel ${channel.id}`);
-        channel.oncommand = channel.oncommand.replace('{c}', channel.address);
-        channel.offcommand = channel.offcommand.replace('{c}', channel.address);
-      });
-    }
-
-    if (module.switchInterface) {
-      module.switchInterface.switchbankPath = (module.switchInterface.switchbankPath)?module.switchInterface.switchbankPath:`electrical.switches.bank.${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}S`;
-      module.switchInterface.id = module.switchInterface.switchbankPath.split('.').slice(-1)[0];
-      module.switchInterface.channels = (module.switchInterface.channels)?module.switchInterface.channels:[];
-      module.switchInterface.channels.forEach(channel => {
-        if (!channel.index) throw new Error("missing channel index");
-        channel.address = (channel.address || channel.index);
-        channel.description = (channel.description || `Switch channel ${channel.index}`);  
-        channel.path = `${module.switchInterface.switchbankPath}.${channel.index}.state`;
-      })
-    }
-
-    return(module);
+    module.channels.forEach(channel => {
+      if (!channel.index) throw new Error("missing channel index");
+      channel.address = channel.address || channel.index;
+      channel.type = (channel.type)?channel.type:'relay'
+      channel.description = channel.description || `${channel.type.toUpperCase()} channel ${channel.index}`;
+      switch (channel.type) {
+        case 'relay':
+          channel.path = `${module.switchbankPath}.${channel.index}.state`;
+          if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
+            channel.oncommand = device.channels[0].oncommand;
+            channel.offcommand = device.channels[0].offcommand;
+          } else {
+            channel.oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
+            channel.offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
+          }
+          if ((channel.oncommand === null) || (channel.offcommand === null)) throw new Error(`missing operating command for channel ${channel.id}`);
+          channel.oncommand = channel.oncommand.replace('{c}', channel.address);
+          channel.offcommand = channel.offcommand.replace('{c}', channel.address);
+          break;
+        case 'switch':
+          channel.path = `${module.switchbankPath}.${channel.index}.state`;
+          break;
+        default:
+          channel.path = undefined;
+          break;
+      }
+    });
   }
+  return(module);
+}
   
   /**
    * Generate an object containing path => { metadata } mappings for
@@ -349,55 +309,27 @@ module.exports = function(app) {
    */
   function createMetadata() {
     return(plugin.options.modules.reduce((a,module) => {
-      if (module.relayInterface) { // We have a relay module
-        a[`${module.relayInterface.switchbankPath}`] = {
-          description: `Relay module ${module.relayInterface.id}`,
-          instance: `${module.relayInterface.id}`,
-          type: 'relay',
-          channelCount: module.relayInterface.channels.length,
-          shortName: `${module.relayInterface.id}`,
-          longName: `Relay module ${module.relayInterface.id}`,
-          displayName: `Relay module ${module.relayInterface.id}`,
-          $source: `plugin:${plugin.id}`
+      a[`${module.switchbankPath}`] = {
+        description: `${module.description}`,
+        instance: `${module.id}`,
+        channelCount: module.channels.length,
+        shortName: `${module.id}`,
+        longName: `${module.type} module ${module.id}`,
+        displayName: `${module.type} module ${module.id}`,
+        $source: `plugin:${plugin.id}`
+      };
+      module.channels.forEach(channel => {
+        a[`${channel.path}`] = {
+          description: channel.description,
+          index: channel.index,
+          address: channel.address,
+          shortName: `[${module.id},${channel.index}]`,
+          longName: `[${module.id},${channel.index}]`,
+          displayName: channel.description || `[${module.id},${channel.index}]`,
+          unit: 'Binary switch state (0/1)',
+          type: channel.type
         };
-        (module.relayInterface.channels).forEach(channel => {
-          a[`${channel.path}`] = {
-            description: channel.description,
-            index: channel.index,
-            address: channel.address,
-            shortName: `[${module.relayInterface.id},${channel.index}]`,
-            longName: `[${module.relayInterface.id},${channel.index}]`,
-            displayName: channel.description || `[${module.relayInterface.id},${channel.index}]`,
-            unit: 'Binary switch state (0/1)',
-            type: 'relay'
-          };
-        });
-      }
-      if (module.switchInterface) { // We have a switch module
-        a[`${module.switchInterface.switchbankPath}`] = {
-          description: `Switch module ${module.switchInterface.id}S`,
-          instance: `${module.switchInterface.id}`,
-          type: 'switch',
-          channelCount: module.switchInterface.channels.length,
-          shortName: `${module.switchInterface.id}`,
-          longName: `Switch module ${module.switchInterface.id}`,
-          displayName: `Switch module ${module.switchInterface.id}`,
-          $source: `plugin:${plugin.id}`
-        };
-        module.switchInterface.channels.forEach(channel => {
-          a[`${channel.path}`] = {
-            description: channel.description,
-            index: channel.index,
-            address: channel.address,
-            shortName: `[${module.switchInterface.id}S,${channel.index}]`,
-            longName: `[${module.switchInterface.id}S,${channel.index}]`,
-            displayName: channel.description || `[${module.switchInterface.id}S,${channel.index}]`,
-            unit: 'Binary switch state (0/1)',
-            type: 'switch'
-          };
-        });
-      }
-      app.debug(JSON.stringify(a, null , 2));
+      });
       return(a);
     },{}));
   }
@@ -457,11 +389,11 @@ module.exports = function(app) {
     var retval = { state: 'COMPLETED', statusCode: 400 };
     if (moduleId = getModuleIdFromPath(path)) {
       if (module = getModuleFromModuleId(moduleId)) {
-        if (module.relayInterface.commandConnection) {
+        if (module.commandConnection) {
           if (channelIndex = getChannelIndexFromPath(path)) {
-            if (channel = module.relayInterface.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
+            if (channel = module.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
               relayCommand = ((value)?channel.oncommand:channel.offcommand);
-              module.relayInterface.commandQueue.push({ command: relayCommand, callback: callback });
+              module.commandQueue.push({ command: relayCommand, callback: callback });
               retval = { state: 'PENDING' };
             }
           }
@@ -485,7 +417,7 @@ module.exports = function(app) {
     }
   
     function getModuleFromModuleId(moduleId) {
-      return(plugin.options.modules.reduce((a,m) => ((m.relayInterface.id == moduleId)?m:a), null));
+      return(plugin.options.modules.reduce((a,m) => ((m.id == moduleId)?m:a), null));
     }
     
   }
@@ -501,28 +433,28 @@ module.exports = function(app) {
   function openCommandConnection(module) {
     app.debug(`openCommandConnection(${module})...`);
 
-    module.relayInterface.commandConnection = net.createConnection(module.commandPort, module.ipAddress);
+    module.commandConnection = net.createConnection(module.commandPort, module.ipAddress);
     
-    module.relayInterface.commandConnection.on('open', (socket) => {
+    module.commandConnection.on('open', (socket) => {
       app.debug(`command connection to ${module.ipAddress}:${module.commandPort} is open`);
-      module.relayInterface.commandConnection = socket;
-      module.relayInterface.commandQueue = [];
-      module.relayInterface.currentCommand = null;
+      module.commandConnection = socket;
+      module.commandQueue = [];
+      module.currentCommand = null;
     });
 
-    module.relayInterface.commandConnection.on('close', () => {
+    module.commandConnection.on('close', () => {
       app.debug(`command connection to ${module.ipAddress}:${module.commandPort} has closed`);
-      module.relayInterface.commandConnection.destroy();
-      module.relayInterface.commandConnection = null;
-      module.relayInterface.commandQueue = [];
-      module.relayInterface.currentCommand = null;
+      module.commandConnection.destroy();
+      module.commandConnection = null;
+      module.commandQueue = [];
+      module.currentCommand = null;
     });
 
-    module.relayInterface.commandConnection.on('data', (data) => {
+    module.commandConnection.on('data', (data) => {
       if (data.toString().trim() == 'Ok') {
-        if (module.relayInterface.currentCommand) {
-          module.relayInterface.currentCommand.callback({ state: 'COMPLETED', statusCode: 200 });
-          module.relayInterface.currentCommand = null;
+        if (module.currentCommand) {
+          module.currentCommand.callback({ state: 'COMPLETED', statusCode: 200 });
+          module.currentCommand = null;
         } else {
           app.debug(`orphan command response received from module ${module.ipAddress}`);
         }
@@ -565,22 +497,18 @@ module.exports = function(app) {
             const switchStates = messageLines[2].replaceAll(' ','').trim();
             app.debug(`received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
-            if (module.relayInterface) {
-              if (relayStates.length == 32) {
-                for (var i = 0; i < module.relayInterface.channels.length; i++) {
-                  var value = (relayStates.charAt(module.relayInterface.channels[i].address - 1) == '0')?0:1;
-                  delta.addValue(module.relayInterface.channels[i].path, value);
-                }
-              } else throw new Error(`invalid relay status '${relayStates}'`);
-            }
-            if (module.switchInterface) {
-              if (switchStates.length == 8) {
-                for (var i = 0; i < module.switchInterface.channels.length; i++) {
-                  var value = (switchStates.charAt(module.switchInterface.channels[i].address - 1) == '0')?0:1;
-                  delta.addValue(module.switchInterface.channels[i].path, value);
-                }
-              } else throw new Error(`invalid switch status '${switchStates}'`);
-            }
+            module.channels.filter(m => (m.type == 'relay')).forEach(channel => {
+              if (channel.address <= relayStates.length) {
+                var value = (relayStates.charAt(channel.address - 1) == '0')?0:1;
+                delta.addValue(channel.path, value);
+              }
+            });
+            module.channels.filter(m => (m.type == 'switch')).forEach(channel => {
+              if (channel.address <= switchStates.length) {
+                var value = (switchStates.charAt(channel.address - 1) == '0')?0:1;
+                delta.addValue(channels.path, value);
+              }
+            });
             delta.commit().clear();
             delete delta;
           } else throw new Error(`status received from ${clientIP}`);
@@ -611,7 +539,7 @@ module.exports = function(app) {
         if (module.listenerConnection) module.listenerConnection.destroy();
         module.listenerConnection = client;
 
-        if (!module.relayInterface.commandConnection) {
+        if (!module.commandConnection) {
           app.debug(`status listener: opening command connection '${clientIP}'`);
           openCommandConnection(module);
         }
@@ -630,11 +558,11 @@ module.exports = function(app) {
    */
   function processCommandQueues() {
     plugin.options.modules.forEach(module => {
-      if ((module.relayInterface.commandConnection) && (module.relayInterface.currentCommand == null) && (module.relayInterface.commandQueue) && (module.relayInterface.commandQueue.length > 0)) {
-        module.relayInterface.currentCommand = module.relayInterface.commandQueue.shift();
-        if (module.relayInterface.commandConnection) {
-          module.relayInterface.commandConnection.write(`${module.relayInterface.currentCommand.command}\n`);
-          log.N(`sending '${module.relayInterface.currentCommand.command}' to module '${module.ipAddress}'`);
+      if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
+        module.currentCommand = module.commandQueue.shift();
+        if (module.commandConnection) {
+          module.commandConnection.write(`${module.currentCommand.command}\n`);
+          log.N(`sending '${module.currentCommand.command}' to module '${module.ipAddress}'`);
         } else {
           log.E(`cannot send command to module '${module.ipAddress}' (no connection)`);
         }
@@ -653,7 +581,7 @@ module.exports = function(app) {
 
   expressGetStatus = function(req, res) {
     const body = plugin.options.modules.reduce((a,module) => {
-      a[module.ipAddress] = (module.relayInterface.commandConnection)?'CONNECTED':'NOT CONNECTED';
+      a[module.ipAddress] = (module.commandConnection)?'CONNECTED':'NOT CONNECTED';
       return(a);
     }, {});
     expressSend(res, 200, body, req.path);
