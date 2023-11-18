@@ -326,7 +326,7 @@ module.exports = function(app) {
       module.switchInterface.switchbankPath = (module.switchInterface.switchbankPath)?module.switchInterface.switchbankPath:`electrical.switches.bank.${module.ipAddress.replaceAll('.','-')}S`;
       module.switchInterface.id = module.switchInterface.switchbankPath.split('.').slice(-1);
       module.switchInterface.channels = (module.switchInterface.channels)?module.switchInterface.channels:[];
-      (module.switchInterface.channels || []).forEach(channel => {
+      module.switchInterface.channels.forEach(channel => {
         if (!channel.index) throw new Error("missing channel index");
         channel.address = (channel.address || channel.index);
         channel.description = (channel.description || `Switch channel ${channel.index}`);  
@@ -380,7 +380,7 @@ module.exports = function(app) {
           displayName: `Switch module ${module.switchInterface.id}`,
           $source: `plugin:${plugin.id}`
         };
-        (module.switchChannels || []).forEach(channel => {
+        module.switchInterface.channels.forEach(channel => {
           a[`${channel.path}`] = {
             description: channel.description,
             index: channel.index,
