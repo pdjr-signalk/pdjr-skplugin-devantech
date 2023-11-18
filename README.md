@@ -168,6 +168,26 @@ transmitted appropriately.
     <dl>
       <dt>Module configuration <code>module</code></dt>
       <dd>
+        <dl>
+          <dt>Module IP address <code>ipAddress</code></dt>
+          <dd>
+            Required string specifying the IP address of the module
+            being configured.
+          </dd>
+          <dt>Relay operation command port <code>commandPort</code></dt>
+          <dd>
+            Number specifying the port on which the module listens for
+            relay operating commands.
+          </dd>
+          <dt>Password for command port access <code>password</code></dt>
+          <dd>
+          </dd>
+          <dt>Device ID <code>deviceId</code></dt>
+          <dd>
+            Required string selecting an entry in *devices* which
+            defines the operating characteristics of this module.
+          </dd>
+        </dl>
       </dd>
     </dl>
   </dd>
