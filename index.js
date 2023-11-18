@@ -495,17 +495,17 @@ module.exports = function(app) {
    */
   function openCommandConnection(module) {
     app.debug(`opening command connection`);
-    module.commandConnection = net.createConnection(module.port, module.ipAddress);
+    module.commandConnection = net.createConnection(module.commandPort, module.ipAddress);
     
     module.commandConnection.on('open', (socket) => {
-      app.debug(`command connection to ${module.ipAddress}:${module.port} is open`);
+      app.debug(`command connection to ${module.ipAddress}:${module.commandPort} is open`);
       module.commandConnection = socket;
       module.commandQueue = [];
       module.currentCommand = null;
     });
 
     module.commandConnection.on('close', () => {
-      app.debug(`command connection to ${module.ipAddress}:${module.port} has closed`);
+      app.debug(`command connection to ${module.ipAddress}:${module.commandPort} has closed`);
       module.commandConnection.destroy();
       module.commandConnection = null;
       module.commandQueue = [];
