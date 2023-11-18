@@ -650,9 +650,7 @@ module.exports = function(app) {
 
   expressGetStatus = function(req, res) {
     const body = plugin.options.modules.reduce((a,module) => {
-      a[module.id] = {
-        status: (module.relayInterface.commandConnection)?`CONNECTED ${module.relayInterface.commandConnection.remoteAddress}`:'NOT CONNECTED'
-      }
+      a[module.ipAddress] = (module.relayInterface.commandConnection)?'CONNECTED':'NOT CONNECTED';
       return(a);
     }, {});
     expressSend(res, 200, body, req.path);
