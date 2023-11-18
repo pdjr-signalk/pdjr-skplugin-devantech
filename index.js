@@ -460,7 +460,6 @@ module.exports = function(app) {
             if (channel = module.relayInterface.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
               relayCommand = ((value)?channel.oncommand:channel.offcommand);
               module.relayInterface.commandQueue.push({ command: relayCommand, callback: callback });
-              app.debug(`PENDING ${relayCommand}`);
               retval = { state: 'PENDING' };
             }
           }
@@ -630,9 +629,9 @@ module.exports = function(app) {
         module.relayInterface.currentCommand = module.relayInterface.commandQueue.shift();
         if (module.relayInterface.commandConnection) {
           module.relayInterface.commandConnection.write(`${module.relayInterface.currentCommand.command}\n`);
-          log.N(`sending '${module.relayInterface.currentCommand.command}' to module '${module.id}'`);
+          log.N(`sending '${module.relayInterface.currentCommand.command}' to module '${module.ipAddress}'`);
         } else {
-          log.E(`cannot send command to module '${module.id}' (no connection)`);
+          log.E(`cannot send command to module '${module.ipAddress}' (no connection)`);
         }
       }
     });
