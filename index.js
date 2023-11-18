@@ -393,6 +393,7 @@ module.exports = function(app) {
           };
         });
       }
+      app.debug(JSON.stringify(a, null , 2));
       return(a);
     },{}));
   }
