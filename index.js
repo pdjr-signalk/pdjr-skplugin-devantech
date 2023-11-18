@@ -302,6 +302,7 @@ module.exports = function(app) {
       module.relayInterface.channels = (module.relayInterface.channels)?module.relayInterface.channels:[];
       module.relayInterface.commandQueue = [];
       module.relayInterface.currentCommand = null;
+      module.relayInterface.commandConnection = null;
 
       module.relayInterface.channels.forEach(channel => {
         if (!channel.index) throw new Error("missing channel index");
@@ -498,28 +499,28 @@ module.exports = function(app) {
    */
   function openCommandConnection(module) {
     app.debug(`opening command connection`);
-    module.commandConnection = net.createConnection(module.commandPort, module.ipAddress);
+    module.relayInterface.commandConnection = net.createConnection(module.commandPort, module.ipAddress);
     
-    module.commandConnection.on('open', (socket) => {
+    module.relayInterface.commandConnection.on('open', (socket) => {
       app.debug(`command connection to ${module.ipAddress}:${module.commandPort} is open`);
-      module.commandConnection = socket;
-      module.commandQueue = [];
-      module.currentCommand = null;
+      module.relayInterface.commandConnection = socket;
+      module.relayInterface.commandQueue = [];
+      module.relayInterface.currentCommand = null;
     });
 
-    module.commandConnection.on('close', () => {
+    module.relayInterface.commandConnection.on('close', () => {
       app.debug(`command connection to ${module.ipAddress}:${module.commandPort} has closed`);
-      module.commandConnection.destroy();
-      module.commandConnection = null;
-      module.commandQueue = [];
-      module.currentCommand = null;
+      module.relayInterface.commandConnection.destroy();
+      module.relayInterface.commandConnection = null;
+      module.relayInterface.commandQueue = [];
+      module.relayInterface.currentCommand = null;
     });
 
-    module.commandConnection.on('data', (data) => {
+    module.relayInterface.commandConnection.on('data', (data) => {
       if (data.toString().trim() == 'Ok') {
-        if (module.currentCommand) {
-          module.currentCommand.callback({ state: 'COMPLETED', statusCode: 200 });
-          module.currentCommand = null;
+        if (module.relayInterface.currentCommand) {
+          module.relayInterface.currentCommand.callback({ state: 'COMPLETED', statusCode: 200 });
+          module.relayInterface.currentCommand = null;
         } else {
           app.debug(`orphan command response received from module ${module.ipAddress}`);
         }
@@ -606,7 +607,7 @@ module.exports = function(app) {
         if (module.listenerConnection) module.listenerConnection.destroy();
         module.listenerConnection = client;
 
-        if (!module.commandConnection) {
+        if (!module.relayInterface.commandConnection) {
           app.debug(`status listener: opening command connection '${clientIP}'`);
           openCommandConnection(module);
         }
@@ -625,11 +626,11 @@ module.exports = function(app) {
    */
   function processCommandQueues() {
     plugin.options.modules.forEach(module => {
-      if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
-        module.currentCommand = module.commandQueue.shift();
-        if (module.commandConnection) {
-          module.commandConnection.write(`${module.currentCommand.command}\n`);
-          log.N(`sending '${module.currentCommand.command}' to module '${module.id}'`);
+      if ((module.relayInterface.commandConnection) && (module.relayInterface.currentCommand == null) && (module.relayInterface.commandQueue) && (module.relayInterface.commandQueue.length > 0)) {
+        module.relayInterface.currentCommand = module.relayInterface.commandQueue.shift();
+        if (module.relayInterface.commandConnection) {
+          module.relayInterface.commandConnection.write(`${module.relayInterface.currentCommand.command}\n`);
+          log.N(`sending '${module.relayInterface.currentCommand.command}' to module '${module.id}'`);
         } else {
           log.E(`cannot send command to module '${module.id}' (no connection)`);
         }
