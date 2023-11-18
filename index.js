@@ -241,7 +241,7 @@ module.exports = function(app) {
       });
 
       // Install put handlers.
-      options.modules.forEach(module => {
+      plugin.options.modules.forEach(module => {
         if (module.relayInterface) {
           module.relayInterface.channels.forEach(channel => {
             app.registerPutHandler('vessels.self', channel.path, relayPutHandler, plugin.id);
