@@ -455,7 +455,7 @@ module.exports = function(app) {
     var retval = { state: 'COMPLETED', statusCode: 400 };
     if (moduleId = getModuleIdFromPath(path)) {
       if (module = getModuleFromModuleId(moduleId)) {
-        if (module.commandConnection) {
+        if (module.relayInterface.commandConnection) {
           if (channelIndex = getChannelIndexFromPath(path)) {
             if (channel = module.relayInterface.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
               relayCommand = ((value)?channel.oncommand:channel.offcommand);
