@@ -242,9 +242,11 @@ module.exports = function(app) {
 
       // Install put handlers.
       options.modules.forEach(module => {
-        module.relayInterface.channels.forEach(channel => {
-          app.registerPutHandler('vessels.self', channel.path, relayPutHandler, plugin.id);
-        });
+        if (module.relayInterface) {
+          module.relayInterface.channels.forEach(channel => {
+            app.registerPutHandler('vessels.self', channel.path, relayPutHandler, plugin.id);
+          });
+        }
       });
 
       // Start listening for remote DS status reports and begin checking
