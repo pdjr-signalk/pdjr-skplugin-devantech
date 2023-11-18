@@ -25,12 +25,7 @@ const PLUGIN_NAME = 'pdjr-skplugin-devantech';
 const PLUGIN_DESCRIPTION = 'Signal K interface to the Devantech DS range of general-purpose relay modules';
 const PLUGIN_SCHEMA = {
   "type": "object",
-  "required": [ "modules" ],
   "properties": {
-    "root": {
-      "title": "Root path for all switchbank keys",
-      "type": "string"
-    },
     "metadataPublisher": {
       "title": "Metadata publication service configuration",
       "type": "object",
@@ -61,65 +56,83 @@ const PLUGIN_SCHEMA = {
     "modules" : {
       "title": "Module configurations",
       "type": "array",
-      "default": [],
       "items": {
         "type": "object",
-        "required": [ "id", "connectionString", "channels" ],
         "properties": {
-          "id": {
-            "title": "Module id",
+          "ipAddress": {
+            "title": "Module IP address",
             "type": "string"
           },
-          "connectionString": {
-            "title": "Connection string (address:port)",
-            "type": "string"
+          "commandPort": {
+            "title": "Relay operation command port",
+            "type": "number"
           },
-          "description": {
-            "title": "Module description",
+          "password": {
+            "title": "Password for command port access",
             "type": "string"
           },
           "deviceId": {
             "title": "Device id",
             "type": "string"
           },
-          "relayChannels": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [ "index" ],
-              "properties": {
-                "index": {
-                  "title": "Signal K channel index",
-                  "type": "number"
-                },
-                "address": {
-                  "title": "Address of associated relay channel on physical device",
-                  "type": "number"
-                },
-                "description": {
-                  "title": "Channel description",
-                  "type": "string"
+          "description": {
+            "title": "Module description",
+            "type": "string"
+          },
+          "relayInterface": {
+            "type": "object",
+            "properties": {
+              "switchbankPath": {
+                "title": "Signal K switchbank path",
+                "type": "string"
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "title": "Signal K channel index",
+                      "type": "number"
+                    },
+                    "address": {
+                      "title": "Address of associated relay channel on physical device",
+                      "type": "number"
+                    },
+                    "description": {
+                      "title": "Channel description",
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
           },
-          "switchChannels": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [ "index" ],
-              "properties": {
-                "index": {
-                  "title": "Signal K channel index",
-                  "type": "number"
-                },
-                "address": {
-                  "title": "Address of associated switch channel on physical device",
-                  "type": "number"
-                },
-                "description": {
-                  "title": "Channel description",
-                  "type": "string"
+          "switchInterface": {
+            "type": "object",
+            "properties": {
+              "switchbankPath": {
+                "title": "Signal K switchbank path",
+                "type": "string"
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "title": "Signal K channel index",
+                      "type": "number"
+                    },
+                    "address": {
+                      "title": "Address of associated switch channel on physical device",
+                      "type": "number"
+                    },
+                    "description": {
+                      "title": "Channel description",
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -163,7 +176,6 @@ const PLUGIN_SCHEMA = {
     }
   },
   "default": {
-    "root": "electrical.switches.bank.",
     "metadataPublisher": { "method": "POST" },
     "statusListenerPort": 28241,
     "commandQueueHeartbeat" : 25,
@@ -218,8 +230,6 @@ module.exports = function(app) {
   
     if (plugin.options.modules.length > 0) {
 
-      app.debug(JSON.stringify(createMetadata(), null, 2));
-
       // Create and install metadata
       publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
         if (e) {
@@ -232,9 +242,8 @@ module.exports = function(app) {
 
       // Install put handlers.
       options.modules.forEach(module => {
-        module.relayChannels.forEach(channel => {
-          var path = `${plugin.options.root}${module.id}R.${channel.index}.state`;
-          app.registerPutHandler('vessels.self', path, relayPutHandler, plugin.id);
+        module.relayInterface.channels.forEach(channel => {
+          app.registerPutHandler('vessels.self', channel.path, relayPutHandler, plugin.id);
         });
       });
 
@@ -266,6 +275,67 @@ module.exports = function(app) {
     router.get('/status', (req,res) => handleExpress(req, res, expressGetStatus));
   }
 
+  /********************************************************************
+   * Takes a perhaps partial module definition and does what it can to
+   * parse encoded bits and add important defaults.
+   * 
+   * @param {*} module - the module object to be processed. 
+   * @param {*} devices - array of available device definitions.
+   * @returns - the dressed-up module or exception on error.
+   */
+  function canonicaliseModule(module, devices) {     
+    const device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null);
+    if (!device) throw new Error(`device '${module.deviceId}' is not configured`);
+  
+    if (!module.ipAddress) throw new Error("missing 'ipAddress'");
+    if (!module.commandPort) throw new Error("missing 'commandPort'");
+    module.password = (module.password)?module.password:undefined;
+
+    if (!module.deviceId) throw new Error("missing 'deviceId'");
+    module.description = (module.description)?module.description:'';
+
+    if (module.relayInterface) {
+      module.relayInterface.switchbankPath = (module.relayInterface.switchbankPath)?module.relayInterface.switchbankPath:`electrical.switches.bank.${module.ipAddress.replaceAll('.','-')}-relays.`;
+      module.relayInterface.id = module.relayInterface.switchbankPath.split('.').slice(-1);
+      module.relayInterface.channels = (module.relayInterface.channels)?module.relayInterface.channels:[];
+      module.relayInterface.commandQueue = [];
+      module.relayInterface.currentCommand = null;
+
+      module.relayInterface.channels.forEach(channel => {
+        if (!channel.index) throw new Error("missing channel index");
+        channel.address = (channel.address || channel.index);
+        channel.description = (channel.description || `Relay channel ${channel.index}`);
+        channel.path = `${module.relayInterface.switchbankPath}.${channel.index}.state`;
+  
+        if (!device.channels) throw new Error(`missing channel configuration for device '${device.id}'`);
+        if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
+          channel.oncommand = device.channels[0].oncommand;
+          channel.offcommand = device.channels[0].offcommand;
+        } else {
+          channel.oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
+          channel.offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
+        }
+        if ((channel.oncommand === null) || (channel.offcommand === null)) throw new Error(`missing operating command for channel ${channel.id}`);
+        channel.oncommand = channel.oncommand.replace('{c}', channel.address);
+        channel.offcommand = channel.offcommand.replace('{c}', channel.address);
+      });
+    }
+
+    if (module.switchInterface) {
+      module.switchInterface.switchbankPath = (module.switchbankPathInterface.switchbankPath)?module.switchInterface.switchbankPath:`electrical.switches.bank.${module.ipAddress.replaceAll('.','-')}-switches.`;
+      module.switchInterface.id = module.switchInterface.switchbankPath.split('.').slice(-1);
+      module.switchInterface.channels = (module.switchInterface.channels)?module.switchInterface.channels:[];
+      (module.switchInterface.channels || []).forEach(channel => {
+        if (!channel.index) throw new Error("missing channel index");
+        channel.address = (channel.address || channel.index);
+        channel.description = (channel.description || `Switch channel ${channel.index}`);  
+        channel.path = `${module.switchInterface.switchbankPath}.${channel.index}.state`;
+      })
+    }
+
+    return(module);
+  }
+  
   /**
    * Generate an object containing path => { metadata } mappings for
    * switchbanks and relay/switch channels.
@@ -274,49 +344,49 @@ module.exports = function(app) {
    */
   function createMetadata() {
     return(plugin.options.modules.reduce((a,module) => {
-      if (module.relayChannels) { // We have a relay module
-        a[`${plugin.options.root}${module.id}R`] = {
-          description: module.description || `Relay module ${module.id}R`,
-          instance: `${module.id}R`,
+      if (module.relayInterface) { // We have a relay module
+        a[`${module.relayInterface.switchbankPath}`] = {
+          description: `Relay module ${module.relayInterface.id}`,
+          instance: `${module.relayInterface.id}`,
           type: 'relay',
-          channelCount: module.relayChannels.length,
-          shortName: `${module.id}R`,
-          longName: `Relay module ${module.id}R`,
-          displayName: `Relay module ${module.id}R`,
+          channelCount: module.relayInterface.channels.length,
+          shortName: `${module.relayInterface.id}`,
+          longName: `Relay module ${module.relayInterface.id}`,
+          displayName: `Relay module ${module.relayInterface.id}`,
           $source: `plugin:${plugin.id}`
         };
-        (module.relayChannels || []).forEach(channel => {
-          a[`${plugin.options.root}${module.id}R.${channel.index}.state`] = {
-            description: channel.description || `Relay channel ${channel.index}`,
+        (module.relayInterface.channels).forEach(channel => {
+          a[`${channel.path}`] = {
+            description: channel.description,
             index: channel.index,
             address: channel.address,
-            shortName: `[${module.id}R,${channel.index}]`,
-            longName: `[${module.id}R,${channel.index}]`,
-            displayName: channel.description || `[${module.id}R,${channel.index}]`,
+            shortName: `[${module.relayInterface.id},${channel.index}]`,
+            longName: `[${module.relayInterface.id},${channel.index}]`,
+            displayName: channel.description || `[${module.relayInterface.id},${channel.index}]`,
             unit: 'Binary switch state (0/1)',
             type: 'relay'
           };
         });
       }
-      if (module.switchChannels) { // We have a switch module
-        a[`${plugin.options.root}${module.id}S`] = {
-          description: module.description || `Switch module ${module.id}S`,
-          instance: `${module.id}S`,
+      if (module.switchInterface) { // We have a switch module
+        a[`${module.switchInterface.switchbankPath}`] = {
+          description: `Switch module ${module.switchInterface.id}S`,
+          instance: `${module.switchInterface.id}`,
           type: 'switch',
-          channelCount: module.switchChannels.length,
-          shortName: `${module.id}S`,
-          longName: `Switch module ${module.id}S`,
-          displayName: `Switch module ${module.id}S`,
+          channelCount: module.switchInterface.channels.length,
+          shortName: `${module.switchInterface.id}`,
+          longName: `Switch module ${module.switchInterface.id}`,
+          displayName: `Switch module ${module.switchInterface.id}`,
           $source: `plugin:${plugin.id}`
         };
         (module.switchChannels || []).forEach(channel => {
-          a[`${plugin.options.root}${module.id}S.${channel.index}.state`] = {
-            description: channel.description || `Switch channel ${channel.index}`,
+          a[`${channel.path}`] = {
+            description: channel.description,
             index: channel.index,
             address: channel.address,
-            shortName: `[${module.id}S,${channel.index}]`,
-            longName: `[${module.id}S,${channel.index}]`,
-            displayName: channel.description || `[${module.id}S,${channel.index}]`,
+            shortName: `[${module.switchInterface.id}S,${channel.index}]`,
+            longName: `[${module.switchInterface.id}S,${channel.index}]`,
+            displayName: channel.description || `[${module.switchInterface.id}S,${channel.index}]`,
             unit: 'Binary switch state (0/1)',
             type: 'switch'
           };
@@ -390,7 +460,7 @@ module.exports = function(app) {
             }
           }
         } else {
-          app.debug(`PUT request cannot be actioned (module '${module.id}' has no open command connection)`);
+          app.debug(`PUT request cannot be actioned (module '${module.ipAddress}' has no open command connection)`);
         }
       } else {
         app.debug(`module '${moduleId}' is not defined`);
@@ -414,76 +484,6 @@ module.exports = function(app) {
     
   }
   
-  /********************************************************************
-   * Takes a perhaps partial module definition and does what it can to
-   * parse encoded bits and add important defaults.
-   * 
-   * @param {*} module - the module object to be processed. 
-   * @param {*} devices - array of available device definitions.
-   * @returns - the dressed-up module or {} on error.
-   */
-  function canonicaliseModule(module, devices) {     
-    const device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null);
-    if (!device) throw new Error(`device '${module.deviceId}' is not configured`);
-
-    if (!module.id) throw new Error("missing module 'id'");
-    if (!module.deviceId) throw new Error("missing 'deviceId'");
-    if (!module.connectionString) throw new Error("missing 'connectionString'");
-
-    module.connectionObject = parseConnectionString(module.connectionString);
-    module.commandQueue = [];
-    module.currentCommand = null;
-
-    if ((!module.relayChannels) && (!module.switchChannels)) throw new Error("no channels are configured");
-
-    if (module.relayChannels) {
-      module.relayChannels.forEach(channel => {
-        if (!channel.index) throw new Error("missing channel index");
-        channel.address = (channel.address || channel.index);
-        channel.description = (channel.description || `Relay channel ${channel.index}`);
-
-        if (!device.channels) throw new Error(`missing channel configuration for device '${device.id}'`);
-        if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
-          channel.oncommand = device.channels[0].oncommand;
-          channel.offcommand = device.channels[0].offcommand;
-        } else {
-          channel.oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
-          channel.offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
-        }
-        if ((channel.oncommand === null) || (channel.offcommand === null)) throw new Error(`missing operating command for channel ${channel.id}`);
-        channel.oncommand = channel.oncommand.replace('{c}', channel.address);
-        channel.offcommand = channel.offcommand.replace('{c}', channel.address);
-      });
-    }
-    if (module.switchChannels) {
-      module.switchChannels.forEach(channel => {
-        if (!channel.index) throw new Error("missing channel index");
-        channel.address = (channel.address || channel.index);
-        channel.description = (channel.description || `Switch channel ${channel.index}`);  
-      })
-    }
-    return(module);
-
-    /**
-     * Make a connection object with properties 'host', 'port' and
-     * optionally 'password' from \ref connectionString.
-     * 
-     * @param {*} connectionString - the string to be parsed. 
-     * @returns - on success, an object, otherwise null.
-     */
-    function parseConnectionString(connectionString) {
-      var connectionObject = null;
-
-      if (matches = connectionString.match(/^(.*)@(.*)\:(.*)$/)) {
-        connectionObject = { password: matches[1], host: matches[2], port: matches[3] };
-      } else if (matches = connectionString.match(/^(.*)\:(.*)$/)) {
-        connectionObject = { host: matches[1], port: matches[2] };
-      } else {
-        throw new Error("could not parse connection string");
-      }
-      return(connectionObject);
-    }
-  }
 
   /********************************************************************
    * Connects module to the TCP command connection specified by
@@ -494,17 +494,17 @@ module.exports = function(app) {
    */
   function openCommandConnection(module) {
     app.debug(`opening command connection`);
-    module.commandConnection = net.createConnection(module.connectionObject.port, module.connectionObject.host);
+    module.commandConnection = net.createConnection(module.port, module.ipAddress);
     
     module.commandConnection.on('open', (socket) => {
-      app.debug(`command connection to module '${module.id}' is open`);
+      app.debug(`command connection to ${module.ipAddress}:${module.port} is open`);
       module.commandConnection = socket;
       module.commandQueue = [];
       module.currentCommand = null;
     });
 
     module.commandConnection.on('close', () => {
-      app.debug(`command connection to module '${module.id}' has closed`);
+      app.debug(`command connection to ${module.ipAddress}:${module.port} has closed`);
       module.commandConnection.destroy();
       module.commandConnection = null;
       module.commandQueue = [];
@@ -517,7 +517,7 @@ module.exports = function(app) {
           module.currentCommand.callback({ state: 'COMPLETED', statusCode: 200 });
           module.currentCommand = null;
         } else {
-          app.debug(`orphan command response received from module '${module.id}'`);
+          app.debug(`orphan command response received from module ${module.ipAddress}`);
         }
       }
     });
@@ -549,34 +549,32 @@ module.exports = function(app) {
       client.on('data', (data) => {
         try {
           var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-          var module = plugin.options.modules.reduce((a,m) => ((m.connectionObject.host == clientIP)?m:a), null);
+          var module = plugin.options.modules.reduce((a,m) => ((m.ipAddress == clientIP)?m:a), null);
           if (module) {
             const messageLines = data.toString().split('\n');
             const relayStates = messageLines[1].trim();
             const switchStates = messageLines[2].replaceAll(' ','').trim();
             app.debug(`received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
-            if (module.relayChannels) {
+            if (module.relayInterface) {
               if (relayStates.length == 32) {
-                for (var i = 0; i < module.relayChannels.length; i++) {
-                  var path = `${plugin.options.root}${module.id}R.${module.relayChannels[i].index}.state`;
-                  var value = (relayStates.charAt(module.relayChannels[i].address - 1) == '0')?0:1;
-                  delta.addValue(path, value);
+                for (var i = 0; i < module.relayInterface.channels.length; i++) {
+                  var value = (relayStates.charAt(module.relayInterface.channels[i].address - 1) == '0')?0:1;
+                  delta.addValue(module.relayInterface.channels[i].path, value);
                 }
               } else throw new Error(`invalid relay status '${relayStates}'`);
             }
-            if (module.switchChannels) {
+            if (module.switchInterface) {
               if (switchStates.length == 8) {
-                for (var i = 0; i < module.switchChannels.length; i++) {
-                  var path = `${plugin.options.root}${module.id}S.${module.switchChannels[i].index}.state`;
+                for (var i = 0; i < module.switchInterface.channels.length; i++) {
                   var value = (switchStates.charAt(module.switchChannels[i].address - 1) == '0')?0:1;
-                  delta.addValue(path, value);
+                  delta.addValue(module.switchInterface.channels[i].path, value);
                 }
               } else throw new Error(`invalid switch status '${switchStates}'`);
             }
             delta.commit().clear();
             delete delta;
-          } else throw new Error(`status received from unknown module at ${clientIP}`);
+          } else throw new Error(`status received from ${clientIP}`);
         } catch(e) {
           app.debug(e.message);
         }
@@ -589,7 +587,7 @@ module.exports = function(app) {
        */
       client.on('close', () => {
         var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-        app.debug(`status listener: closing connection for device at ${clientIP}`)
+        app.debug(`status listener: closing connection for ${clientIP}`)
         module.listenerConnection.destroy();
         module.listenerConnection = null;
       });
@@ -598,18 +596,18 @@ module.exports = function(app) {
        * Only allow connections from configured modules.
        */
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-      var module = plugin.options.modules.reduce((a,m) => ((m.connectionObject.host == clientIP)?m:a), null);
+      var module = plugin.options.modules.reduce((a,m) => ((m.ipAddress == clientIP)?m:a), null);
       if (module) {
-        app.debug(`status listener: opening connection for device at ${clientIP} (module '${module.id}')`);
+        app.debug(`status listener: opening connection for ${clientIP}`);
         if (module.listenerConnection) module.listenerConnection.destroy();
         module.listenerConnection = client;
 
         if (!module.commandConnection) {
-          app.debug(`status listener: opening command connection for module '${module.id}'`);
+          app.debug(`status listener: opening command connection '${clientIP}'`);
           openCommandConnection(module);
         }
       } else {
-        log.W(`status listener: ignoring connection attempt from device ${clientIP} (not a module)`, false);
+        log.W(`status listener: ignoring connection attempt from unknown device ${clientIP}`, false);
         client.destroy();
       }
     });
