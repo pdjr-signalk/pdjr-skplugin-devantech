@@ -568,7 +568,7 @@ module.exports = function(app) {
             if (module.switchInterface) {
               if (switchStates.length == 8) {
                 for (var i = 0; i < module.switchInterface.channels.length; i++) {
-                  var value = (switchStates.charAt(module.switchChannels[i].address - 1) == '0')?0:1;
+                  var value = (switchStates.charAt(module.switchInterface.channels[i].address - 1) == '0')?0:1;
                   delta.addValue(module.switchInterface.channels[i].path, value);
                 }
               } else throw new Error(`invalid switch status '${switchStates}'`);
