@@ -16,6 +16,8 @@
 
 const net = require('net');
 const _ = require('lodash');
+const sprintf = require('sprintf-js').sprintf;
+
 const Delta = require('signalk-libdelta/Delta.js');
 const HttpInterface = require('signalk-libhttpinterface/HttpInterface.js');
 const Log = require('signalk-liblog/Log.js');
@@ -297,7 +299,7 @@ module.exports = function(app) {
     module.description = (module.description)?module.description:'';
 
     if (module.relayInterface) {
-      module.relayInterface.switchbankPath = (module.relayInterface.switchbankPath)?module.relayInterface.switchbankPath:`electrical.switches.bank.${module.ipAddress.replaceAll('.','-')}R`;
+      module.relayInterface.switchbankPath = (module.relayInterface.switchbankPath)?module.relayInterface.switchbankPath:`electrical.switches.bank.${sprintf('%3.3d%3.3d%3.3d,%3.3d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}R`;
       module.relayInterface.id = module.relayInterface.switchbankPath.split('.').slice(-1)[0];
       module.relayInterface.channels = (module.relayInterface.channels)?module.relayInterface.channels:[];
       module.relayInterface.commandQueue = [];
@@ -325,7 +327,7 @@ module.exports = function(app) {
     }
 
     if (module.switchInterface) {
-      module.switchInterface.switchbankPath = (module.switchInterface.switchbankPath)?module.switchInterface.switchbankPath:`electrical.switches.bank.${module.ipAddress.replaceAll('.','-')}S`;
+      module.switchInterface.switchbankPath = (module.switchInterface.switchbankPath)?module.switchInterface.switchbankPath:`electrical.switches.bank.${sprintf('%3.3d%3.3d%3.3d,%3.3d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}S`;
       module.switchInterface.id = module.switchInterface.switchbankPath.split('.').slice(-1)[0];
       module.switchInterface.channels = (module.switchInterface.channels)?module.switchInterface.channels:[];
       module.switchInterface.channels.forEach(channel => {
