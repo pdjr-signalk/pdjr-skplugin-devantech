@@ -296,7 +296,7 @@ module.exports = function(app) {
     module.description = (module.description)?module.description:'';
 
     if (module.relayInterface) {
-      module.relayInterface.switchbankPath = (module.relayInterface.switchbankPath)?module.relayInterface.switchbankPath:`electrical.switches.bank.${module.ipAddress.replaceAll('.','-')}-relays`;
+      module.relayInterface.switchbankPath = (module.relayInterface.switchbankPath)?module.relayInterface.switchbankPath:`electrical.switches.bank.${module.ipAddress.replaceAll('.','-')}R`;
       module.relayInterface.id = module.relayInterface.switchbankPath.split('.').slice(-1);
       module.relayInterface.channels = (module.relayInterface.channels)?module.relayInterface.channels:[];
       module.relayInterface.commandQueue = [];
@@ -323,7 +323,7 @@ module.exports = function(app) {
     }
 
     if (module.switchInterface) {
-      module.switchInterface.switchbankPath = (module.switchInterface.switchbankPath)?module.switchInterface.switchbankPath:`electrical.switches.bank.${module.ipAddress.replaceAll('.','-')}-switches`;
+      module.switchInterface.switchbankPath = (module.switchInterface.switchbankPath)?module.switchInterface.switchbankPath:`electrical.switches.bank.${module.ipAddress.replaceAll('.','-')}S`;
       module.switchInterface.id = module.switchInterface.switchbankPath.split('.').slice(-1);
       module.switchInterface.channels = (module.switchInterface.channels)?module.switchInterface.channels:[];
       (module.switchInterface.channels || []).forEach(channel => {
