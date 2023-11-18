@@ -458,7 +458,7 @@ module.exports = function(app) {
           if (channelIndex = getChannelIndexFromPath(path)) {
             if (channel = module.relayInterface.channels.reduce((a,c) => ((c.index == channelIndex)?c:a), null)) {
               relayCommand = ((value)?channel.oncommand:channel.offcommand);
-              module.commandQueue.push({ command: relayCommand, callback: callback });
+              module.relayInterface.commandQueue.push({ command: relayCommand, callback: callback });
               retval = { state: 'PENDING' };
             }
           }
