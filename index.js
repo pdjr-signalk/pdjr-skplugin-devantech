@@ -499,7 +499,8 @@ module.exports = function(app) {
    * @param {*} module - the module to be connected.
    */
   function openCommandConnection(module) {
-    app.debug(`opening command connection`);
+    app.debug(`openCommandConnection(${module})...`);
+
     module.relayInterface.commandConnection = net.createConnection(module.commandPort, module.ipAddress);
     
     module.relayInterface.commandConnection.on('open', (socket) => {
@@ -546,6 +547,8 @@ module.exports = function(app) {
    *                   connections.
    */
   function startStatusListener(port) {
+    app.debug(`startStatusListener(${port})...`);
+
     statusListener = net.createServer((client) => {
 
       /**
