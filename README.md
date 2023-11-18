@@ -14,18 +14,19 @@ The I/O channels can be configured as digital (switch) inputs or ADC
 inputs, but the current version of this plugin only supports switch
 input use.
 
-The plugin presents a single DS series device as a pair of Signal K
-switchbanks: one reporting switch inputs and another reporting and
-controlling relay outputs.
+A DS module is identified by its IP address and the plugin presents
+a DS device through a pair of Signal K switchbanks called '*address*S'
+and '*address*R' reresenting switch inputs and relay outputs
+respectively.
 
 The plugin listens on a specified TCP port for status reports from
 configured DS devices and uses the received data to update Signal K
 switchbank paths associated with the transmitting device.
 
 Receipt of status notifications from a DS device causes the plugin to
-establish and maintain a persistent TCP connection to the remote
-device allowing operation of remote relays in response to Signal K PUT
-requests on the associated relay switchbank channels.
+establish and maintain a persistent TCP connection to the notifying
+device allowing subsequent operation of remote relays in response to
+Signal K PUT requests on the associated relay switchbank channels.
 
 This operating strategy is resilient to network outage and allows
 *ad-hoc* connection of DS devices.
@@ -121,6 +122,60 @@ transmitted appropriately.
 
 ### Plugin configuration
 
+<dl>
+  <dt>Metadata publication service configuration <code>metadataPublisher</code></dt>
+  <dd>
+    Optional object configuring access to a remote metadata publication
+    service (a suitable service is implemented by the author's
+    <a href='https://github.com/pdjr-signalk/pdjr-skplugin-metadata#readme'>metadata plugin</a>.
+    <p>
+    If this property is omitted, or if, for whatever reason, metadata cannot
+    be published to the specified service then the plugin will inject metadata
+    directly into the Signal K tree.</p>
+    <dl>
+      <dt>Metadata publication endpoint <code>endpoint</code></dt>
+      <dd>
+        Required URL of an API which will accept Signal K metadata and
+        at least insert it into the Signal K tree.
+        For example '/plugins/metadata/metadata'.
+      </dd>
+      <dt>Metadata publication method <code>method</code></dt>
+      <dd>
+        Optional string specifying the HTTP method which should be used
+        to submit metadata to the publication service.
+        Defaults to 'POST', but 'PUT' or 'PATCH' may be specified.
+      </dd>
+      <dt>Metadata publisher credentials <code>credentials</code></dt>
+      <dd>
+        Required string of the form 'username:password' specifying
+        Signal K credentials that will allow access to the publication
+        service.
+      </dd>
+    </dl>
+  </dd>
+  <dt>Port on which to listen for module status reports <code>statusListenerPort</code></dt>
+  <dd>
+    Optional number specifying the TCP port on which the plugin will listen for DS event notificataions.
+  </dd>
+  <dt>Process the transmit queue every this many miliseconds <code>transmitQueueHeartbeat</code></dt>
+  <dd>
+    Optional number specifying the transmit queue processing interval in milliseconds.
+  </dd>
+  <dt>Module configurations <code>modules</code></dt>
+  <dd>
+    Required array of *module* objects each of which defines a Devantech DS
+    module that will be controlled by the plugin.
+    <dl>
+      <dt>Module configuration <code>module</code></dt>
+      <dd>
+      </dd>
+    </dl>
+  </dd>
+  <dt>Device configurtions <code>devices</code></dt>
+  <dd>
+  </dd>
+</dl>
+
 The plugin configuration has the following properties.
 
 | Property name          | Value type | Value default | Description |
@@ -130,8 +185,7 @@ The plugin configuration has the following properties.
 | transmitQueueHeartbeat | Number      | 25           | Transmit queue processing interval in milliseconds. |
 | devices                | Array       | (see below)  | Collection of *device* objects.|
 
-Each *module* object in the *modules* array defines a Devantech DS
-device that will be controlled by the plugin.
+
 Most installations will only need to specify entries in this array,
 leaving other properties to assume their defaults.
 
