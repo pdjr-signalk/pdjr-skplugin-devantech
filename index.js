@@ -322,8 +322,8 @@ module.exports = function(app) {
         instance: `${module.id}`,
         channelCount: module.channels.length,
         shortName: `${module.id}`,
-        longName: `${module.type} module ${module.id}`,
-        displayName: `${module.type} module ${module.id}`,
+        longName: `Module ${module.id}`,
+        displayName: `Module ${module.id}`,
         $source: `plugin:${plugin.id}`
       };
       module.channels.forEach(channel => {
