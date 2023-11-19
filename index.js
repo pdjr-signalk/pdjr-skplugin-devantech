@@ -200,6 +200,7 @@ module.exports = function(app) {
     if (plugin.options.modules.length > 0) {
 
       // Create and install metadata
+      app.debug(JSON.stringify(createMetadata, null, 2));
       publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
         if (e) {
           log.W(`publish failed (${e.message})`, false);
@@ -254,50 +255,58 @@ module.exports = function(app) {
    * @returns - the dressed-up module or exception on error.
    */
   function canonicaliseModule(module, devices) {     
+    var validModule = {};
     const device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null);
     if (!device) throw new Error(`device '${module.deviceId}' is not configured`);
-  
+
     if (!module.ipAddress) throw new Error("missing 'ipAddress'");
     if (!module.commandPort) throw new Error("missing 'commandPort'");
     if (!module.deviceId) throw new Error("missing 'deviceId'");
-    module.id = `${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}`;
-    module.password = (module.password)?module.password:undefined;
-    module.description = module.description || `Devantech DS switchbank @ ${module.ipAddress}`;
 
-    module.switchbankPath = `electrical.switches.bank.${module.id}`;
-    module.channels = (module.channels)?module.channels:[];
-    module.commandQueue = [];
-    module.currentCommand = null;
-    module.commandConnection = null;
+    validModule.id = `${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}`;
+    validModule.description = module.description || `Devantech DS switchbank @ ${module.ipAddress}`;
+    validModule.switchbankPath = `electrical.switches.bank.${validModule.id}`;
+  
+    validModule.ipAddress = module.ipAddress;
+    validModule.commandPort = module.commandPort;
+    validModule.password = (module.password)?module.password:undefined;
+    validModule.commandConnection = null;
+    validModule.commandQueue = [];
+    validModule.currentCommand = null;
 
-    module.channels.forEach(channel => {
+    validModule.channels = (module.channels || []).reduce((a,channel) => {
+      var validChannel = {};
       if (!channel.index) throw new Error("missing channel index");
-      channel.address = channel.address || channel.index;
-      channel.type = (channel.type)?channel.type:'relay'
-      channel.description = channel.description || `${channel.type.toUpperCase()} channel ${channel.index}`;
-      switch (channel.type) {
+      validChannel.index = channel.index;
+      validChannel.address = channel.address || channel.index;
+      validChannel.type = channel.type || 'relay';
+      validChannel.description = channel.description || `${channel.type.toUpperCase()} channel ${channel.index}`;
+      switch (validChannel.type) {
         case 'relay':
-          channel.path = `${module.switchbankPath}.${channel.index}.state`;
+          validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
           if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
-            channel.oncommand = device.channels[0].oncommand;
-            channel.offcommand = device.channels[0].offcommand;
+            validChannel.oncommand = device.channels[0].oncommand;
+            validChannel.offcommand = device.channels[0].offcommand;
           } else {
-            channel.oncommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.oncommand:a), null);
-            channel.offcommand = device.channels.reduce((a,c) => ((c.address == channel.address)?c.offcommand:a), null);
+            validChannel.oncommand = device.channels.reduce((a,c) => ((c.address == validChannel.address)?c.oncommand:a), null);
+            validChannel.offcommand = device.channels.reduce((a,c) => ((c.address == validChannel.address)?c.offcommand:a), null);
           }
-          if ((channel.oncommand === null) || (channel.offcommand === null)) throw new Error(`missing operating command for channel ${channel.id}`);
-          channel.oncommand = channel.oncommand.replace('{c}', channel.address);
-          channel.offcommand = channel.offcommand.replace('{c}', channel.address);
+          if ((validChannel.oncommand === null) || (validChannel.offcommand === null)) throw new Error(`missing operating command for channel ${validChannel.index}`);
+          validChannel.oncommand = validChannel.oncommand.replace('{c}', validChannel.address);
+          validChannel.offcommand = validChannel.offcommand.replace('{c}', validChannel.address);
+          a.push(validChannel);
           break;
         case 'switch':
-          channel.path = `${module.switchbankPath}.${channel.index}.state`;
+          validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
+          a.push(validChannel);
           break;
         default:
-          channel.path = undefined;
           break;
       }
-    });
-    return(module);
+      return(a);
+    }, []);
+
+    return(validModule);
   }
   
   /**
