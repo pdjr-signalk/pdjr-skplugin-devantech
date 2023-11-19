@@ -297,9 +297,8 @@ module.exports = function(app) {
           break;
       }
     });
+    return(module);
   }
-  return(module);
-}
   
   /**
    * Generate an object containing path => { metadata } mappings for
