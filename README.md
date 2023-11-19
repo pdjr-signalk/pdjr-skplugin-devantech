@@ -15,7 +15,7 @@ inputs, but the current version of this plugin only supports switch
 input use.
 
 A DS module is identified by its IP address and the plugin presents
-a DS device through a Signal K switchbanks called '*address*' where
+a DS device through a Signal K switchbank called '*address*' where
 *address* defaults to a 12 digit decimal represention the module's IP
 address.
 
@@ -203,6 +203,46 @@ transmitted appropriately.
         Optional password securing the DS module's command interface.
         </p>
       </dd>
+      <dt>Channels <code>channels</code></dt>
+      <dd>
+        <p>
+        The channels array property defines the Signal K interface to
+        the relay and switch channels supported by the DS module.
+        Each item in the *channels* array is an object defining a
+        single channel and had the following properties.
+        </p>
+        <dl>
+          <dt>Channel index <code>index</code></dt>
+          <dd>
+            <p>
+            Required string value giving name which will be used to
+            identify the channel in Signal K.
+            This name <em>must</em> begin with either 'R' to identify
+            a relay output channel or 'S' to identify a switch input
+            channel.
+            The remainder of the index name must be sufficient to
+            ensure uniqueness within the switchbank channel collection.
+            There are advantages to making the remainder of a channel
+            name an integer value which maps onto the associated DS
+            channel number.
+            For example, 'R01', 'R02', 'S01', S02' might be used as
+            channel index names.
+            </p>
+          </dd>
+          <dt>Channel address <code>address</code></dt>
+          <dd>
+            <p>
+            Optional number value giving the address of the DS channel
+            associated with <em>index</em>.
+            If not specified, then this value will default to the
+            numerical part of <em>index</em>.
+            </p>
+          </dd>
+        </dl>
+      </dd>
+    </dl>
+  </dd>
+</dl>
       
     </dl>
   </dd>
