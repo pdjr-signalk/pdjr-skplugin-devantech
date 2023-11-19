@@ -195,7 +195,6 @@ module.exports = function(app) {
     if (plugin.options.modules.length > 0) {
 
       // Create and install metadata
-      app.debug(JSON.stringify(createMetadata(), null, 2));
       publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
         if (e) {
           log.W(`publish failed (${e.message})`, false);
@@ -243,7 +242,22 @@ module.exports = function(app) {
 
   /********************************************************************
    * Takes a perhaps partial module definition and does what it can to
-   * parse encoded bits and add important defaults.
+   * parse encoded bits and add important defaults. The retuened object
+   * has the structure:
+   * {
+   *  id
+   *  description
+   *  switchbankPath
+   *  ipAddress
+   *  commandPort
+   *  password
+   *  commandConnection
+   *  commandQueue
+   *  currentCommand
+   *  channels: [
+   *    
+   *  ]
+   * }
    * 
    * @param {*} module - the module object to be processed. 
    * @param {*} devices - array of available device definitions.

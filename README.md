@@ -155,40 +155,55 @@ transmitted appropriately.
   </dd>
   <dt>Port on which to listen for module status reports <code>statusListenerPort</code></dt>
   <dd>
-    Optional number specifying the TCP port on which the plugin will listen for DS event notificataions.
+    <p>
+    Optional number specifying the TCP port on which the plugin will
+    listen for DS event notificataions.
+    Defaults to 28241.
+    </p>
+    <p>
+    This value must match the 'Target port' value specified in the DS
+    module's 'Event Notifications' configuration page.
+    </p>
   </dd>
   <dt>Process the transmit queue every this many miliseconds <code>transmitQueueHeartbeat</code></dt>
   <dd>
-    Optional number specifying the transmit queue processing interval in milliseconds.
+    <p>
+    Optional number specifying the transmit queue processing interval
+    in milliseconds.
+    Defaults to 25.
+    </p>
   </dd>
   <dt>Module configurations <code>modules</code></dt>
   <dd>
-    Required array of *module* objects each of which defines a Devantech DS
-    module that will be controlled by the plugin.
+    <p>
+    Required array of *module* objects each of which defines a
+    Devantech DS module that will be controlled by the plugin.
+    Each entry has the following configuration properties.
+    </p>
     <dl>
-      <dt>Module configuration <code>module</code></dt>
+      <dt>Module IP address <code>ipAddress</code></dt>
       <dd>
-        <dl>
-          <dt>Module IP address <code>ipAddress</code></dt>
-          <dd>
-            Required string specifying the IP address of the module
-            being configured.
-          </dd>
-          <dt>Relay operation command port <code>commandPort</code></dt>
-          <dd>
-            Number specifying the port on which the module listens for
-            relay operating commands.
-          </dd>
-          <dt>Password for command port access <code>password</code></dt>
-          <dd>
-          </dd>
-          <dt>Device ID <code>deviceId</code></dt>
-          <dd>
-            Required string selecting an entry in *devices* which
-            defines the operating characteristics of this module.
-          </dd>
-        </dl>
+        <p>
+        Required string specifying the IP address of the module being
+        configured.
+        </p>
       </dd>
+      <dt>Relay operation command port <code>commandPort</code></dt>
+      <dd>
+        <p>
+        Optional number specifying the port on which the module listens
+        for relay operating commands.
+        This value must match the 'Control port' number specified on the
+        DS module's 'Network' configuration page.
+        </p>
+      </dd>
+      <dt>Password for command port access <code>password</code></dt>
+      <dd>
+        <p>
+        Optional password securing the DS module's command interface.
+        </p>
+      </dd>
+      
     </dl>
   </dd>
   <dt>Device configurtions <code>devices</code></dt>
