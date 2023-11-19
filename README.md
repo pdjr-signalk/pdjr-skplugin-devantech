@@ -9,15 +9,15 @@ DS range of general-purpose relay modules.
 **pdjr-skplugin-devantech** implements an interface for Devantech DS
 series Ethernet relay devices.
 Each model in the DS range provides a mix of general purpose I/O and
-relay output channels.
-The I/O channels can be configured as digital (switch) inputs or ADC
-inputs, but the current version of this plugin only supports switch
-input use.
+relay output channels: the number of each type varies from model to
+model.
+On some devices I/O channels can be configured as digital (switch)
+inputs or ADC inputs, but the current version of this plugin only
+supports switch input use.
 
-A DS module is identified by its IP address and the plugin presents
-a DS device through a Signal K switchbank called '*address*' where
-*address* defaults to a 12 digit decimal represention the module's IP
-address.
+A DS module is identified in the plugin by its IP address but it can
+be represented in Signal K as a switchbank called after this address
+or by any unique user-configured name.
 
 The plugin listens on a specified TCP port for status reports from
 configured DS devices and uses the received data to update Signal K
@@ -26,7 +26,7 @@ switchbank paths associated with the transmitting device.
 Receipt of status notifications from a DS device causes the plugin to
 establish and maintain a persistent TCP connection to the notifying
 device allowing subsequent operation of remote relays in response to
-Signal K PUT requests on the associated relay switchbank channels.
+Signal K PUT requests on associated switchbank relay channels.
 
 This operating strategy is resilient to network outage and allows
 *ad-hoc* connection of DS devices.
@@ -215,18 +215,20 @@ transmitted appropriately.
           <dt>Channel index <code>index</code></dt>
           <dd>
             <p>
-            Required string value giving name which will be used to
+            Required string value giving a name which will be used to
             identify the channel in Signal K.
             This name <em>must</em> begin with either 'R' to identify
             a relay output channel or 'S' to identify a switch input
             channel.
             The remainder of the index name must be sufficient to
-            ensure uniqueness within the switchbank channel collection.
-            There are advantages to making the remainder of a channel
-            name an integer value which maps onto the associated DS
-            channel number.
-            For example, 'R01', 'R02', 'S01', S02' might be used as
-            channel index names.
+            ensure uniqueness within the relay or switch channel
+            collection of the containing switchbank.
+            There are advantages to making <em>index</em> a value of
+            the form '<em>Tnn</em>' where <em>T</em> is either 'R' or
+            'S' and <em>nn</em> is the associated DS channel address.
+            For example, 'R01' would this identify relay 1 on the
+            associated DS device, whilst 'S03' would identify digital
+            input channel 3.
             </p>
           </dd>
           <dt>Channel address <code>address</code></dt>
@@ -234,20 +236,17 @@ transmitted appropriately.
             <p>
             Optional number value giving the address of the DS channel
             associated with <em>index</em>.
-            If not specified, then this value will default to the
-            numerical part of <em>index</em>.
+            If the recommended form for <em>index</em> (see above) is
+            applied then this value will be derived automatically; if
+            not, then it must be specified.
             </p>
+          </dd>
+          <dt>Description <code>description</code></dt>
+          <dd>
           </dd>
         </dl>
       </dd>
     </dl>
-  </dd>
-</dl>
-      
-    </dl>
-  </dd>
-  <dt>Device configurtions <code>devices</code></dt>
-  <dd>
   </dd>
 </dl>
 
