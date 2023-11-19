@@ -88,16 +88,11 @@ const PLUGIN_SCHEMA = {
               "properties": {
                 "index": {
                   "title": "Signal K channel index",
-                  "type": "number"
+                  "type": "string"
                 },
                 "address": {
                   "title": "Address of associated relay channel on physical device",
                   "type": "number"
-                },
-                "type": {
-                  "title": "Channel type",
-                  "type": "string",
-                  "enum": [ "relay", "switch", "sensor" ]
                 },
                 "description": {
                   "title": "Channel description",
@@ -277,12 +272,11 @@ module.exports = function(app) {
     validModule.channels = (module.channels || []).reduce((a,channel) => {
       var validChannel = {};
       if (!channel.index) throw new Error("missing channel index");
-      validChannel.type = channel.type || 'relay';
-      validChannel.index = `${validChannel.type.charAt(0).toUpperCase()}${channel.index}`;
-      validChannel.address = channel.address || channel.index;
-      validChannel.description = channel.description || `${validChannel.type.toUpperCase()} channel ${validChannel.index}`;
-      switch (validChannel.type) {
-        case 'relay':
+      validChannel.index = channel.index;
+      validChannel.address = channel.address || channel.index.slice(1);
+      validChannel.description = channel.description || `Channel ${validChannel.index}`;
+      switch (validChannel.index.charAt(0)) {
+        case 'R':
           validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
           if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
             validChannel.oncommand = device.channels[0].oncommand;
@@ -296,7 +290,7 @@ module.exports = function(app) {
           validChannel.offcommand = validChannel.offcommand.replace('{c}', validChannel.address);
           a.push(validChannel);
           break;
-        case 'switch':
+        case 'S':
           validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
           a.push(validChannel);
           break;
