@@ -264,12 +264,12 @@ module.exports = function(app) {
     if (!module.deviceId) throw new Error("missing 'deviceId'");
 
     validModule.id = `${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}`;
-    validModule.description = module.description || `Devantech DS switchbank @ ${module.ipAddress}`;
+    validModule.description = module.description || `Devantech DS switchbank '${validModule.id}'`;
     validModule.switchbankPath = `electrical.switches.bank.${validModule.id}`;
   
     validModule.ipAddress = module.ipAddress;
     validModule.commandPort = module.commandPort;
-    validModule.password = (module.password)?module.password:undefined;
+    validModule.password = module.password || undefined;
     validModule.commandConnection = null;
     validModule.commandQueue = [];
     validModule.currentCommand = null;
@@ -280,7 +280,7 @@ module.exports = function(app) {
       validChannel.index = channel.index;
       validChannel.address = channel.address || channel.index;
       validChannel.type = channel.type || 'relay';
-      validChannel.description = channel.description || `${channel.type.toUpperCase()} channel ${channel.index}`;
+      validChannel.description = channel.description || `${validChannel.type.toUpperCase()} channel ${validChannel.index}`;
       switch (validChannel.type) {
         case 'relay':
           validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
