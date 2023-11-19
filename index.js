@@ -200,7 +200,7 @@ module.exports = function(app) {
     if (plugin.options.modules.length > 0) {
 
       // Create and install metadata
-      app.debug(JSON.stringify(createMetadata, null, 2));
+      app.debug(JSON.stringify(createMetadata(), null, 2));
       publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
         if (e) {
           log.W(`publish failed (${e.message})`, false);
