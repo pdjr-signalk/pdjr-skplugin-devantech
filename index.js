@@ -277,13 +277,13 @@ module.exports = function(app) {
     validModule.channels = (module.channels || []).reduce((a,channel) => {
       var validChannel = {};
       if (!channel.index) throw new Error("missing channel index");
-      validChannel.index = channel.index;
-      validChannel.address = channel.address || channel.index;
       validChannel.type = channel.type || 'relay';
+      validChannel.index = `${validChannel.type.charAt(0).toUpperCase()}${channel.index}`;
+      validChannel.address = channel.address || channel.index;
       validChannel.description = channel.description || `${validChannel.type.toUpperCase()} channel ${validChannel.index}`;
       switch (validChannel.type) {
         case 'relay':
-          validChannel.path = `${validModule.switchbankPath}.R${validChannel.index}.state`;
+          validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
           if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
             validChannel.oncommand = device.channels[0].oncommand;
             validChannel.offcommand = device.channels[0].offcommand;
@@ -297,7 +297,7 @@ module.exports = function(app) {
           a.push(validChannel);
           break;
         case 'switch':
-          validChannel.path = `${validModule.switchbankPath}.S${validChannel.index}.state`;
+          validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
           a.push(validChannel);
           break;
         default:
