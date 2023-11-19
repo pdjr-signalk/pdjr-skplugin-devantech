@@ -505,16 +505,16 @@ module.exports = function(app) {
             const switchStates = messageLines[2].replaceAll(' ','').trim();
             app.debug(`received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
-            module.channels.filter(m => (m.type == 'relay')).forEach(channel => {
+            module.channels.filter(channel => (channel.type == 'relay')).forEach(channel => {
               if (channel.address <= relayStates.length) {
                 var value = (relayStates.charAt(channel.address - 1) == '0')?0:1;
                 delta.addValue(channel.path, value);
               }
             });
-            module.channels.filter(m => (m.type == 'switch')).forEach(channel => {
+            module.channels.filter(channel => (channel.type == 'switch')).forEach(channel => {
               if (channel.address <= switchStates.length) {
                 var value = (switchStates.charAt(channel.address - 1) == '0')?0:1;
-                delta.addValue(channels.path, value);
+                delta.addValue(channel.path, value);
               }
             });
             delta.commit().clear();
