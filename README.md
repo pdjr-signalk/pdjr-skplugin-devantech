@@ -15,9 +15,9 @@ inputs, but the current version of this plugin only supports switch
 input use.
 
 A DS module is identified by its IP address and the plugin presents
-a DS device through a pair of Signal K switchbanks called '*address*S'
-and '*address*R' reresenting switch inputs and relay outputs
-respectively.
+a DS device through a Signal K switchbanks called '*address*' where
+*address* defaults to a 12 digit decimal represention the module's IP
+address.
 
 The plugin listens on a specified TCP port for status reports from
 configured DS devices and uses the received data to update Signal K
