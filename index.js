@@ -277,6 +277,7 @@ module.exports = function(app) {
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
       switch (validChannel.index.charAt(0)) {
         case 'R':
+          validChannel.type = 'relay';
           validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
           if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
             validChannel.oncommand = device.channels[0].oncommand;
@@ -291,6 +292,7 @@ module.exports = function(app) {
           a.push(validChannel);
           break;
         case 'S':
+          validChannel.type = 'switch';
           validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
           a.push(validChannel);
           break;
