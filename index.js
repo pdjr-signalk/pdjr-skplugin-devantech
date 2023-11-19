@@ -272,6 +272,7 @@ module.exports = function(app) {
     validModule.channels = (module.channels || []).reduce((a,channel) => {
       var validChannel = {};
       if (!channel.index) throw new Error("missing channel index");
+      if (!['R','S'].includes(channel.index.charAt(0))) throw new Error("channel index must begin with 'R' or 'S'")
       validChannel.index = channel.index;
       validChannel.address = channel.address || channel.index.slice(1);
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
