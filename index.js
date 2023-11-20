@@ -245,7 +245,11 @@ module.exports = function(app) {
     clearTimeout(transmitQueueTimer);
   }
 
-  plugin.registerWithRouter = () => router.get('/status', (req,res) => handleExpress(req, res, expressGetStatus));
+  plugin.registerWithRouter = function(router) {
+    router.get('/status', (req,res) => handleExpress(req, res, expressGetStatus));
+  }
+
+  plugin.getOpenApi = () => require("./resources/openApi.json");
 
   /********************************************************************
    * Takes a perhaps partial module definition and does what it can to
