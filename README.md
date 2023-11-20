@@ -10,17 +10,17 @@ DS general-purpose relay modules.
 series Ethernet relay devices.
 
 DS devices provide a mix of general purpose analogue input, digital
-input and relay output channels: the number of each type varies from
-model to model.
+input and relay output channels: the number of channels of each type
+varies from model to model.
 
 The plugin represents a DS module as a Signal K switchbank with both
 digital input channels amd relay output channels.
 The plugin provides an interface and operating characteristic for DS
 switchbanks that mimics the familiar NMEA 2000 switchbank scheme.
 
-A DS module is uniquely identified by its Ethernet IP address and, by
-deafault, the plugin uses this address as the switchbank identifier in
-Signal K.
+A DS module is uniquely identified by its Ethernet IP address (NMEA
+switchbanks have an instance address) and, by default, the plugin uses
+this address as the switchbank identifier in Signal K.
 Each channel in a DS associated switchbank is conventionally named
 'r*nn*' (if it is a relay output channel) or 's*nn*' (if it is a switch
 input channel) with *nn* specifying the associated DS module channel
@@ -28,10 +28,15 @@ address.
 
 By default the plugin installs DS switchbanks in the usual Signal K
 location and, relying on default naming conventions, a relay channel
-will have name like 'electrical.switches.bank.192168001006.r3.state'.
+will have a key like
+```
+electrical.switches.bank.192168001006.r3.state
+```
 Overriding defaults allows any naming strategy consistent with Signal
 K's specification, so the same DS relay could be named
-'electrical.switches.bank.forlocker.gas-valve.state'.
+```
+electrical.switches.bank.forlocker.gas-valve.state
+```
 
 The plugin listens on a user-configured TCP port for status reports
 from configured DS devices and uses the received data to update Signal
