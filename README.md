@@ -35,7 +35,7 @@ electrical.switches.bank.192168001006.r3.state
 Overriding defaults allows any naming strategy consistent with Signal
 K's specification, so the same DS relay could be named
 ```
-electrical.switches.bank.forlocker.gas-valve.state
+electrical.switches.bank.forelocker.gas-valve.state
 ```
 
 The plugin listens on a user-configured TCP port for status reports
