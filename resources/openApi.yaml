@@ -1,12 +1,12 @@
 openapi: 3.0.0
 info:
-  title: metadata API
+  title: devantech API
   version: 1.0.0
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   description: |
-    [pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-devantech)
+    [pdjr-skplugin-devantech](https://github.com/pdjr-signalk/pdjr-skplugin-devantech)
     is a plugin for the
     [Signal K node server](https://github.com/SignalK/signalk-server).
 
