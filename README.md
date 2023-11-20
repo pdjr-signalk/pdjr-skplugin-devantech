@@ -314,6 +314,36 @@ My test configuration for a DS2824 looks like this:
 }
 ```
 
+```
+{
+  "enabled": true,
+  "enableDebug": false,
+  "configuration": {
+    "metadataPublisher": {
+      "endpoint": "/plugins/metadata/metadata",
+      "method": "POST",
+      "credentials": "username:password"
+    },
+    "modules": [
+      {
+        "id": "helm-alarm"
+        "ipAddress": "192.168.1.6",
+        "commandPort": 17123,
+        "description": "DS2242 Helm Alarm Module",
+        "channels": [
+          { "index": "r-beacon", "address": 1 },
+          { "index": "r-sounder", "address": 2 },
+          { "index": "s_MAIN_BILGE_LEVEL_SENSOR", "address": 1 },
+          { "index": "s_MAIN_BILGE_FLOAT_SWITCH", "address": 2 },
+          { "index": "s_ER_BILGE_LEVEL_SENSOR", "address": 3 },
+          { "index": "s_ER_BILGE_FLOAT_SWITCH", "address": 4 }
+        ]
+      }
+    ]
+  }
+}
+```
+
 ### Device definitions
 
 A *devices* array property can be included at the top-level of the

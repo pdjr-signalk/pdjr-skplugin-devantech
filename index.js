@@ -61,6 +61,10 @@ const PLUGIN_SCHEMA = {
       "items": {
         "type": "object",
         "properties": {
+          "id": {
+            "title": "Module id",
+            "type": "string"
+          },
           "ipAddress": {
             "title": "Module IP address",
             "type": "string"
@@ -265,14 +269,11 @@ module.exports = function(app) {
    */
   function canonicaliseModule(module, devices) {     
     var validModule = {};
-    const device = devices.reduce((a,d) => ((d.id.split(' ').includes(module.deviceId))?d:a), null);
-    if (!device) throw new Error(`device '${module.deviceId}' is not configured`);
 
     if (!module.ipAddress) throw new Error("missing 'ipAddress'");
     if (!module.commandPort) throw new Error("missing 'commandPort'");
-    if (!module.deviceId) throw new Error("missing 'deviceId'");
 
-    validModule.id = `${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}`;
+    validModule.id = module.id || `${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}`;
     validModule.description = module.description || `Devantech DS switchbank '${validModule.id}'`;
     validModule.switchbankPath = `electrical.switches.bank.${validModule.id}`;
   
@@ -283,15 +284,19 @@ module.exports = function(app) {
     validModule.commandQueue = [];
     validModule.currentCommand = null;
 
+    validModule.deviceId = module.deviceId || 'DS';
+    const device = devices.reduce((a,d) => ((d.id.split(' ').includes(validModule.deviceId))?d:a), null);
+    if (!device) throw new Error(`device '${validModule.deviceId}' is not configured`);
+
     validModule.channels = (module.channels || []).reduce((a,channel) => {
       var validChannel = {};
       if (!channel.index) throw new Error("missing channel index");
-      if (!['R','S'].includes(channel.index.charAt(0))) throw new Error("channel index must begin with 'R' or 'S'")
+      if (!['R','r','S','s'].includes(channel.index.charAt(0))) throw new Error("channel index must begin with 'R' or 'S'")
       validChannel.index = channel.index;
       validChannel.address = channel.address || channel.index.slice(1);
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
       switch (validChannel.index.charAt(0)) {
-        case 'R':
+        case 'R': case 'r':
           validChannel.type = 'relay';
           validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
           if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
@@ -306,7 +311,7 @@ module.exports = function(app) {
           validChannel.offcommand = validChannel.offcommand.replace('{c}', validChannel.address);
           a.push(validChannel);
           break;
-        case 'S':
+        case 'S': case 's':
           validChannel.type = 'switch';
           validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
           a.push(validChannel);
