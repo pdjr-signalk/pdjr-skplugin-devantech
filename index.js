@@ -454,7 +454,6 @@ module.exports = function(app) {
     }
     
   }
-  
 
   /********************************************************************
    * Connects module to the TCP command connection specified by
