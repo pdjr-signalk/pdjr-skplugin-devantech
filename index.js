@@ -105,6 +105,10 @@ const PLUGIN_SCHEMA = {
               }
             }
           }
+        },
+        "default": {
+          "deviceId": "DS",
+          "channels": []
         }
       }
     },
@@ -267,7 +271,10 @@ module.exports = function(app) {
    * @param {*} devices - array of available device definitions.
    * @returns - the dressed-up module or exception on error.
    */
-  function canonicaliseModule(module, devices) {     
+  function canonicaliseModule(module, devices) {  
+    var srcModule = _.cloneDeep(plugin.schema.properties.modules.items.default);
+    _.merge(srcModule, module);
+    module = srcModule;
     var validModule = {};
 
     if (!module.ipAddress) throw new Error("missing 'ipAddress'");
@@ -284,11 +291,11 @@ module.exports = function(app) {
     validModule.commandQueue = [];
     validModule.currentCommand = null;
 
-    validModule.deviceId = module.deviceId || 'DS';
+    validModule.deviceId = module.deviceId;
     const device = devices.reduce((a,d) => ((d.id.split(' ').includes(validModule.deviceId))?d:a), null);
     if (!device) throw new Error(`device '${validModule.deviceId}' is not configured`);
 
-    validModule.channels = (module.channels || []).reduce((a,channel) => {
+    validModule.channels = module.channels.reduce((a,channel) => {
       var validChannel = {};
       if (!channel.index) throw new Error("missing channel index");
       if (!['R','r','S','s'].includes(channel.index.charAt(0))) throw new Error("channel index must begin with 'R' or 'S'")
