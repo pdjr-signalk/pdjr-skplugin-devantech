@@ -1,8 +1,8 @@
 # pdjr-skplugin-devantech
 
-Signal K interface to the
+Signal K interface to
 [Devantech](https://www.devantech.co.uk)
-DS range of general-purpose relay modules.
+DS general-purpose relay modules.
 
 ## Description
 
