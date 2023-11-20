@@ -6,22 +6,36 @@ DS range of general-purpose relay modules.
 
 ## Description
 
-**pdjr-skplugin-devantech** implements an interface for Devantech DS
+**pdjr-skplugin-devantech** implements an interface to Devantech DS
 series Ethernet relay devices.
-Each model in the DS range provides a mix of general purpose I/O and
-relay output channels: the number of each type varies from model to
-model.
-On some devices I/O channels can be configured as digital (switch)
-inputs or ADC inputs, but the current version of this plugin only
-supports switch input use.
 
-A DS module is identified in the plugin by its IP address but it can
-be represented in Signal K as a switchbank called after this address
-or by any unique user-configured name.
+DS devices provide a mix of general purpose analogue input, digital
+input and relay output channels: the number of each type varies from
+model to model.
 
-The plugin listens on a specified TCP port for status reports from
-configured DS devices and uses the received data to update Signal K
-switchbank paths associated with the transmitting device.
+The plugin represents a DS module as a Signal K switchbank with both
+digital input channels amd relay output channels.
+The plugin provides an interface and operating characteristic for DS
+switchbanks that mimics the familiar NMEA 2000 switchbank scheme.
+
+A DS module is uniquely identified by its Ethernet IP address and, by
+deafault, the plugin uses this address as the switchbank identifier in
+Signal K.
+Each channel in a DS associated switchbank is conventionally named
+'r*nn*' (if it is a relay output channel) or 's*nn*' (if it is a switch
+input channel) with *nn* specifying the associated DS module channel
+address.
+
+By default the plugin installs DS switchbanks in the usual Signal K
+location and, relying on default naming conventions, a relay channel
+will have name like 'electrical.switches.bank.192168001006.r3.state'.
+Overriding defaults allows any naming strategy consistent with Signal
+K's specification, so the same DS relay could be named
+'electrical.switches.bank.forlocker.gas-valve.state'.
+
+The plugin listens on a user-configured TCP port for status reports
+from configured DS devices and uses the received data to update Signal
+K switchbank paths associated with the transmitting device.
 
 Receipt of status notifications from a DS device causes the plugin to
 establish and maintain a persistent TCP connection to the notifying
@@ -29,19 +43,25 @@ device allowing subsequent operation of remote relays in response to
 Signal K PUT requests on associated switchbank relay channels.
 
 This operating strategy is resilient to network outage and allows
-*ad-hoc* connection of DS devices.
+*ad-hoc* connection of DS devices to a live system without further
+operator intervention.
 
 In addition to switchbank monitoring and control the plugin also
 provides a mechanism for decorating associated switchbank paths with
 automatically generated and user supplied metadata.
 
+The plugin exposes an
+[HTTP API](https://pdjr-signalk.github.io/pdjr-skplugin-devantech/)
+and contributes documentation of this interface to the Signal K
+OpenAPI service.
+
 ## Configuration
 
 ### Preparing a DS module for use with this plugin
 
-Refer to the DS device user manual for details on how to install the
-device, then use the ```_config.htm``` dashboard to make the following
-configuration.
+Refer to the DS device user manual for information on how to install
+the device and access its configuration dashboard.
+Make the following configuration settings under each dashboard tab.
 
 <dl>
   <dt>Network</dt>
@@ -181,6 +201,14 @@ transmitted appropriately.
     Each entry has the following configuration properties.
     </p>
     <dl>
+      <dt>Module id <code>id</code></dt>
+      <dd>
+        <pp>
+        Optional string specifying an identifier for the module which
+        will be used in Signal K switch paths and messages.
+        Defaults to name derived from <em>ipAddress</em> (see below)
+        by transforming a dotted address of the form '<em>a.b.c.d</em>'
+        to an id of the form '<em>aaabbbcccddd</em>'.
       <dt>Module IP address <code>ipAddress</code></dt>
       <dd>
         <p>
@@ -193,6 +221,7 @@ transmitted appropriately.
         <p>
         Optional number specifying the port on which the module listens
         for relay operating commands.
+        Defaults to 17123.
         This value must match the 'Control port' number specified on the
         DS module's 'Network' configuration page.
         </p>
@@ -217,18 +246,18 @@ transmitted appropriately.
             <p>
             Required string value giving a name which will be used to
             identify the channel in Signal K.
-            This name <em>must</em> begin with either 'R' to identify
-            a relay output channel or 'S' to identify a switch input
-            channel.
+            This name <em>must</em> begin with either 'R' (or 'r') to
+            identify a relay output channel or 'S' (or 's') to identify
+            a switch input channel.
             The remainder of the index name must be sufficient to
             ensure uniqueness within the relay or switch channel
             collection of the containing switchbank.
             There are advantages to making <em>index</em> a value of
             the form '<em>Tnn</em>' where <em>T</em> is either 'R' or
             'S' and <em>nn</em> is the associated DS channel address.
-            For example, 'R01' would this identify relay 1 on the
-            associated DS device, whilst 'S03' would identify digital
-            input channel 3.
+            For example, 'R01' would identify relay 1 on the associated
+            DS device, whilst 'S03' would identify digital input
+            channel 3.
             </p>
           </dd>
           <dt>Channel address <code>address</code></dt>
@@ -236,8 +265,8 @@ transmitted appropriately.
             <p>
             Optional number value giving the address of the DS channel
             associated with <em>index</em>.
-            If the recommended form for <em>index</em> (see above) is
-            applied then this value will be derived automatically; if
+            If the '<em>Tnn</em>' form is used for <em>index</em> (see
+            above) then this value will be derived automatically; if
             not, then it must be specified.
             </p>
           </dd>

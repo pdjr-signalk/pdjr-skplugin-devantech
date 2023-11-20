@@ -612,7 +612,10 @@ module.exports = function(app) {
 
   expressGetStatus = function(req, res) {
     const body = plugin.options.modules.reduce((a,module) => {
-      a[module.ipAddress] = (module.commandConnection)?'CONNECTED':'NOT CONNECTED';
+      a[module.id] = {
+        address: module.ipAddress,
+        connected: (module.commandConnection)?true:false
+      }
       return(a);
     }, {});
     expressSend(res, 200, body, req.path);

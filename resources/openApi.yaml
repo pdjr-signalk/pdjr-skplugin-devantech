@@ -1,0 +1,41 @@
+openapi: 3.0.0
+info:
+  title: metadata API
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  description: |
+    [pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-devantech)
+    is a plugin for the
+    [Signal K node server](https://github.com/SignalK/signalk-server).
+
+    A Signal K server hosting the plugin will present this API under
+    the root https://*server_ip*:*server_port*/plugins/devantech.
+externalDocs:
+  description: Plugin README document
+  url: https://github.com/pdjr-signalk/pdjr-skplugin-devantech#readme 
+paths:
+  /status:
+    get:
+      description: |
+        Get the connection status of configured DS modules.
+      responses:
+        200:
+          description: |
+            OK.
+            The response body is an object reporting the connection
+            state of each configured DS module.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object,
+                  properties:
+                    address:
+                      type: string
+                      description: IP address of the identified module.
+                    connected:
+                      type: boolean
+                      description: Whether or not the identified module has an open command connection.
