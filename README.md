@@ -73,7 +73,8 @@ Make the following configuration settings under each dashboard tab.
   <dd>
     <p>
     Assign the DS device a static IP address on your LAN and specify a
-    control port number.
+    control port number (the plugin defaults to 17123, so it is easiest
+    to use this value).
     Make sure that the control port number you choose is not blocked by
     any firewalls on your Signal K host and/or network router.
     If you have more than one DS device on your network, use the same
