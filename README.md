@@ -77,8 +77,7 @@ Make the following configuration settings under each dashboard tab.
   <dd>
     <p>
     Assign the DS device a static IP address on your LAN and specify a
-    control port number (the plugin defaults to 17123, so it is easiest
-    to use this value).
+    control port number.
     Make sure that the control port number you choose is not blocked by
     any firewalls on your Signal K host and/or network router.
     If you have more than one DS device on your network, use the same
@@ -231,9 +230,9 @@ transmitted appropriately.
         <p>
         Optional number specifying the port on which the module listens
         for relay operating commands.
-        Defaults to 17123.
         This value must match the 'Control port' number specified on the
         DS module's 'Network' configuration page.
+        If omitted, the module will only support switch input channels.
         </p>
       </dd>
       <dt>Password for command port access <code>password</code></dt>
