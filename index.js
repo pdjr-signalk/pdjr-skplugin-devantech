@@ -214,7 +214,7 @@ module.exports = function(app) {
       });
 
       // Install put handlers.
-      plugin.options.modules.forEach(module => {
+      plugin.options.modules.filter(module => (module.commandPort)).forEach(module => {
         module.channels.filter(c => (c.type == 'relay')).forEach(channel => {
           app.debug(`registering PUT handler on '${channel.path}'`);
           app.registerPutHandler('vessels.self', channel.path, relayPutHandler, plugin.id);
@@ -287,7 +287,7 @@ module.exports = function(app) {
     validModule.switchbankPath = `electrical.switches.bank.${validModule.id}`;
   
     validModule.ipAddress = module.ipAddress;
-    validModule.commandPort = module.commandPort;
+    validModule.commandPort = module.commandPort || undefined;
     validModule.password = module.password || undefined;
     validModule.commandConnection = null;
     validModule.commandQueue = [];
@@ -306,6 +306,7 @@ module.exports = function(app) {
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
       switch (validChannel.index.charAt(0)) {
         case 'R': case 'r':
+          if (!module.commandPort) throw new Error("relay channels require module 'commandPort'");
           validChannel.type = 'relay';
           validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
           if ((device.channels[0].address == 0) && (device.channels.length == 1)) {

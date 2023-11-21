@@ -9,43 +9,47 @@ DS general-purpose relay modules.
 **pdjr-skplugin-devantech** implements an interface to Devantech DS
 series Ethernet relay devices.
 
-DS devices provide a mix of general purpose analogue input, digital
-input and relay output channels: the number of channels of each type
-varies from model to model.
+DS devices provide a mix of general purpose analogue and digital I/O
+and relay output channels: the number and type of channels varies
+across the product range.
 
 The plugin represents a DS module as a Signal K switchbank with both
 digital input channels amd relay output channels.
-The plugin provides an interface and operating characteristic for DS
-switchbanks that mimics the familiar NMEA 2000 switchbank scheme.
+As far as possible the DS device/plugin combination mimics the
+operating characteristics NMEA 2000 switchbanks in Signal K.
 
 A DS module is uniquely identified by its Ethernet IP address (NMEA
-switchbanks have an instance address) and, by default, the plugin uses
-this address as the switchbank identifier in Signal K.
+switchbanks have an instance address which serves the same purpose)
+and, by default, the plugin uses this address as the switchbank
+identifier in Signal K.
 Each channel in a DS associated switchbank is conventionally named
 'r*nn*' (if it is a relay output channel) or 's*nn*' (if it is a switch
 input channel) with *nn* specifying the associated DS module channel
 address.
 
-By default the plugin installs DS switchbanks in the usual Signal K
-location and, relying on default naming conventions, a relay channel
-will have a key like
+The plugin installs DS switchbanks in the usual Signal K location and,
+relying on default naming conventions, a relay channel will have a key
+like
 ```
 electrical.switches.bank.192168001006.r3.state
 ```
 Overriding defaults allows any naming strategy consistent with Signal
-K's specification, so the same DS relay could be named
+K's specification, so, with a little more configuration gloss, the same
+DS relay could present as
 ```
 electrical.switches.bank.forelocker.gas-valve.state
 ```
 
 The plugin listens on a user-configured TCP port for status reports
-from configured DS devices and uses the received data to update Signal
-K switchbank paths associated with the transmitting device.
+from configured DS devices and uses the received data to update the
+state of Signal K switchbank paths associated with the transmitting
+device.
 
-Receipt of status notifications from a DS device causes the plugin to
-establish and maintain a persistent TCP connection to the notifying
-device allowing subsequent operation of remote relays in response to
-Signal K PUT requests on associated switchbank relay channels.
+Receipt of status notifications from a DS device which is configured
+for relay output causes the plugin to establish and maintain a
+persistent TCP connection to the notifying device allowing subsequent
+operation of remote relays in response to Signal K PUT requests on
+associated switchbank relay channels.
 
 This operating strategy is resilient to network outage and allows
 *ad-hoc* connection of DS devices to a live system without further
@@ -336,7 +340,7 @@ are connected to the DS2242 inputs making their states available in
 Signal K.
 
 With some tweaking of the DS2242's 'Pulse/Follow' configuration I allow
-the bilge sensor inputs directly drive the module's relay outputs,
+the bilge sensor inputs to directly drive the module's relay outputs,
 making bilge annunciation independent of Signal K.
 
 ```
