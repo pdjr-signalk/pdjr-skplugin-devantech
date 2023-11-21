@@ -321,33 +321,24 @@ Each *channel* object has the following properties.
 | address       | Number     | *index*       | Address of the physical channel on the remote device with which this channel is associated. |
 | description   | String     | ''            | Text for the meta data 'description' property that will be associated with this channel in Signal K. |
 
-My test configuration for a DS2824 looks like this:
-```
-{
-  "enabled": true,
-  "enableDebug": true,
-  "configuration": {
-    "modules": [
-      {
-        "id": "DS2824",
-        "description": "DS2824 Test Module",
-        "deviceid": "DS",
-        "cstring": "192.168.1.145:17123",
-        "channels": [
-          { "index": 1, "description": "Relay 1" },
-          { "index": 2, "description": "Relay 2" },
-          { "index": 3, "description": "Relay 3" },
-          { "index": 4, "description": "Relay 4" },
-          { "index": 5, "description": "Relay 5" },
-          { "index": 6, "description": "Relay 6" },
-          { "index": 7, "description": "Relay 7" },
-          { "index": 8, "description": "Relay 8" }
-        ]
-      }
-    ]
-  }
-}
-```
+
+### Example configuration
+
+I use a
+[DS2242](https://www.robot-electronics.co.uk/ds2242.html)
+(four digital inputs, two relay outputs) as an alarm annunciator at my
+ship's helm.
+
+The module's relay outputs operate an LED beacon and a piezo-electric
+sounder and are remotely operated by an alarm manager plugin in Signal
+K.
+Signals from my two bilge installations (float switch and level sensor)
+are connected to the DS2242 inputs making their state available in
+Signal K.
+
+With some tweaking of the DS2242's 'Pulse/Follow' I also make the bilge
+sensor inputs directly drive the module's relay outputs, making bilge
+annunciation independent of Signal K.
 
 ```
 {
@@ -368,10 +359,10 @@ My test configuration for a DS2824 looks like this:
         "channels": [
           { "index": "r-beacon", "address": 1 },
           { "index": "r-sounder", "address": 2 },
-          { "index": "s_MAIN_BILGE_LEVEL_SENSOR", "address": 1 },
-          { "index": "s_MAIN_BILGE_FLOAT_SWITCH", "address": 2 },
-          { "index": "s_ER_BILGE_LEVEL_SENSOR", "address": 3 },
-          { "index": "s_ER_BILGE_FLOAT_SWITCH", "address": 4 }
+          { "index": "s-mc-bilge-float-switch", "address": 1 },
+          { "index": "s-mc-bilge-level-sensor", "address": 2 },
+          { "index": "s-er-bilge-float-switch", "address": 3 },
+          { "index": "s-er-bilge-level-sensor", "address": 4 }
         ]
       }
     ]
