@@ -329,16 +329,15 @@ I use a
 (four digital inputs, two relay outputs) as an alarm annunciator at my
 ship's helm.
 
-The module's relay outputs operate an LED beacon and a piezo-electric
-sounder and are remotely operated by an alarm manager plugin in Signal
-K.
-Signals from my two bilge installations (float switch and level sensor)
-are connected to the DS2242 inputs making their state available in
+The module's relays operate an LED beacon and a piezo-electric sounder
+and are used by an alarm manager plugin in Signal K.
+Float switch and level sensor signals from my two bilge installations
+are connected to the DS2242 inputs making their states available in
 Signal K.
 
-With some tweaking of the DS2242's 'Pulse/Follow' I also make the bilge
-sensor inputs directly drive the module's relay outputs, making bilge
-annunciation independent of Signal K.
+With some tweaking of the DS2242's 'Pulse/Follow' configuration I allow
+the bilge sensor inputs directly drive the module's relay outputs,
+making bilge annunciation independent of Signal K.
 
 ```
 {
