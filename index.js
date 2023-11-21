@@ -107,7 +107,6 @@ const PLUGIN_SCHEMA = {
           }
         },
         "default": {
-          "commandPort": 17123,
           "deviceId": "DS",
           "channels": []
         }
@@ -466,34 +465,37 @@ module.exports = function(app) {
   function openCommandConnection(module) {
     app.debug(`openCommandConnection(${module})...`);
 
-    module.commandConnection = net.createConnection(module.commandPort, module.ipAddress);
+    if ((module.ipAddress) && (module.commandPort)) {
+      module.commandConnection = net.createConnection(module.commandPort, module.ipAddress);
     
-    module.commandConnection.on('open', (socket) => {
-      app.debug(`command connection to ${module.ipAddress}:${module.commandPort} is open`);
-      module.commandConnection = socket;
-      module.commandQueue = [];
-      module.currentCommand = null;
-    });
+      module.commandConnection.on('open', (socket) => {
+        app.debug(`command connection to ${module.ipAddress}:${module.commandPort} is open`);
+        module.commandConnection = socket;
+        module.commandQueue = [];
+        module.currentCommand = null;
+      });
 
-    module.commandConnection.on('close', () => {
-      app.debug(`command connection to ${module.ipAddress}:${module.commandPort} has closed`);
-      module.commandConnection.destroy();
-      module.commandConnection = null;
-      module.commandQueue = [];
-      module.currentCommand = null;
-    });
+      module.commandConnection.on('close', () => {
+        app.debug(`command connection to ${module.ipAddress}:${module.commandPort} has closed`);
+        module.commandConnection.destroy();
+        module.commandConnection = null;
+        module.commandQueue = [];
+        module.currentCommand = null;
+      });
 
-    module.commandConnection.on('data', (data) => {
-      if (data.toString().trim() == 'Ok') {
-        if (module.currentCommand) {
-          module.currentCommand.callback({ state: 'COMPLETED', statusCode: 200 });
-          module.currentCommand = null;
-        } else {
-          app.debug(`orphan command response received from module ${module.ipAddress}`);
+      module.commandConnection.on('data', (data) => {
+        if (data.toString().trim() == 'Ok') {
+          if (module.currentCommand) {
+            module.currentCommand.callback({ state: 'COMPLETED', statusCode: 200 });
+            module.currentCommand = null;
+          } else {
+            app.debug(`orphan command response received from module ${module.ipAddress}`);
+          }
         }
-      }
-    });
-
+      });
+    } else {
+      throw new Error("openCommandConnection error: missing module 'ipAddress' and/or 'commandPort'");
+    }
   }
 
   /********************************************************************
@@ -572,7 +574,7 @@ module.exports = function(app) {
         if (module.listenerConnection) module.listenerConnection.destroy();
         module.listenerConnection = client;
 
-        if (!module.commandConnection) {
+        if ((module.commandPort) && (!module.commandConnection)) {
           app.debug(`status listener: opening command connection '${clientIP}'`);
           openCommandConnection(module);
         }
