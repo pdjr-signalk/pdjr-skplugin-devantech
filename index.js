@@ -29,30 +29,36 @@ const PLUGIN_SCHEMA = {
   "type": "object",
   "properties": {
     "metadataPublisher": {
-      "title": "Metadata publication service configuration",
+      "title": "Metadata publisher",
+      "description": "Metadata publication service connection properties.",
       "type": "object",
       "properties": {
         "endpoint": {
           "title": "Metadata publication endpoint",
+          "description": "URL of the publication service's 'publish' function.",
           "type": "string"
         },
         "method": {
-          "title": "Metadata publication method",
+          "title": "Method",
+          "description": "HTTP method that should be used to pass data to 'endpoint'.",
           "type": "string",
           "enum": [ "PATCH", "POST", "PUT" ]
         },
         "credentials": {
-          "title": "Metadata publisher credentials",
+          "title": "Credentials",
+          "description": "Credentials required to authenticate a 'method' request on 'endpoint'.",
           "type": "string"
         }
       }
     },
     "statusListenerPort": {
-      "title": "Port on which to listen for module status reports",
+      "title": "Status listener port",
+      "description": "TCP port on which the plugin will listen for device status updates.",
       "type": "number"
     },
     "transmitQueueHeartbeat": {
-      "title": "Process the transmit queue every this many miliseconds",
+      "title": "Transmit queue heartbeat",
+      "description": "Interval in milliseconds between consecutive transmit queue processing tasks.",
       "type": "number"
     },
     "modules" : {
@@ -225,6 +231,7 @@ module.exports = function(app) {
       log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
       startStatusListener(plugin.options.statusListenerPort);
       transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat);
+      
     } else {
       log.E('there are no usable module definitions.');
     }
@@ -465,37 +472,36 @@ module.exports = function(app) {
   function openCommandConnection(module) {
     app.debug(`openCommandConnection(${module})...`);
 
-    if ((module.ipAddress) && (module.commandPort)) {
-      module.commandConnection = net.createConnection(module.commandPort, module.ipAddress);
+    if (!module.ipAddress) throw new Error("cannot open command connection (missing 'ipAddress')");
+    if (!module.commandPort) throw new Error("cannot open command connectione (missing 'commandPort')");
+
+    module.commandConnection = net.createConnection(module.commandPort, module.ipAddress);
     
-      module.commandConnection.on('open', (socket) => {
-        app.debug(`command connection to ${module.ipAddress}:${module.commandPort} is open`);
-        module.commandConnection = socket;
-        module.commandQueue = [];
-        module.currentCommand = null;
-      });
+    module.commandConnection.on('open', (socket) => {
+      app.debug(`command connection to ${module.ipAddress}:${module.commandPort} is open`);
+      module.commandConnection = socket;
+      module.commandQueue = [];
+      module.currentCommand = null;
+    });
 
-      module.commandConnection.on('close', () => {
-        app.debug(`command connection to ${module.ipAddress}:${module.commandPort} has closed`);
-        module.commandConnection.destroy();
-        module.commandConnection = null;
-        module.commandQueue = [];
-        module.currentCommand = null;
-      });
+    module.commandConnection.on('close', () => {
+      app.debug(`command connection to ${module.ipAddress}:${module.commandPort} has closed`);
+      module.commandConnection.destroy();
+      module.commandConnection = null;
+      module.commandQueue = [];
+      module.currentCommand = null;
+    });
 
-      module.commandConnection.on('data', (data) => {
-        if (data.toString().trim() == 'Ok') {
-          if (module.currentCommand) {
-            module.currentCommand.callback({ state: 'COMPLETED', statusCode: 200 });
-            module.currentCommand = null;
-          } else {
-            app.debug(`orphan command response received from module ${module.ipAddress}`);
-          }
+    module.commandConnection.on('data', (data) => {
+      if (data.toString().trim() == 'Ok') {
+        if (module.currentCommand) {
+          module.currentCommand.callback({ state: 'COMPLETED', statusCode: 200 });
+          module.currentCommand = null;
+        } else {
+          app.debug(`orphan command response received from module ${module.ipAddress}`);
         }
-      });
-    } else {
-      throw new Error("openCommandConnection error: missing module 'ipAddress' and/or 'commandPort'");
-    }
+      }
+    });
   }
 
   /********************************************************************
@@ -592,7 +598,9 @@ module.exports = function(app) {
    * module's commandQueue.
    */
   function processCommandQueues() {
-    plugin.options.modules.forEach(module => {
+    plugin.options.modules.forEach(module => processCommandQueue(module));
+
+    function processCommandQueue(module) {
       if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
         module.currentCommand = module.commandQueue.shift();
         if (module.commandConnection) {
@@ -602,7 +610,8 @@ module.exports = function(app) {
           log.E(`cannot send command to module '${module.ipAddress}' (no connection)`);
         }
       }
-    });
+    }
+
   }
 
   /********************************************************************

@@ -28,14 +28,14 @@ input channel) with *nn* specifying the associated DS module channel
 address.
 
 The plugin installs DS switchbanks in the usual Signal K location and,
-relying on default naming conventions, a relay channel will have a key
-like
+relying on default naming conventions, a relay channel key will look
+like this:
 ```
 electrical.switches.bank.192168001006.r3.state
 ```
 Overriding defaults allows any naming strategy consistent with Signal
 K's specification, so, with a little more configuration gloss, the same
-DS relay could present as
+DS relay could present as:
 ```
 electrical.switches.bank.forelocker.gas-valve.state
 ```

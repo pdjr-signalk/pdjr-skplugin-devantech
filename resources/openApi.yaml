@@ -32,6 +32,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: object
+                  description: Property name is the identifier of a configured module.
                   properties:
                     address:
                       type: string
