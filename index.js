@@ -259,22 +259,7 @@ module.exports = function(app) {
 
   /********************************************************************
    * Takes a perhaps partial module definition and does what it can to
-   * parse encoded bits and add important defaults. The retuened object
-   * has the structure:
-   * {
-   *  id
-   *  description
-   *  switchbankPath
-   *  ipAddress
-   *  commandPort
-   *  password
-   *  commandConnection
-   *  commandQueue
-   *  currentCommand
-   *  channels: [
-   *    
-   *  ]
-   * }
+   * parse encoded bits and add important defaults.
    * 
    * @param {*} module - the module object to be processed. 
    * @param {*} devices - array of available device definitions.
@@ -341,9 +326,9 @@ module.exports = function(app) {
     return(validModule);
   }
   
-  /**
+  /********************************************************************
    * Generate an object containing path => { metadata } mappings for
-   * switchbanks and relay/switch channels.
+   * each module/switchbank and each relay/switch channel.
    * 
    * @returns metadata for every path maintained by the plugin
    */
@@ -367,15 +352,23 @@ module.exports = function(app) {
           longName: `[${module.id},${channel.index}]`,
           displayName: channel.description || `[${module.id},${channel.index}]`,
           unit: 'Binary switch state (0/1)',
-          type: channel.type
+          type: channel.type,
+          $source: `plugin:${plugin.id}`
         };
       });
       return(a);
     },{}));
   }
 
-  // Publish metadata object to publisher. If all goes awry, then
-  // call callback with an error.
+  /**
+   * Send metadata to a publication service API. If all goes awry,
+   * then call callback with an error.
+   * 
+   * @param {*} metadata 
+   * @param {*} publisher 
+   * @param {*} callback 
+   * @param {*} options 
+   */
   function publishMetadata(metadata, publisher, callback, options={ retries: 3, interval: 10000 }) {
     if ((publisher) && (publisher.endpoint) && (publisher.method) && (publisher.credentials)) {
       const httpInterface = new HttpInterface(app.getSelfPath('uuid'));
