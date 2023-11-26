@@ -211,7 +211,7 @@ module.exports = function(app) {
       // Create and asynchronously install metadata.
       publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
         if (e) {
-          log.W(`publish failed (${e.message})`, false);
+          log.W(`publish failed ... performing delta update (${e.message})`, false);
           (new Delta(app, plugin.id)).addMetas(createMetadata()).commit().clear();  
         } else {
           app.debug('metadata published');
