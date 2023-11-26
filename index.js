@@ -208,7 +208,7 @@ module.exports = function(app) {
   
     if (plugin.options.modules.length > 0) {
 
-      // Create and install metadata
+      // Create and asynchronously install metadata.
       publishMetadata(createMetadata(), plugin.options.metadataPublisher, (e) => {
         if (e) {
           log.W(`publish failed (${e.message})`, false);
