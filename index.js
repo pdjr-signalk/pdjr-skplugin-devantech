@@ -91,6 +91,11 @@ const PLUGIN_SCHEMA = {
             "title": "Module description",
             "type": "string"
           },
+          "defaultType": {
+            "title": "Default I/O type",
+            "type": "string",
+            "enum": [ "relay", "switch", "sensor" ]
+          },
           "channels": {
             "type": "array",
             "items": {
@@ -104,6 +109,11 @@ const PLUGIN_SCHEMA = {
                   "title": "Address of associated relay channel on physical device",
                   "type": "number"
                 },
+                "type": {
+                  "title": "Channel I/O type",
+                  "type": "string",
+                  "enum": [ "relay", "switch", "sensor" ]
+                },
                 "description": {
                   "title": "Channel description",
                   "type": "string"
@@ -114,6 +124,7 @@ const PLUGIN_SCHEMA = {
         },
         "default": {
           "deviceId": "DS",
+          "defaultType": "relay",
           "channels": []
         }
       }
@@ -291,6 +302,10 @@ module.exports = function(app) {
     validModule.channels = module.channels.reduce((a,channel) => {
       var validChannel = {};
       if (!channel.index) throw new Error("missing channel index");
+      
+      channel.type = (channel.type)?channel.type:validModule.defaultType;
+      if (!channel.type) throw new Error("missing channel type");
+
       if (!['R','r','S','s'].includes(channel.index.charAt(0))) throw new Error("channel index must begin with 'R' or 'S'")
       validChannel.index = channel.index;
       validChannel.address = channel.address || channel.index.slice(1);
