@@ -303,38 +303,29 @@ module.exports = function(app) {
       var validChannel = {};
       if (!channel.index) throw new Error("missing channel index");
       
-      channel.type = (channel.type)?channel.type:validModule.defaultType;
-      if (!channel.type) throw new Error("missing channel type");
+      validChannel.type = (channel.type)?channel.type:validModule.defaultType;
+      if (!validChannel.type) throw new Error("missing channel type");
 
-      if (!['R','r','S','s'].includes(channel.index.charAt(0))) throw new Error("channel index must begin with 'R' or 'S'")
       validChannel.index = channel.index;
       validChannel.address = channel.address || channel.index.slice(1);
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
-      switch (validChannel.index.charAt(0)) {
-        case 'R': case 'r':
-          if (!module.commandPort) throw new Error("relay channels require module 'commandPort'");
-          validChannel.type = 'relay';
-          validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
-          if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
-            validChannel.oncommand = device.channels[0].oncommand;
-            validChannel.offcommand = device.channels[0].offcommand;
-          } else {
-            validChannel.oncommand = device.channels.reduce((a,c) => ((c.address == validChannel.address)?c.oncommand:a), null);
-            validChannel.offcommand = device.channels.reduce((a,c) => ((c.address == validChannel.address)?c.offcommand:a), null);
-          }
-          if ((validChannel.oncommand === null) || (validChannel.offcommand === null)) throw new Error(`missing operating command for channel ${validChannel.index}`);
-          validChannel.oncommand = validChannel.oncommand.replace('{c}', validChannel.address);
-          validChannel.offcommand = validChannel.offcommand.replace('{c}', validChannel.address);
-          a.push(validChannel);
-          break;
-        case 'S': case 's':
-          validChannel.type = 'switch';
-          validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
-          a.push(validChannel);
-          break;
-        default:
-          break;
+      validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
+
+      if (validChannel.type == "relay") {
+        if (!module.commandPort) throw new Error("relay channels require module 'commandPort'");
+        if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
+          validChannel.oncommand = device.channels[0].oncommand;
+          validChannel.offcommand = device.channels[0].offcommand;
+        } else {
+          validChannel.oncommand = device.channels.reduce((a,c) => ((c.address == validChannel.address)?c.oncommand:a), null);
+          validChannel.offcommand = device.channels.reduce((a,c) => ((c.address == validChannel.address)?c.offcommand:a), null);
+        }
+        if ((validChannel.oncommand === null) || (validChannel.offcommand === null)) throw new Error(`missing operating command for channel ${validChannel.index}`);
+        validChannel.oncommand = validChannel.oncommand.replace('{c}', validChannel.address);
+        validChannel.offcommand = validChannel.offcommand.replace('{c}', validChannel.address);
       }
+      
+      a.push(validChannel);
       return(a);
     }, []);
 
