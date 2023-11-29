@@ -287,10 +287,11 @@ module.exports = function(app) {
     validModule.id = module.id || `${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}`;
     validModule.description = module.description || `Devantech DS switchbank '${validModule.id}'`;
     validModule.switchbankPath = `electrical.switches.bank.${validModule.id}`;
-  
+      
     validModule.ipAddress = module.ipAddress;
     validModule.commandPort = module.commandPort || undefined;
     validModule.password = module.password || undefined;
+    validModule.defaultType = module.defaultType;
     validModule.commandConnection = null;
     validModule.commandQueue = [];
     validModule.currentCommand = null;
