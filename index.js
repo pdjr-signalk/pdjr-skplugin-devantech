@@ -92,7 +92,7 @@ const PLUGIN_SCHEMA = {
             "type": "string"
           },
           "defaultType": {
-            "title": "Default I/O type",
+            "title": "Default channel I/O type",
             "type": "string",
             "enum": [ "relay", "switch", "sensor" ]
           },

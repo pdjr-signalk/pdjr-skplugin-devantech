@@ -210,19 +210,25 @@ transmitted appropriately.
     Each entry has the following configuration properties.
     </p>
     <dl>
-      <dt>Module id <code>id</code></dt>
-      <dd>
-        <pp>
-        Optional string specifying an identifier for the module which
-        will be used in Signal K switch paths and messages.
-        Defaults to name derived from <em>ipAddress</em> (see below)
-        by transforming a dotted address of the form '<em>a.b.c.d</em>'
-        to an id of the form '<em>aaabbbcccddd</em>'.
       <dt>Module IP address <code>ipAddress</code></dt>
       <dd>
         <p>
         Required string specifying the IP address of the module being
         configured.
+        </p>
+      </dd>
+      <dt>Module id <code>id</code></dt>
+      <dd>
+        <p>
+        Optional string specifying an identifier for the module which
+        will be used in Signal K switch paths and messages.
+        The supplied value must be unique identifier under
+        'electrical.switches.bank'.
+        </p>
+        <p>
+        If omitted, then a value for <em>id</em> will be derived from
+        <em>ipAddress</em> by transforming a dotted address of the form
+        '<em>a.b.c.d</em>' to an id of the form '<em>aaabbbcccddd</em>'.
         </p>
       </dd>
       <dt>Relay operation command port <code>commandPort</code></dt>
@@ -232,13 +238,36 @@ transmitted appropriately.
         for relay operating commands.
         This value must match the 'Control port' number specified on the
         DS module's 'Network' configuration page.
+        </p>
+        <p>
         If omitted, the module will only support switch input channels.
         </p>
       </dd>
       <dt>Password for command port access <code>password</code></dt>
       <dd>
         <p>
-        Optional password securing the DS module's command interface.
+        If the DS module was configured with password security, then the
+        configured password must be supplied here.
+        </p>
+      </dd>
+      <dt>Device id <code>deviceId</code></dt>
+      <dd>
+        <p>
+        Optional identifier of a <em>device</em> configuration (see below)
+        which describes this module's operating protocol.
+        </p>
+        <p>
+        Defaults to 'DS'.
+        </p>
+      </dd>
+      <dt>Default type<code>defaultType</code></dt>
+      <dd>
+        <p>
+        Optional channel I/O type which should be used for channels which
+        do not include an explicit <em>type</em> configuration.
+        </p>
+        <p>
+        If supplied, must be one of 'relay', 'switch' or 'sensor'.
         </p>
       </dd>
       <dt>Channels <code>channels</code></dt>
@@ -277,6 +306,12 @@ transmitted appropriately.
             If the '<em>Tnn</em>' form is used for <em>index</em> (see
             above) then this value will be derived automatically; if
             not, then it must be specified.
+            </p>
+          </dd>
+          <dt>Channel I/O type <code>type</code></dt>
+          <dd>
+            <p>
+            Optional specifier of this channel's I/O type.
             </p>
           </dd>
           <dt>Description <code>description</code></dt>
