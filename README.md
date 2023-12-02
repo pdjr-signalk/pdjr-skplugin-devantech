@@ -311,7 +311,12 @@ transmitted appropriately.
           <dt>Channel I/O type <code>type</code></dt>
           <dd>
             <p>
-            Optional specifier of this channel's I/O type.
+            Specifier of channel I/O type.
+            Required if <em>defaultType</em> is not specified or if the
+            required channel type is not the configured default.
+            </p>
+            <p>
+            If supplied, must be one of 'relay', 'switch' or 'sensor'.
             </p>
           </dd>
           <dt>Description <code>description</code></dt>
