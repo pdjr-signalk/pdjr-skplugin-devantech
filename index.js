@@ -573,6 +573,7 @@ module.exports = function(app) {
       /**
        * Only allow connections from configured modules.
        */
+      app.debug(`status listener: client remote address '${client.remoteAddress}'`);
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
       var module = plugin.options.modules.reduce((a,m) => ((m.ipAddress == clientIP)?m:a), null);
       if (module) {
