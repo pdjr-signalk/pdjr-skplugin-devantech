@@ -573,21 +573,22 @@ module.exports = function(app) {
       /**
        * Only allow connections from configured modules.
        */
-      app.debug(`status listener: client remote address '${client.remoteAddress}'`);
-      var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-      var module = plugin.options.modules.reduce((a,m) => ((m.ipAddress == clientIP)?m:a), null);
-      if (module) {
-        app.debug(`status listener: opening connection for ${clientIP}`);
-        if (module.listenerConnection) module.listenerConnection.destroy();
-        module.listenerConnection = client;
+      if (client.remoteFamily == 'IPv4') {
+        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+        var module = plugin.options.modules.reduce((a,m) => ((m.ipAddress == clientIP)?m:a), null);
+        if (module) {
+          app.debug(`status listener: opening connection for ${clientIP}`);
+          if (module.listenerConnection) module.listenerConnection.destroy();
+          module.listenerConnection = client;
 
-        if ((module.commandPort) && (!module.commandConnection)) {
-          app.debug(`status listener: opening command connection '${clientIP}'`);
-          openCommandConnection(module);
+          if ((module.commandPort) && (!module.commandConnection)) {
+            app.debug(`status listener: opening command connection '${clientIP}'`);
+            openCommandConnection(module);
+          }
+        } else {
+          log.W(`status listener: ignoring connection attempt from unknown device ${clientIP}`, false);
+          client.destroy();
         }
-      } else {
-        log.W(`status listener: ignoring connection attempt from unknown device ${clientIP}`, false);
-        client.destroy();
       }
     });
     
