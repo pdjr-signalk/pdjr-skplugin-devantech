@@ -286,7 +286,7 @@ module.exports = function(app) {
    */
   function canonicaliseModule(module, devices) {  
     app.debug(`canonicaliseModule(${module}, ${devices})...`);
-    
+
     var srcModule = _.cloneDeep(plugin.schema.properties.modules.items.default);
     _.merge(srcModule, module);
     module = srcModule;
@@ -307,7 +307,7 @@ module.exports = function(app) {
 
     if (!module.deviceId) throw new Error("missing 'deviceId'");
     validModule.deviceId = module.deviceId;
-    validModule.device = devices.reduce((a,d) => (d.id == validModule.deviceId)?d:a), null);
+    validModule.device = devices.reduce((a,d) => { return((d.id == validModule.deviceId)?d:a); }, null);
     if (!validModule.device) throw new Error(`device '${validModule.deviceId}' is not configured`);
 
     validModule.channels = module.channels.reduce((a,channel) => {
