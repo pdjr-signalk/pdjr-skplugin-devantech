@@ -564,7 +564,7 @@ module.exports = function(app) {
               delta.addValue(`${module.switchbankPath}.${i+1}S.order`, (i+1));
               delta.addValue(`${module.switchbankPath}.${i+1}S.state`, ((switchStates.charAt(i) == '0')?0:1));
             }
-            delta.commit().dump().clear();
+            delta.commit().clear();
             delete delta;
           } else throw new Error(`status received from ${clientIP}`);
         } catch(e) {
