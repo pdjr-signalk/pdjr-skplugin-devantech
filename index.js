@@ -285,6 +285,8 @@ module.exports = function(app) {
    * @returns - the dressed-up module or exception on error.
    */
   function canonicaliseModule(module, devices) {  
+    app.debug(`canonicaliseModule(${module}, ${devices})...`);
+    
     var srcModule = _.cloneDeep(plugin.schema.properties.modules.items.default);
     _.merge(srcModule, module);
     module = srcModule;
