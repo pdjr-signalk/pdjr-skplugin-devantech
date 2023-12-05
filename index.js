@@ -556,15 +556,15 @@ module.exports = function(app) {
             const switchStates = messageLines[2].replaceAll(' ','').trim();
             app.debug(`status listener: received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
-            for (var i = 0; i < (module.device.relays)?module.device.relays:relayStates.length; i++) {
+            for (var i = 0; i < ((module.device.relays)?module.device.relays:relayStates.length); i++) {
               delta.addValue(`${module.switchbankPath}.${i+1}R.order`, (i+1));
-              delta.addValue(`${module.switchbankPath}.${i+1}R.state`, ((relayStates.charAt(parseInt(channel.index) - 1) == '0')?0:1));
+              delta.addValue(`${module.switchbankPath}.${i+1}R.state`, ((relayStates.charAt(i) == '0')?0:1));
             }
-            for (var i = 0; i < (module.device.switches)?module.device.switches:switchStates.length; i++) {
+            for (var i = 0; i < ((module.device.switches)?module.device.switches:switchStates.length); i++) {
               delta.addValue(`${module.switchbankPath}.${i+1}S.order`, (i+1));
-              delta.addValue(`${module.switchbankPath}.${i+1}S.state`, ((relayStates.charAt(parseInt(channel.index) - 1) == '0')?0:1));
+              delta.addValue(`${module.switchbankPath}.${i+1}S.state`, ((switchStates.charAt(i) == '0')?0:1));
             }
-            delta.commit().clear();
+            delta.commit().dump().clear();
             delete delta;
           } else throw new Error(`status received from ${clientIP}`);
         } catch(e) {
