@@ -303,9 +303,10 @@ module.exports = function(app) {
     validModule.commandQueue = [];
     validModule.currentCommand = null;
 
+    if (!module.deviceId) throw new Error("missing 'deviceId'");
     validModule.deviceId = module.deviceId;
-    const device = devices.reduce((a,d) => ((d.id.split(' ').includes(validModule.deviceId))?d:a), null);
-    if (!device) throw new Error(`device '${validModule.deviceId}' is not configured`);
+    validModule.device = devices.reduce((a,d) => ((d.id.split(' ').includes(validModule.deviceId))?d:a), null);
+    if (!validModule.device) throw new Error(`device '${validModule.deviceId}' is not configured`);
 
     validModule.channels = module.channels.reduce((a,channel) => {
       var validChannel = {};
