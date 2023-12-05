@@ -536,7 +536,7 @@ module.exports = function(app) {
             const messageLines = data.toString().split('\n');
             const relayStates = messageLines[1].trim();
             const switchStates = messageLines[2].replaceAll(' ','').trim();
-            app.debug(`received status: ${relayStates} ${switchStates}`);
+            app.debug(`status listener: received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
             module.channels.filter(channel => (channel.type == 'relay')).forEach(channel => {
               if (channel.address <= relayStates.length) {
