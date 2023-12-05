@@ -91,24 +91,14 @@ const PLUGIN_SCHEMA = {
             "title": "Module description",
             "type": "string"
           },
-          "defaultType": {
-            "title": "Default channel I/O type",
-            "type": "string",
-            "enum": [ "relay", "switch", "sensor" ]
-          },
           "channels": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "type": {
-                  "title": "Channel I/O type",
-                  "type": "string",
-                  "enum": [ "relay", "switch", "sensor" ]
-                },
                 "index": {
                   "title": "Signal K channel index",
-                  "type": "number"
+                  "type": "string"
                 },
                 "description": {
                   "title": "Channel description",
@@ -287,7 +277,6 @@ module.exports = function(app) {
     validModule.ipAddress = module.ipAddress;
     validModule.commandPort = module.commandPort || undefined;
     validModule.password = module.password || undefined;
-    validModule.defaultType = module.defaultType;
     validModule.commandConnection = null;
     validModule.commandQueue = [];
     validModule.currentCommand = null;
@@ -296,15 +285,14 @@ module.exports = function(app) {
     const device = devices.reduce((a,d) => ((d.id.split(' ').includes(validModule.deviceId))?d:a), null);
     if (!device) throw new Error(`device '${validModule.deviceId}' is not configured`);
 
-    var defaultAddress = { relay: 1, sensor: 1, switch: 1 }
     validModule.channels = module.channels.reduce((a,channel) => {
       var validChannel = {};
 
-      validChannel.type = (channel.type)?channel.type:validModule.defaultType;
-      if (!validChannel.type) throw new Error("missing channel type");
+      if (!channel.index) throw new Error("missing channel index");
+      if (!(/^(\d+)(S|s|R|r)$/.test(channel.index))) throw new Error("invalid channel index");    
+      validChannel.index = `${channel.index.toUpperCase()}`;
 
-      if (!channel.index) throw new Error("missing channel index");      
-      validChannel.index = `${channel.index}${validChanne.type.charAt(0).toUpperCase()}`;
+      validChannel.type = (channel.index.slice(-1) == 'R')?'relay':'switch';
 
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
       validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
