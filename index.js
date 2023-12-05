@@ -304,7 +304,7 @@ module.exports = function(app) {
     validModule.currentCommand = null;
 
     module.deviceId = (module.deviceId)?module.deviceId:'DS';
-    validModule.device = devices.reduce((a,d) => { return((d.id == validModule.deviceId)?d:a); }, undefined);
+    validModule.device = devices.reduce((a,d) => { return((d.id == module.deviceId)?d:a); }, undefined);
     if (!validModule.device) throw new Error(`device '${module.deviceId}' is not configured`);
 
     validModule.channels = module.channels.reduce((a,channel) => {
