@@ -315,21 +315,18 @@ module.exports = function(app) {
 
       if (!channel.index) throw new Error("missing channel index");
       //if (!(/^(\d+)(S|s|R|r)$/.test(channel.index))) throw new Error("invalid channel index");    
-      validChannel.index = `${channel.index.toUpperCase()}`;
-
+      validChannel.index = channel.index.toUpperCase();
       validChannel.type = (channel.index.slice(-1) == 'R')?'relay':'switch';
-
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
-      validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
 
       if (validChannel.type == "relay") {
         if (!module.commandPort) throw new Error("relay channels require module 'commandPort'");
-        if ((device.channels[0].address == 0) && (device.channels.length == 1)) {
-          validChannel.oncommand = device.channels[0].oncommand;
-          validChannel.offcommand = device.channels[0].offcommand;
+        if ((validModule.device.channels[0].address == 0) && (validModule.device.channels.length == 1)) {
+          validChannel.oncommand = validModule.device.channels[0].oncommand;
+          validChannel.offcommand = validModule.device.channels[0].offcommand;
         } else {
-          validChannel.oncommand = device.channels.reduce((a,c) => ((c.address == parseInt(validChannel.index))?c.oncommand:a), null);
-          validChannel.offcommand = device.channels.reduce((a,c) => ((c.address == parseInt(validChannel.index))?c.offcommand:a), null);
+          validChannel.oncommand = validModule.device.channels.reduce((a,c) => ((c.address == parseInt(validChannel.index))?c.oncommand:a), null);
+          validChannel.offcommand = validModule.device.channels.reduce((a,c) => ((c.address == parseInt(validChannel.index))?c.offcommand:a), null);
         }
         if ((validChannel.oncommand === null) || (validChannel.offcommand === null)) throw new Error(`missing operating command for channel ${validChannel.index}`);
         validChannel.oncommand = validChannel.oncommand.replace('{c}', parseInt(validChannel.index));
