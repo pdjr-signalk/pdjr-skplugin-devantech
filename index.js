@@ -126,6 +126,14 @@ const PLUGIN_SCHEMA = {
             "title": "Device identifier",
             "type": "string"
           },
+          "relays": {
+            "title": "Number of supported relay channels",
+            "type": "number"
+          },
+          "switches": {
+            "title": "Number of supported switch channels",
+            "type": "number"
+          },
           "channels" : {
             "type": "array",
               "items": {
@@ -158,6 +166,20 @@ const PLUGIN_SCHEMA = {
     "devices": [
       {
         "id": "DS",
+        "relays": 32,
+        "switches": 8,
+        "channels": [
+          {
+            "address": 0,
+            "oncommand": "SR {c} ON",
+            "offcommand": "SR {c} OFF"
+          }
+        ]
+      },
+      {
+        "id": "DS2824",
+        "relays": 24,
+        "switches": 8,
         "channels": [
           {
             "address": 0,
@@ -329,24 +351,38 @@ module.exports = function(app) {
       a[`${module.switchbankPath}`] = {
         description: `${module.description}`,
         instance: `${module.id}`,
-        channelCount: module.channels.length,
+        device: `${module.device.id}`,
         shortName: `${module.id}`,
         longName: `Module ${module.id}`,
         displayName: `Module ${module.id}`,
         $source: `plugin:${plugin.id}`
       };
-      module.channels.forEach(channel => {
-        a[`${channel.path}`] = {
-          description: channel.description,
-          index: channel.index,
-          shortName: `[${module.id},${channel.index}]`,
-          longName: `[${module.id},${channel.index}]`,
-          displayName: channel.description || `[${module.id},${channel.index}]`,
+      for (var i = 0; i < module.device.relays; i++) {
+        var channel = module.channels.reduce((a,c) => { return((parseInt(c.index) == (i+1))?c:a) }, undefined);
+        a[`${module.switchbankPath}.${i+1}R.state`] = {
+          description: (channel)?channel.description:`Channel ${i+1}R`,
+          index: (channel)?channel.index:`${i+1}R`,
+          shortName: `[${module.id},${i+1}R]`,
+          longName: `[${module.id},${i+1}R]`,
+          displayName: (channel)?channel.description:`[${module.id},${i+1}R]`,
           unit: 'Binary switch state (0/1)',
-          type: channel.type,
+          type: 'relay',
           $source: `plugin:${plugin.id}`
         };
-      });
+      };
+      for (var i = 0; i < module.device.switches; i++) {
+        var channel = module.channels.reduce((a,c) => { return((parseInt(c.index) == (i+1))?c:a) }, undefined);
+        a[`${module.switchbankPath}.${i+1}S.state`] = {
+          description: (channel)?channel.description:`Channel ${i+1}S`,
+          index: (channel)?channel.index:`${i+1}S`,
+          shortName: `[${module.id},${i+1}S]`,
+          longName: `[${module.id},${i+1}S]`,
+          displayName: (channel)?channel.description:`[${module.id},${i+1}S]`,
+          unit: 'Binary switch state (0/1)',
+          type: 'switch',
+          $source: `plugin:${plugin.id}`
+        };
+      };
       return(a);
     },{}));
   }
@@ -522,27 +558,13 @@ module.exports = function(app) {
             const switchStates = messageLines[2].replaceAll(' ','').trim();
             app.debug(`status listener: received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
-            for (var i = 0; i < relayStates.length; i++) {
-              var channel = module.channels.reduce((a,c) => { return((parseInt(c.index) == (i + 1))?c:a) }, undefined);
-              if ((channel) && (channel.type == 'relay')) {
-                if (!channel.isOrdered) {
-                  channel.isOrdered = true;
-                  delta.addValue(channel.path.replace('state', 'order'), parseInt(channel.index));
-                }
-                var value = (relayStates.charAt(parseInt(channel.index) - 1) == '0')?0:1;
-                delta.addValue(channel.path, value);
-              }
+            for (var i = 0; i < (module.device.relays)?module.device.relays:relayStates.length; i++) {
+              delta.addValue(`${module.switchbankPath}.${i+1}R.order`, (i+1));
+              delta.addValue(`${module.switchbankPath}.${i+1}R.state`, ((relayStates.charAt(parseInt(channel.index) - 1) == '0')?0:1));
             }
-            for (var i = 0; i < switchStates.length; i++) {
-              var channel = module.channels.reduce((a,c) => { return((parseInt(c.index) == (i + 1))?c:a) }, undefined);
-              if ((channel) && (channel.type == 'switch')) {
-                if (!channel.isOrdered) {
-                  channel.isOrdered = true;
-                  delta.addValue(channel.path.replace('state', 'order'), parseInt(channel.index));
-                }
-                var value = (relayStates.charAt(parseInt(channel.index) - 1) == '0')?0:1;
-                delta.addValue(channel.path, value);
-              }
+            for (var i = 0; i < (module.device.switches)?module.device.switches:switchStates.length; i++) {
+              delta.addValue(`${module.switchbankPath}.${i+1}S.order`, (i+1));
+              delta.addValue(`${module.switchbankPath}.${i+1}S.state`, ((relayStates.charAt(parseInt(channel.index) - 1) == '0')?0:1));
             }
             delta.commit().clear();
             delete delta;
