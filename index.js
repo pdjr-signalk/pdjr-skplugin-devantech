@@ -285,14 +285,13 @@ module.exports = function(app) {
    * @returns - the dressed-up module or exception on error.
    */
   function canonicaliseModule(module, devices) {  
-    app.debug(`canonicaliseModule(${JSON.stringify(module)}, ${JSON.stringify(devices)})...`);
-
     var srcModule = _.cloneDeep(plugin.schema.properties.modules.items.default);
     _.merge(srcModule, module);
     module = srcModule;
     var validModule = {};
 
     if (!module.ipAddress) throw new Error("missing 'ipAddress'");
+    if (!module.deviceId) throw new Error("missing 'deviceId'");
 
     validModule.id = module.id || `${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}`;
     validModule.description = module.description || `Devantech DS switchbank '${validModule.id}'`;
@@ -305,10 +304,11 @@ module.exports = function(app) {
     validModule.commandQueue = [];
     validModule.currentCommand = null;
 
-    if (!module.deviceId) throw new Error("missing 'deviceId'");
     validModule.deviceId = module.deviceId;
-    validModule.device = devices.reduce((a,d) => { return((d.id == validModule.deviceId)?d:a); }, null);
+    validModule.device = devices.reduce((a,d) => { return((d.id == validModule.deviceId)?d:a); }, undefined);
     if (!validModule.device) throw new Error(`device '${validModule.deviceId}' is not configured`);
+
+    app.debug(validModule);
 
     validModule.channels = module.channels.reduce((a,channel) => {
       var validChannel = {};
