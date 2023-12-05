@@ -307,8 +307,8 @@ module.exports = function(app) {
           validChannel.offcommand = device.channels.reduce((a,c) => ((c.address == parseInt(validChannel.index))?c.offcommand:a), null);
         }
         if ((validChannel.oncommand === null) || (validChannel.offcommand === null)) throw new Error(`missing operating command for channel ${validChannel.index}`);
-        validChannel.oncommand = validChannel.oncommand.replace('{c}', validChannel.address);
-        validChannel.offcommand = validChannel.offcommand.replace('{c}', validChannel.address);
+        validChannel.oncommand = validChannel.oncommand.replace('{c}', parseInt(validChannel.index));
+        validChannel.offcommand = validChannel.offcommand.replace('{c}', parseInt(validChannel.index));
       }
       
       a.push(validChannel);
