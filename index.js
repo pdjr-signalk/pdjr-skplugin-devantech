@@ -522,26 +522,28 @@ module.exports = function(app) {
             const switchStates = messageLines[2].replaceAll(' ','').trim();
             app.debug(`status listener: received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
-            module.channels.filter(channel => (channel.type == 'relay')).forEach(channel => {
-              if (parseInt(channel.index) <= relayStates.length) {
+            for (var i = 0; i < relayStates.length; i++) {
+              var channel = module.channels.reduce((a,c) => { return((parseInt(c.index) == (i + 1))?c:a) }, undefined);
+              if ((channel) && (channel.type == 'relay')) {
                 if (!channel.isOrdered) {
                   channel.isOrdered = true;
-                  delta.addValue(channel.path.replace('state','order'), parseInt(channel.index));
+                  delta.addValue(channel.path.replace('state', 'order'), parseInt(channel.index));
                 }
                 var value = (relayStates.charAt(parseInt(channel.index) - 1) == '0')?0:1;
                 delta.addValue(channel.path, value);
               }
-            });
-            module.channels.filter(channel => (channel.type == 'switch')).forEach(channel => {
-              if (parseInt(channel.index) <= switchStates.length) {
+            }
+            for (var i = 0; i < switchStates.length; i++) {
+              var channel = module.channels.reduce((a,c) => { return((parseInt(c.index) == (i + 1))?c:a) }, undefined);
+              if ((channel) && (channel.type == 'switch')) {
                 if (!channel.isOrdered) {
                   channel.isOrdered = true;
-                  delta.addValue(channel.path.replace('state','order'), parseInt(channel.index));
+                  delta.addValue(channel.path.replace('state', 'order'), parseInt(channel.index));
                 }
-                var value = (switchStates.charAt(parseInt(channel.index) - 1) == '0')?0:1;
+                var value = (relayStates.charAt(parseInt(channel.index) - 1) == '0')?0:1;
                 delta.addValue(channel.path, value);
               }
-            });
+            }
             delta.commit().clear();
             delete delta;
           } else throw new Error(`status received from ${clientIP}`);
