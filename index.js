@@ -101,18 +101,14 @@ const PLUGIN_SCHEMA = {
             "items": {
               "type": "object",
               "properties": {
-                "index": {
-                  "title": "Signal K channel index",
-                  "type": "string"
-                },
-                "address": {
-                  "title": "Address of associated relay channel on physical device",
-                  "type": "number"
-                },
                 "type": {
                   "title": "Channel I/O type",
                   "type": "string",
                   "enum": [ "relay", "switch", "sensor" ]
+                },
+                "index": {
+                  "title": "Signal K channel index",
+                  "type": "number"
                 },
                 "description": {
                   "title": "Channel description",
@@ -300,15 +296,16 @@ module.exports = function(app) {
     const device = devices.reduce((a,d) => ((d.id.split(' ').includes(validModule.deviceId))?d:a), null);
     if (!device) throw new Error(`device '${validModule.deviceId}' is not configured`);
 
+    var defaultAddress = { relay: 1, sensor: 1, switch: 1 }
     validModule.channels = module.channels.reduce((a,channel) => {
       var validChannel = {};
-      if (!channel.index) throw new Error("missing channel index");
-      
+
       validChannel.type = (channel.type)?channel.type:validModule.defaultType;
       if (!validChannel.type) throw new Error("missing channel type");
 
-      validChannel.index = channel.index;
-      validChannel.address = channel.address || channel.index.slice(1);
+      if (!channel.index) throw new Error("missing channel index");      
+      validChannel.index = `${channel.index}${validChanne.type.charAt(0).toUpperCase()}`;
+
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
       validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
 
@@ -318,8 +315,8 @@ module.exports = function(app) {
           validChannel.oncommand = device.channels[0].oncommand;
           validChannel.offcommand = device.channels[0].offcommand;
         } else {
-          validChannel.oncommand = device.channels.reduce((a,c) => ((c.address == validChannel.address)?c.oncommand:a), null);
-          validChannel.offcommand = device.channels.reduce((a,c) => ((c.address == validChannel.address)?c.offcommand:a), null);
+          validChannel.oncommand = device.channels.reduce((a,c) => ((c.address == parseInt(validChannel.index))?c.oncommand:a), null);
+          validChannel.offcommand = device.channels.reduce((a,c) => ((c.address == parseInt(validChannel.index))?c.offcommand:a), null);
         }
         if ((validChannel.oncommand === null) || (validChannel.offcommand === null)) throw new Error(`missing operating command for channel ${validChannel.index}`);
         validChannel.oncommand = validChannel.oncommand.replace('{c}', validChannel.address);
@@ -354,7 +351,6 @@ module.exports = function(app) {
         a[`${channel.path}`] = {
           description: channel.description,
           index: channel.index,
-          address: channel.address,
           shortName: `[${module.id},${channel.index}]`,
           longName: `[${module.id},${channel.index}]`,
           displayName: channel.description || `[${module.id},${channel.index}]`,
@@ -539,14 +535,22 @@ module.exports = function(app) {
             app.debug(`status listener: received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
             module.channels.filter(channel => (channel.type == 'relay')).forEach(channel => {
-              if (channel.address <= relayStates.length) {
-                var value = (relayStates.charAt(channel.address - 1) == '0')?0:1;
+              if (parseInt(channel.index) <= relayStates.length) {
+                if (!channel.isOrdered) {
+                  channel.isOrdered = true;
+                  delta.addValue(channel.path.replace('state','order'), parseInt(channel.index));
+                }
+                var value = (relayStates.charAt(parseInt(channel.index) - 1) == '0')?0:1;
                 delta.addValue(channel.path, value);
               }
             });
             module.channels.filter(channel => (channel.type == 'switch')).forEach(channel => {
-              if (channel.address <= switchStates.length) {
-                var value = (switchStates.charAt(channel.address - 1) == '0')?0:1;
+              if (parseInt(channel.index) <= switchStates.length) {
+                if (!channel.isOrdered) {
+                  channel.isOrdered = true;
+                  delta.addValue(channel.path.replace('state','order'), parseInt(channel.index));
+                }
+                var value = (switchStates.charAt(parseInt(channel.index) - 1) == '0')?0:1;
                 delta.addValue(channel.path, value);
               }
             });
