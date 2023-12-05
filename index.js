@@ -291,7 +291,6 @@ module.exports = function(app) {
     var validModule = {};
 
     if (!module.ipAddress) throw new Error("missing 'ipAddress'");
-    if (!module.deviceId) throw new Error("missing 'deviceId'");
 
     validModule.id = module.id || `${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}`;
     validModule.description = module.description || `Devantech DS switchbank '${validModule.id}'`;
@@ -304,17 +303,15 @@ module.exports = function(app) {
     validModule.commandQueue = [];
     validModule.currentCommand = null;
 
-    validModule.deviceId = module.deviceId;
+    module.deviceId = (module.deviceId)?module.deviceId:'DS';
     validModule.device = devices.reduce((a,d) => { return((d.id == validModule.deviceId)?d:a); }, undefined);
-    if (!validModule.device) throw new Error(`device '${validModule.deviceId}' is not configured`);
-
-    app.debug(validModule);
+    if (!validModule.device) throw new Error(`device '${module.deviceId}' is not configured`);
 
     validModule.channels = module.channels.reduce((a,channel) => {
       var validChannel = {};
 
       if (!channel.index) throw new Error("missing channel index");
-      //if (!(/^(\d+)(S|s|R|r)$/.test(channel.index))) throw new Error("invalid channel index");    
+      if (!(/^(\d+)(S|s|R|r)$/.test(channel.index))) throw new Error("invalid channel index");    
       validChannel.index = channel.index.toUpperCase();
       validChannel.type = (channel.index.slice(-1) == 'R')?'relay':'switch';
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
