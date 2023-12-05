@@ -311,7 +311,7 @@ module.exports = function(app) {
       var validChannel = {};
 
       if (!channel.index) throw new Error("missing channel index");
-      if (!(/^(\d+)(S|s|R|r)$/.test(channel.index))) throw new Error("invalid channel index");    
+      //if (!(/^(\d+)(S|s|R|r)$/.test(channel.index))) throw new Error("invalid channel index");    
       validChannel.index = channel.index.toUpperCase();
       validChannel.type = (channel.index.slice(-1) == 'R')?'relay':'switch';
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
