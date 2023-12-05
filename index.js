@@ -222,6 +222,7 @@ module.exports = function(app) {
       }
       return(a);
     },[]);
+    delete plugin.options.devices;
 
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
   
