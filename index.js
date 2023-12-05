@@ -316,6 +316,7 @@ module.exports = function(app) {
       validChannel.index = channel.index.toUpperCase();
       validChannel.type = (channel.index.slice(-1) == 'R')?'relay':'switch';
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
+      validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
 
       if (validChannel.type == "relay") {
         if (!module.commandPort) throw new Error("relay channels require module 'commandPort'");
