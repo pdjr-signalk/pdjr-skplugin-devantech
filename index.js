@@ -167,7 +167,7 @@ const PLUGIN_SCHEMA = {
     "metadataPublisher": { "method": "POST" },
     "statusListenerPort": 28241,
     "defaultCommandPort": 17123,
-    "statusListenerIpFilter": "/^192\.168\.1\..*$/",
+    "statusListenerIpFilter": "^192\.168\.1\.\d*$",
     "commandQueueHeartbeat" : 25,
     "modules": [],
     "devices": [
@@ -218,7 +218,11 @@ module.exports = function(app) {
     plugin.options = _.cloneDeep(plugin.schema.default);
     _.merge(plugin.options, options);
 
-    plugin.options.statusListenerIpFilterRegex = new RegExp((plugin.options.statusListenerIpFilter)?plugin.options.statusListenerIpFilter:'^\d*\.\d*\.\d*\.\d*$');
+    try {
+      plugin.options.statusListenerIpFilterRegex = new RegExp(plugin.options.statusListenerIpFilter);
+    } catch(e) {
+      plugin.options.statusListenerIpFilterRegex = new RegExp(plugin.schema.properties.statusListenerIpFilter);
+    }
     
     // Process each defined module, interpolating data from the
     // specified device definition, then filter the result to eliminate
@@ -609,7 +613,7 @@ module.exports = function(app) {
           openCommandConnection(module);
         }
       } else {
-        log.W(`status listener: ignoring connection attempt from unknown device ${clientIP}`, false);
+        log.W(`status listener: rejecting connection from '${clientIP}'`, false);
         client.destroy();
       }
     });
