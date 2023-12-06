@@ -167,7 +167,7 @@ const PLUGIN_SCHEMA = {
     "metadataPublisher": { "method": "POST" },
     "statusListenerPort": 28241,
     "defaultCommandPort": 17123,
-    "statusListenerIpFilter": "^192\.168\.1\.\d*$",
+    "statusListenerIpFilter": "^192\\.168\\.1\\.\\d*$",
     "commandQueueHeartbeat" : 25,
     "modules": [],
     "devices": [
