@@ -21,18 +21,20 @@ Where *address* is a representation of a DS module's IP address;
 the state of a relay output or a switch input.
 
 The plugin listens on a user-configured TCP port for status reports
-from DS devices and uses the received data to update the state of
-switchbank paths associated with the transmitting device.
-The plugin can be configured to all received status reports or only
-those received from configured modules or specific IP address ranges.  
+from DS devices.
+Devices generating a status report have their IP address checked
+against a user-configured regular expression and if the address is
+accepted then the received status data is used to update the state
+of switchbank paths associated with the transmitting device.
 
-Receipt of status notifications from a DS device which is configured
-for relay output causes the plugin to establish and maintain a
+Receipt of status reports from a DS device which is supports relay
+output channels causes the plugin to establish and maintain a
 persistent TCP connection to the notifying device allowing subsequent
 operation of remote relays in response to Signal K PUT requests on
 associated switchbank relay channels.
 
-This operating strategy is resilient to network outage and allows
+This operating strategy is resilient to network outage and (subject
+to specification of an appropriate IP address filter) allows
 *ad-hoc* connection of DS devices to a live system without further
 operator intervention.
 
@@ -175,6 +177,17 @@ transmitted appropriately.
     module's 'Event Notifications' configuration page.
     </p>
   </dd>
+  <dt>IP address filter <code>ipFilter</code></dt>
+  <dd>
+    <p>
+    Optional regular expression used to determine if a connection from
+    a specific IP address should be accepted.
+    </p>
+    <p>
+    Defaults to '^192\.168\.1\..*$' which matches all devices on the
+    192.168.1.0 subnet.
+    </p>
+  </dd>
   <dt>Process the transmit queue every this many miliseconds <code>transmitQueueHeartbeat</code></dt>
   <dd>
     <p>
@@ -196,20 +209,6 @@ transmitted appropriately.
         <p>
         Required string specifying the IP address of the module being
         configured.
-        </p>
-      </dd>
-      <dt>Module id <code>id</code></dt>
-      <dd>
-        <p>
-        Optional string specifying an identifier for the module which
-        will be used in Signal K switch paths and messages.
-        The supplied value must be unique identifier under
-        'electrical.switches.bank'.
-        </p>
-        <p>
-        If omitted, then a value for <em>id</em> will be derived from
-        <em>ipAddress</em> by transforming a dotted address of the form
-        '<em>a.b.c.d</em>' to an id of the form '<em>aaabbbcccddd</em>'.
         </p>
       </dd>
       <dt>Relay operation command port <code>commandPort</code></dt>

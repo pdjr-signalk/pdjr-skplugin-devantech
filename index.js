@@ -219,9 +219,9 @@ module.exports = function(app) {
     _.merge(plugin.options, options);
 
     try {
-      app.debug(`>>>>>> ${plugin.options.statusListenerIpFilter}`);
       plugin.options.statusListenerIpFilterRegex = new RegExp(plugin.options.statusListenerIpFilter);
     } catch(e) {
+      log.N(`using default IP filter '${plugin.schema.properties.statusListenerIpFilter}'`);
       plugin.options.statusListenerIpFilterRegex = new RegExp(plugin.schema.properties.statusListenerIpFilter);
     }
     
@@ -326,7 +326,7 @@ module.exports = function(app) {
       var validChannel = {};
 
       if (!channel.index) throw new Error("missing channel index");
-      //if (!(/^(\d+)(S|s|R|r)$/.test(channel.index))) throw new Error("invalid channel index");    
+      if (!(/^\d+[S|s|R|r]$/.test(channel.index))) throw new Error("invalid channel index");    
       validChannel.index = channel.index.toUpperCase();
       validChannel.type = (channel.index.slice(-1) == 'R')?'relay':'switch';
       validChannel.description = channel.description || `Channel ${validChannel.index}`;
