@@ -332,7 +332,7 @@ module.exports = function(app) {
       validChannel.path = `${validModule.switchbankPath}.${validChannel.index}.state`;
 
       if (validChannel.type == "relay") {
-        if (!module.commandPort) throw new Error("relay channels require module 'commandPort'");
+        if (!validModule.commandPort) throw new Error("relay channels require module 'commandPort'");
         if ((validModule.device.channels[0].address == 0) && (validModule.device.channels.length == 1)) {
           validChannel.oncommand = validModule.device.channels[0].oncommand;
           validChannel.offcommand = validModule.device.channels[0].offcommand;
