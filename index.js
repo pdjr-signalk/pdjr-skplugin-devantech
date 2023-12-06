@@ -56,6 +56,16 @@ const PLUGIN_SCHEMA = {
       "description": "TCP port on which the plugin will listen for device status updates.",
       "type": "number"
     },
+    "statusListenerIpFilter": {
+      "title": "IP filter",
+      "description": "Regular expression used to authenticate incoming client connections.",
+      "type": "string"
+    },
+    "defaultCommandPort": {
+      "title": "Default command port",
+      "description": "Remote TCP port to which module operating commands will be directed by default.",
+      "type": "number"
+    },
     "transmitQueueHeartbeat": {
       "title": "Transmit queue heartbeat",
       "description": "Interval in milliseconds between consecutive transmit queue processing tasks.",
@@ -67,28 +77,24 @@ const PLUGIN_SCHEMA = {
       "items": {
         "type": "object",
         "properties": {
-          "id": {
-            "title": "Module id",
-            "type": "string"
-          },
           "ipAddress": {
             "title": "Module IP address",
             "type": "string"
           },
           "commandPort": {
-            "title": "Relay operation command port",
+            "title": "Command port",
             "type": "number"
           },
           "password": {
             "title": "Password for command port access",
             "type": "string"
           },
-          "deviceId": {
-            "title": "Device id",
-            "type": "string"
-          },
           "description": {
             "title": "Module description",
+            "type": "string"
+          },
+          "deviceId": {
+            "title": "Device ID",
             "type": "string"
           },
           "channels": {
@@ -110,7 +116,6 @@ const PLUGIN_SCHEMA = {
         },
         "default": {
           "deviceId": "DS",
-          "defaultType": "relay",
           "channels": []
         }
       }
@@ -161,6 +166,8 @@ const PLUGIN_SCHEMA = {
   "default": {
     "metadataPublisher": { "method": "POST" },
     "statusListenerPort": 28241,
+    "defaultCommandPort": 17123,
+    "statusListenerIpFilter": "/^192\.168\.1\..*$/",
     "commandQueueHeartbeat" : 25,
     "modules": [],
     "devices": [
@@ -216,7 +223,7 @@ module.exports = function(app) {
     // any broken modules.
     plugin.options.modules = plugin.options.modules.reduce((a,module) => {
       try {
-        a.push(canonicaliseModule(module, plugin.options.devices));
+        a.push(canonicaliseModule(module, plugin.options.defaultCommandPort, plugin.options.devices));
       } catch(e) {
         log.E(`invalid configuration for module '${module.id}' (${e.message}`);
       }
@@ -285,21 +292,21 @@ module.exports = function(app) {
    * @param {*} devices - array of available device definitions.
    * @returns - the dressed-up module or exception on error.
    */
-  function canonicaliseModule(module, devices) {  
+  function canonicaliseModule(module, defaultCommandPort, devices) {  
     var srcModule = _.cloneDeep(plugin.schema.properties.modules.items.default);
     _.merge(srcModule, module);
     module = srcModule;
     var validModule = {};
 
-    if (!module.ipAddress) throw new Error("missing 'ipAddress'");
+    validModule.ipAddress = module.ipAddress;
+    if (!validModule.ipAddress) throw new Error("missing 'ipAddress'");
+    validModule.commandPort = module.commandPort || defaultCommandPort;
+    if (!validModule.commandPort) throw new Error("missing 'commandPort'/'defaultCommandPort'");
+    validModule.password = module.password || undefined;
+    validModule.description = module.description || `Devantech DS switchbank at '${validModule.ipAddress}'`;
 
     validModule.id = module.id || `${sprintf('%03d%03d%03d%03d', module.ipAddress.split('.')[0], module.ipAddress.split('.')[1], module.ipAddress.split('.')[2], module.ipAddress.split('.')[3])}`;
-    validModule.description = module.description || `Devantech DS switchbank '${validModule.id}'`;
-    validModule.switchbankPath = `electrical.switches.bank.${validModule.id}`;
-      
-    validModule.ipAddress = module.ipAddress;
-    validModule.commandPort = module.commandPort || undefined;
-    validModule.password = module.password || undefined;
+    validModule.switchbankPath = `electrical.switches.bank.${validModule.id}`;      
     validModule.commandConnection = null;
     validModule.commandQueue = [];
     validModule.currentCommand = null;
@@ -588,21 +595,21 @@ module.exports = function(app) {
       /**
        * Only allow connections from configured modules.
        */
-        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+      var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+      if (plugin.options.statusListenerIpFilter.test(clientIP)) {
+        app.debug(`status listener: opening listener connection '${clientIP}'`);
+        if (module.listenerConnection) module.listenerConnection.destroy();
+        module.listenerConnection = client;
+        
         var module = plugin.options.modules.reduce((a,m) => ((m.ipAddress == clientIP)?m:a), null);
-        if (module) {
-          app.debug(`status listener: opening connection for ${clientIP}`);
-          if (module.listenerConnection) module.listenerConnection.destroy();
-          module.listenerConnection = client;
-
-          if ((module.commandPort) && (!module.commandConnection)) {
-            app.debug(`status listener: opening command connection '${clientIP}'`);
-            openCommandConnection(module);
-          }
-        } else {
-          log.W(`status listener: ignoring connection attempt from unknown device ${clientIP}`, false);
-          client.destroy();
+        if ((module) && (module.commandPort) && (!module.commandConnection)) {
+          app.debug(`status listener: opening command connection '${clientIP}'`);
+          openCommandConnection(module);
         }
+      } else {
+        log.W(`status listener: ignoring connection attempt from unknown device ${clientIP}`, false);
+        client.destroy();
+      }
     });
     
     statusListener.listen(port, () => { app.debug(`status listener: listening on port ${port}`); });

@@ -13,37 +13,18 @@ DS devices provide a mix of general purpose analogue and digital I/O
 and relay output channels: the number and type of channels varies
 across the product range.
 
-The plugin represents a DS module as a Signal K switchbank with both
-digital input channels amd relay output channels.
-As far as possible the DS device/plugin combination mimics the
-operating characteristics NMEA 2000 switchbanks in Signal K.
-
-A DS module is uniquely identified by its Ethernet IP address (NMEA
-switchbanks have an instance address which serves the same purpose)
-and, by default, the plugin uses this address as the switchbank
-identifier in Signal K.
-Each channel in a DS associated switchbank is conventionally named
-'r*nn*' (if it is a relay output channel) or 's*nn*' (if it is a switch
-input channel) with *nn* specifying the associated DS module channel
-address.
-
-The plugin installs DS switchbanks in the usual Signal K location and,
-relying on default naming conventions, a relay channel key will look
-like this:
-```
-electrical.switches.bank.192168001006.r3.state
-```
-Overriding defaults allows any naming strategy consistent with Signal
-K's specification, so, with a little more configuration gloss, the same
-DS relay could present as:
-```
-electrical.switches.bank.forelocker.gas-valve.state
-```
+The plugin represents DS module channel states as a Signal K paths
+of the form 'electrical.switches.bank.*address*.*index**type*.state'.
+Where *address* is a representation of a DS module's IP address;
+*index* is the ordinal number of a channel on the DS module and
+*type* is either 'R' or 'S' to indicate whether the path represents
+the state of a relay output or a switch input.
 
 The plugin listens on a user-configured TCP port for status reports
-from configured DS devices and uses the received data to update the
-state of Signal K switchbank paths associated with the transmitting
-device.
+from DS devices and uses the received data to update the state of
+switchbank paths associated with the transmitting device.
+The plugin can be configured to all received status reports or only
+those received from configured modules or specific IP address ranges.  
 
 Receipt of status notifications from a DS device which is configured
 for relay output causes the plugin to establish and maintain a
@@ -260,14 +241,10 @@ transmitted appropriately.
         Defaults to 'DS'.
         </p>
       </dd>
-      <dt>Default type<code>defaultType</code></dt>
+      <dt>Description <code>description</code></dt>
       <dd>
         <p>
-        Optional channel I/O type which should be used for channels which
-        do not include an explicit <em>type</em> configuration.
-        </p>
-        <p>
-        If supplied, must be one of 'relay', 'switch' or 'sensor'.
+        Optional text describing the module.
         </p>
       </dd>
       <dt>Channels <code>channels</code></dt>
@@ -284,43 +261,17 @@ transmitted appropriately.
             <p>
             Required string value giving a name which will be used to
             identify the channel in Signal K.
-            This name <em>must</em> begin with either 'R' (or 'r') to
-            identify a relay output channel or 'S' (or 's') to identify
-            a switch input channel.
-            The remainder of the index name must be sufficient to
-            ensure uniqueness within the relay or switch channel
-            collection of the containing switchbank.
-            There are advantages to making <em>index</em> a value of
-            the form '<em>Tnn</em>' where <em>T</em> is either 'R' or
-            'S' and <em>nn</em> is the associated DS channel address.
-            For example, 'R01' would identify relay 1 on the associated
-            DS device, whilst 'S03' would identify digital input
-            channel 3.
-            </p>
-          </dd>
-          <dt>Channel address <code>address</code></dt>
-          <dd>
-            <p>
-            Optional number value giving the address of the DS channel
-            associated with <em>index</em>.
-            If the '<em>Tnn</em>' form is used for <em>index</em> (see
-            above) then this value will be derived automatically; if
-            not, then it must be specified.
-            </p>
-          </dd>
-          <dt>Channel I/O type <code>type</code></dt>
-          <dd>
-            <p>
-            Specifier of channel I/O type.
-            Required if <em>defaultType</em> is not specified or if the
-            required channel type is not the configured default.
-            </p>
-            <p>
-            If supplied, must be one of 'relay', 'switch' or 'sensor'.
+            This name <em>must</em> have the form '<em>nT</em>' where
+            <em>n</em> is a decimal channel number in the range 1..
+            and <em>T</em> is either 'R' (to identify a relay output
+            channel) or 'S' (to identify a switch input channel).
             </p>
           </dd>
           <dt>Description <code>description</code></dt>
           <dd>
+            <p>
+            Optional text describing the channel.
+            </p>
           </dd>
         </dl>
       </dd>
