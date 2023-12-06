@@ -217,6 +217,8 @@ module.exports = function(app) {
   plugin.start = function(options) {
     plugin.options = _.cloneDeep(plugin.schema.default);
     _.merge(plugin.options, options);
+
+    plugin.options.statusListenerIpFilterRegex = new RegExp((plugin.options.statusListenerIpFilter)?plugin.options.statusListenerIpFilter:'^\d*\.\d*\.\d*\.\d*$');
     
     // Process each defined module, interpolating data from the
     // specified device definition, then filter the result to eliminate
@@ -596,7 +598,7 @@ module.exports = function(app) {
        * Only allow connections from configured modules.
        */
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-      if (plugin.options.statusListenerIpFilter.test(clientIP)) {
+      if (plugin.options.statusListenerIpFilterRegex.test(clientIP)) {
         app.debug(`status listener: opening listener connection '${clientIP}'`);
         if (module.listenerConnection) module.listenerConnection.destroy();
         module.listenerConnection = client;
