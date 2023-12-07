@@ -292,7 +292,6 @@ module.exports = function(app) {
         displayName: `Module ${plugin.options.activeModules[moduleId].id}`,
         $source: `plugin:${plugin.id}`
       };
-      app.debug(`creating metadata for '${moduleId}' ${JSON.stringify(metadata)}`);
       (new Delta(app, plugin.id)).addMeta(plugin.options.activeModules[moduleId].switchbankPath, metadata).commit().clear();  
     }
     return(plugin.options.activeModules[moduleId]);
@@ -300,6 +299,7 @@ module.exports = function(app) {
 
   function createActiveChannels(activeModule, relayChannelCount, switchChannelCount) {
     if (activeModule.channels.length == 0) {
+      app.debug(`creating channels for module '${activeModule.id}'`)
       var index, channel, delta = new Delta(app, plugin.id);
       var module = plugin.options.modules.reduce((a,m) => { return((m.ipAddress == activeModule.ipAddress)?m:a); },  { channels: [] });
       for (var i = 0; i < relayChannelCount; i++) {
@@ -326,7 +326,7 @@ module.exports = function(app) {
         activeModule.channels[index] = { index: index, type: 'relay', description: rc.description || `Channel ${index}`, path: `${activeModule.switchbankPath}.${index}.state` };
         delta.addMeta(activeModule.channels[index].path, { description: channel.description || `Channel ${index}`, index: index, shortName: `[${activeModule.id},${index}]`, longName: `[${activeModule.id},${index}]`, displayName: channel.description || `[${activeModule.id},${index}]`, unit: 'Binary switch state (0/1)', type: 'switch', $source: `plugin:${plugin.id}` });
       }
-      delta.commit().clear();
+      delta.commit(1).clear();
     }
   }
 
