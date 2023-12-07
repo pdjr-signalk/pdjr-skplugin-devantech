@@ -33,15 +33,20 @@ const PLUGIN_SCHEMA = {
       "description": "Regular expression used to authenticate incoming client connections.",
       "type": "string"
     },
-    "defaultDeviceId": {
-      "title": "Default device ID",
-      "description": "",
-      "type": "string"
-    },
     "statusListenerPort": {
       "title": "Status listener port",
       "description": "TCP port on which the plugin will listen for device status updates.",
       "type": "number"
+    },
+    "transmitQueueHeartbeat": {
+      "title": "Transmit queue heartbeat",
+      "description": "Interval in milliseconds between consecutive transmit queue processing tasks.",
+      "type": "number"
+    },
+    "defaultDeviceId": {
+      "title": "Default device ID",
+      "description": "",
+      "type": "string"
     },
     "defaultCommandPort": {
       "title": "Default command port",
@@ -52,11 +57,6 @@ const PLUGIN_SCHEMA = {
       "title": "Default command password",
       "description": "",
       "type": "string"
-    },
-    "transmitQueueHeartbeat": {
-      "title": "Transmit queue heartbeat",
-      "description": "Interval in milliseconds between consecutive transmit queue processing tasks.",
-      "type": "number"
     },
     "modules" : {
       "title": "Module configurations",
