@@ -13,7 +13,7 @@ DS devices provide a mix of general purpose analogue and digital I/O
 and relay output channels: the number and type of channels varies
 across the product range.
 
-The plugin represents DS module channel states as a Signal K paths
+The plugin represents DS module channel states as a Signal K path
 of the form 'electrical.switches.bank.*address*.*index**type*.state'.
 Where *address* is a representation of a DS module's IP address;
 *index* is the ordinal number of a channel on the DS module and
