@@ -315,6 +315,7 @@ module.exports = function(app) {
         }
         activeModule.channels[index].oncommand = activeModule.channels[index].oncommand.replace('{c}', parseInt(index));
         activeModule.channels[index].offcommand = activeModule.channels[index].offcommand.replace('{c}', parseInt(index));
+        delta.addValue(activeModule.channels[index].path.replace('state','order'), parseInt(index));
         delta.addMeta(activeModule.channels[index].path, { description: channel.description || `Channel ${index}`, index: index, shortName: `[${activeModule.id},${index}]`, longName: `[${activeModule.id},${index}]`, displayName: channel.description || `[${activeModule.id},${index}]`, unit: 'Binary switch state (0/1)', type: 'relay', $source: `plugin:${plugin.id}` });
         app.debug(`registering PUT handler on '${activeModule.channels[index].path}'`);
         app.registerPutHandler('vessels.self', activeModule.channels[index].path, relayPutHandler, plugin.id);
@@ -324,9 +325,10 @@ module.exports = function(app) {
         index = `${i+1}S`;
         channel = module.channels.reduce((a,c) => { return((c.index == index)?c:a); }, {});
         activeModule.channels[index] = { index: index, type: 'relay', description: channel.description || `Channel ${index}`, path: `${activeModule.switchbankPath}.${index}.state` };
+        delta.addValue(activeModule.channels[index].path.replace('state','order'), parseInt(index));
         delta.addMeta(activeModule.channels[index].path, { description: channel.description || `Channel ${index}`, index: index, shortName: `[${activeModule.id},${index}]`, longName: `[${activeModule.id},${index}]`, displayName: channel.description || `[${activeModule.id},${index}]`, unit: 'Binary switch state (0/1)', type: 'switch', $source: `plugin:${plugin.id}` });
       }
-      delta.commit(1).clear();
+      delta.commit().clear();
     }
   }
 
