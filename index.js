@@ -292,7 +292,7 @@ module.exports = function(app) {
         displayName: `Module ${plugin.options.activeModules[moduleId].id}`,
         $source: `plugin:${plugin.id}`
       };
-      (new Delta(app, plugin.id)).addMeta(plugin.options.activeModules[moduleId].switchbankPath, metadata).commit().clear();  
+      (new Delta(app, plugin.id)).addMeta(plugin.options.activeModules[moduleId].switchbankPath, metadata).commit(1).clear();  
     }
     return(plugin.options.activeModules[moduleId]);
   }
