@@ -293,7 +293,7 @@ module.exports = function(app) {
         $source: `plugin:${plugin.id}`
       };
       app.debug(`creating metadata for '${moduleId}' ${JSON.stringify(metadata)}`);
-      (new Delta(app, plugin.id)).addMeta(module.switchbankPath, metadata).commit().clear();  
+      (new Delta(app, plugin.id)).addMeta(plugin.options.activeModules[moduleId].switchbankPath, metadata).commit().clear();  
     }
     return(plugin.options.activeModules[moduleId]);
   }
