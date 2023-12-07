@@ -305,7 +305,7 @@ module.exports = function(app) {
       for (var i = 0; i < relayChannelCount; i++) {
         index = `${i+1}R`;
         channel = module.channels.reduce((a,c) => { return((c.index == index)?c:a); }, {});
-        activeModule.channels[index] = { index: index, type: 'relay', description: rc.description || `Channel ${index}`, path: `${activeModule.switchbankPath}.${index}.state` };
+        activeModule.channels[index] = { index: index, type: 'relay', description: channel.description || `Channel ${index}`, path: `${activeModule.switchbankPath}.${index}.state` };
         if ((activeModule.device.channels[0].address == 0) && (activeModule.device.channels.length == 1)) {
           activeModule.channels[index].oncommand = activeModule.device.channels[0].oncommand;
           activeModule.channels[index].offcommand = activeModule.device.channels[0].offcommand;
@@ -323,7 +323,7 @@ module.exports = function(app) {
       for (var i = 0; i < switchChannelCount; i++) {
         index = `${i+1}S`;
         channel = module.channels.reduce((a,c) => { return((c.index == index)?c:a); }, {});
-        activeModule.channels[index] = { index: index, type: 'relay', description: rc.description || `Channel ${index}`, path: `${activeModule.switchbankPath}.${index}.state` };
+        activeModule.channels[index] = { index: index, type: 'relay', description: channel.description || `Channel ${index}`, path: `${activeModule.switchbankPath}.${index}.state` };
         delta.addMeta(activeModule.channels[index].path, { description: channel.description || `Channel ${index}`, index: index, shortName: `[${activeModule.id},${index}]`, longName: `[${activeModule.id},${index}]`, displayName: channel.description || `[${activeModule.id},${index}]`, unit: 'Binary switch state (0/1)', type: 'switch', $source: `plugin:${plugin.id}` });
       }
       delta.commit(1).clear();
