@@ -449,6 +449,7 @@ module.exports = function(app) {
           const moduleId = sprintf('%03d%03d%03d%03d', clientIP.split('.')[0], clientIP.split('.')[1], clientIP.split('.')[2], clientIP.split('.')[3]);
           var module = plugin.options.activeModules[moduleId];
           if (module) {
+            console.log(JSON.stringify(module));
             createActiveChannels(module, (module.device.relays)?module.device.relays:relayStates.length, (module.device.switches)?module.device.switches:switchStates.length);
             const messageLines = data.toString().split('\n');
             const relayStates = messageLines[1].trim();
