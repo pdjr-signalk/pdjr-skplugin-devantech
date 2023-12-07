@@ -282,8 +282,7 @@ module.exports = function(app) {
         device: plugin.options.devices.reduce((a,d) => { return((d.id == (module.deviceId || 'DS'))?d:a); }, undefined),
         channels: {}
       };
-      const metadata = {}
-      metadata[`${module.switchbankPath}`] = {
+      const metadata = {
         description: plugin.options.activeModules[moduleId].description,
         instance: plugin.options.activeModules[moduleId].id,
         device: plugin.options.activeModules[moduleId].device.id,
@@ -292,7 +291,7 @@ module.exports = function(app) {
         displayName: `Module ${plugin.options.activeModules[moduleId].id}`,
         $source: `plugin:${plugin.id}`
       };
-      (new Delta(app, plugin.id)).addMetas(metadata).commit().clear();  
+      (new Delta(app, plugin.id)).addMeta(module.switchbankPath, metadata).commit().clear();  
     }
     return(plugin.options.activeModules[moduleId]);
   }
