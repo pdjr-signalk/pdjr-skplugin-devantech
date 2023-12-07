@@ -20,27 +20,29 @@ Where *address* is a representation of a DS module's IP address;
 *type* is either 'R' or 'S' to indicate whether the path represents
 the state of a relay output or a switch input.
 
-The plugin listens on a user-configured TCP port for status reports
-from DS devices.
-Devices generating a status report have their IP address checked
-against a user-configured regular expression and if the address is
-accepted then the received status data is used to update the state
-of switchbank paths associated with the transmitting device.
+The plugin listens on a user-configured TCP port for connections from
+remote DS devices, rejecting connections from devices with IP addresses
+that are excluded by a user-specified filter.
 
-Receipt of status reports from a DS device which is supports relay
-output channels causes the plugin to establish and maintain a
-persistent TCP connection to the notifying device allowing subsequent
-operation of remote relays in response to Signal K PUT requests on
-associated switchbank relay channels.
+When an allowed DS device first connects to the plugin a Signal K
+switchbank path is created and immediately decorated with metadata
+which incorporates any properties that may have been supplied in the
+plugin configuration.
+
+Subsequently, the first status update received from a module results
+in the creation of a collection of Signal K switch paths for the
+associated switchbank and the decoration of these paths with metadata
+which incorporates any properties that may have been supplied in the
+plugin configuration.
+A persistent TCP connection is opened on the remote DS device and
+relay channels have a handler installed that responds to PUT state
+update requests by sending operating commands over this channel to the
+remote DS device.
 
 This operating strategy is resilient to network outage and (subject
 to specification of an appropriate IP address filter) allows
 *ad-hoc* connection of DS devices to a live system without further
 operator intervention.
-
-In addition to switchbank monitoring and control the plugin also
-provides a mechanism for decorating associated switchbank paths with
-automatically generated and user supplied metadata.
 
 The plugin exposes an
 [HTTP API](https://pdjr-signalk.github.io/pdjr-skplugin-devantech/)
