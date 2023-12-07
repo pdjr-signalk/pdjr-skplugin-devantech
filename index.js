@@ -28,29 +28,6 @@ const PLUGIN_DESCRIPTION = 'Signal K interface to the Devantech DS range of gene
 const PLUGIN_SCHEMA = {
   "type": "object",
   "properties": {
-    "metadataPublisher": {
-      "title": "Metadata publisher",
-      "description": "Metadata publication service connection properties.",
-      "type": "object",
-      "properties": {
-        "endpoint": {
-          "title": "Metadata publication endpoint",
-          "description": "URL of the publication service's 'publish' function.",
-          "type": "string"
-        },
-        "method": {
-          "title": "Method",
-          "description": "HTTP method that should be used to pass data to 'endpoint'.",
-          "type": "string",
-          "enum": [ "PATCH", "POST", "PUT" ]
-        },
-        "credentials": {
-          "title": "Credentials",
-          "description": "Credentials required to authenticate a 'method' request on 'endpoint'.",
-          "type": "string"
-        }
-      }
-    },
     "statusListenerIpFilter": {
       "title": "IP filter",
       "description": "Regular expression used to authenticate incoming client connections.",
@@ -170,7 +147,6 @@ const PLUGIN_SCHEMA = {
     }
   },
   "default": {
-    "metadataPublisher": { "method": "POST" },
     "statusListenerIpFilter": "^192\\.168\\.1\\.\\d*$",
     "statusListenerPort": 28241,
     "commandQueueHeartbeat" : 25,
@@ -262,12 +238,20 @@ module.exports = function(app) {
   plugin.getOpenApi = () => require("./resources/openApi.json");
 
   /********************************************************************
-   * Takes a perhaps partial module definition and does what it can to
-   * parse encoded bits and add important defaults.
+   * If the plugin.options.activeModules dictionary does not contain a
+   * property for ipAddress then:
    * 
-   * @param {*} module - the module object to be processed. 
-   * @param {*} devices - array of available device definitions.
-   * @returns - the dressed-up module or exception on error.
+   * 1. Create a new object in plugin.options.activeModules that
+   *    captures the configuration and operating state of the module.
+   * 2. Create a Signal K path for the module under
+   *    electrical.switches.bank.
+   * 3. Create a metadata entry for the new path.
+   * 
+   * Returns the newly created or already existing property identified
+   * by ipAddress.
+   * 
+   * @param {*} ipAddress - the module to be created. 
+   * @returns - the active module identified by ipAddress.
    */
   function createActiveModule(ipAddress) {
     const moduleId = sprintf('%03d%03d%03d%03d', ipAddress.split('.')[0], ipAddress.split('.')[1], ipAddress.split('.')[2], ipAddress.split('.')[3]);
@@ -302,6 +286,21 @@ module.exports = function(app) {
     return(plugin.options.activeModules[moduleId]);
   }
 
+  /********************************************************************
+   * If the channels dictionary in activeModule is empty, then create
+   * properties for the specified number of relay and switch channels
+   * by:
+   * 
+   * 1. Creating objects in activeModule.channels which capture the
+   *    configuration and operating state of each channel.
+   * 2. Creating a Signal K path for each created channel under the
+   *    switchbank path associated with activeModule.
+   * 3. Create a metadata entry for each new path.
+   * 4. Install a PUT handler on each relay path.
+   *
+   * @param {*} activeModule
+   * 
+   */
   function createActiveChannels(activeModule, relayChannelCount, switchChannelCount) {
     if (Object.keys(activeModule.channels).length == 0) {
       app.debug(`createActiveChannels(${activeModule.id})...`);
