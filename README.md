@@ -167,18 +167,6 @@ transmitted appropriately.
       </dd>
     </dl>
   </dd>
-  <dt>Port on which to listen for module status reports <code>statusListenerPort</code></dt>
-  <dd>
-    <p>
-    Optional number specifying the TCP port on which the plugin will
-    listen for DS event notificataions.
-    Defaults to 28241.
-    </p>
-    <p>
-    This value must match the 'Target port' value specified in the DS
-    module's 'Event Notifications' configuration page.
-    </p>
-  </dd>
   <dt>IP address filter <code>ipFilter</code></dt>
   <dd>
     <p>
@@ -186,11 +174,41 @@ transmitted appropriately.
     a specific IP address should be accepted.
     </p>
     <p>
-    Defaults to '^192\.168\.1\..*$' which matches all devices on the
+    Defaults to '^192\\.168\\.1\\.\\d*$' which matches all devices on the
     192.168.1.0 subnet.
     </p>
   </dd>
-  <dt>Process the transmit queue every this many miliseconds <code>transmitQueueHeartbeat</code></dt>
+  <dt>Port on which to listen for module status reports <code>statusListenerPort</code></dt>
+  <dd>
+    <p>
+    Optional number specifying the TCP port on which the plugin will
+    listen for DS event notificataions.
+    This value must match the 'Target port' value specified in each DS
+    module's 'Event Notifications' configuration page.
+    </p>
+    <p>
+    Defaults to 28241.
+    </p>
+  </dd>
+  <dt>Default command port <code>defaultCommandPort</code></dt>
+  <dd>
+    <p>
+    Optional number specifying the TCP port on which DS modules will
+    listen for relay control commands.
+    Can be overridden by individual module configuration.
+    </p>
+    <p>
+    Defaults to 17123.
+  </dd>
+  <dt>Default command password <code>defaultCommandPassword</code></dt>
+  <dd>
+    <p>
+    Optional string specifying a password to be used when transmitting
+    commands to remote DS devices.
+    Can be overridden by individual module configuration.
+    </p>
+  </dd>
+  <dt>Process the transmit queue every this many milliseconds <code>transmitQueueHeartbeat</code></dt>
   <dd>
     <p>
     Optional number specifying the transmit queue processing interval
@@ -201,9 +219,12 @@ transmitted appropriately.
   <dt>Module configurations <code>modules</code></dt>
   <dd>
     <p>
-    Required array of *module* objects each of which defines a
-    Devantech DS module that will be controlled by the plugin.
-    Each entry has the following configuration properties.
+    Optional array of *module* objects each of which configures a
+    Devantech DS module by overriding any top-level defaults and/or by
+    specifying particular module or channel properties.
+    </p>
+    <p>
+    Each *module* object has the following configuration properties.
     </p>
     <dl>
       <dt>Module IP address <code>ipAddress</code></dt>
@@ -216,20 +237,19 @@ transmitted appropriately.
       <dt>Relay operation command port <code>commandPort</code></dt>
       <dd>
         <p>
-        Optional number specifying the port on which the module listens
-        for relay operating commands.
-        This value must match the 'Control port' number specified on the
-        DS module's 'Network' configuration page.
-        </p>
-        <p>
-        If omitted, the module will only support switch input channels.
+        Optional number specifying the port on which this module
+        listens for relay operating commands, overriding
+        <em>defaultCommandPort</em>.
+        This value must match the 'Control port' number specified on
+        the associated DS module's 'Network' configuration page.
         </p>
       </dd>
-      <dt>Password for command port access <code>password</code></dt>
+      <dt>Password for command port access <code>commandPassword</code></dt>
       <dd>
         <p>
         If the DS module was configured with password security, then the
-        configured password must be supplied here.
+        configured password may be supplied here, overriding
+        <em>defaultCommandPassword</em>.
         </p>
       </dd>
       <dt>Device id <code>deviceId</code></dt>

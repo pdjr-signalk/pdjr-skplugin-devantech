@@ -51,20 +51,30 @@ const PLUGIN_SCHEMA = {
         }
       }
     },
-    "statusListenerPort": {
-      "title": "Status listener port",
-      "description": "TCP port on which the plugin will listen for device status updates.",
-      "type": "number"
-    },
     "statusListenerIpFilter": {
       "title": "IP filter",
       "description": "Regular expression used to authenticate incoming client connections.",
       "type": "string"
     },
+    "defaultDeviceId": {
+      "title": "Default device ID",
+      "description": "",
+      "type": "string"
+    },
+    "statusListenerPort": {
+      "title": "Status listener port",
+      "description": "TCP port on which the plugin will listen for device status updates.",
+      "type": "number"
+    },
     "defaultCommandPort": {
       "title": "Default command port",
       "description": "Remote TCP port to which module operating commands will be directed by default.",
       "type": "number"
+    },
+    "defaultCommandPassword": {
+      "title": "Default command password",
+      "description": "",
+      "type": "string"
     },
     "transmitQueueHeartbeat": {
       "title": "Transmit queue heartbeat",
@@ -81,20 +91,20 @@ const PLUGIN_SCHEMA = {
             "title": "Module IP address",
             "type": "string"
           },
+          "deviceId": {
+            "title": "Device ID",
+            "type": "string"
+          },
           "commandPort": {
             "title": "Command port",
             "type": "number"
           },
-          "password": {
+          "commandPassword": {
             "title": "Password for command port access",
             "type": "string"
           },
           "description": {
             "title": "Module description",
-            "type": "string"
-          },
-          "deviceId": {
-            "title": "Device ID",
             "type": "string"
           },
           "channels": {
@@ -113,10 +123,6 @@ const PLUGIN_SCHEMA = {
               }
             }
           }
-        },
-        "default": {
-          "deviceId": "DS",
-          "channels": []
         }
       }
     },
@@ -165,11 +171,11 @@ const PLUGIN_SCHEMA = {
   },
   "default": {
     "metadataPublisher": { "method": "POST" },
-    "statusListenerPort": 28241,
-    "defaultCommandPort": 17123,
     "statusListenerIpFilter": "^192\\.168\\.1\\.\\d*$",
+    "statusListenerPort": 28241,
     "commandQueueHeartbeat" : 25,
-    "modules": [],
+    "defaultDeviceId": "DS2824",
+    "defaultCommandPort": 17123,
     "devices": [
       {
         "id": "DS",
@@ -267,8 +273,7 @@ module.exports = function(app) {
     const moduleId = sprintf('%03d%03d%03d%03d', ipAddress.split('.')[0], ipAddress.split('.')[1], ipAddress.split('.')[2], ipAddress.split('.')[3]);
     if (!plugin.options.activeModules[moduleId]) {
       app.debug(`createActiveModule(${moduleId})...`);
-      var module = _.cloneDeep(plugin.schema.properties.modules.items.default);
-      _.merge(module, plugin.options.modules.reduce((a,m) => { return((m.ipAddress == ipAddress)?m:a ); }, {}));
+      var module = (plugin.options.modules || []).reduce((a,m) => { return((m.ipAddress == ipAddress)?m:a ); }, {});
       plugin.options.activeModules[moduleId] = {
         ipAddress: ipAddress,
         commandPort: module.commandPort || plugin.options.defaultCommandPort,
@@ -279,10 +284,10 @@ module.exports = function(app) {
         commandConnection: null,
         commandQueue: [],
         currentCommand: null,
-        deviceId: module.deviceId || 'DS',
-        device: plugin.options.devices.reduce((a,d) => { return((d.id == (module.deviceId || 'DS'))?d:a); }, undefined),
+        deviceId: module.deviceId || (plugin.options.defaultDeviceId || 'DS'),
         channels: {}
       };
+      plugin.options.activeModules[moduleId].device = plugin.options.devices.reduce((a,d) => { return((d.id == plugin.options.activeModules[moduleId].deviceId)?d:a); }, undefined);
       const metadata = {
         description: plugin.options.activeModules[moduleId].description,
         instance: plugin.options.activeModules[moduleId].id,
@@ -300,12 +305,17 @@ module.exports = function(app) {
   function createActiveChannels(activeModule, relayChannelCount, switchChannelCount) {
     if (Object.keys(activeModule.channels).length == 0) {
       app.debug(`createActiveChannels(${activeModule.id})...`);
-      var index, channel, delta = new Delta(app, plugin.id);
+      var module, channel, index, metadata, delta = new Delta(app, plugin.id);
       var module = plugin.options.modules.reduce((a,m) => { return((m.ipAddress == activeModule.ipAddress)?m:a); },  { channels: [] });
       for (var i = 0; i < relayChannelCount; i++) {
         index = `${i+1}R`;
         channel = module.channels.reduce((a,c) => { return((c.index == index)?c:a); }, {});
-        activeModule.channels[index] = { index: index, type: 'relay', description: channel.description || `Channel ${index}`, path: `${activeModule.switchbankPath}.${index}.state` };
+        activeModule.channels[index] = {
+          index: index,
+          type: 'relay',
+          description: channel.description || `Channel ${index}`,
+          path: `${activeModule.switchbankPath}.${index}.state`
+        };
         if ((activeModule.device.channels[0].address == 0) && (activeModule.device.channels.length == 1)) {
           activeModule.channels[index].oncommand = activeModule.device.channels[0].oncommand;
           activeModule.channels[index].offcommand = activeModule.device.channels[0].offcommand;
@@ -315,17 +325,44 @@ module.exports = function(app) {
         }
         activeModule.channels[index].oncommand = activeModule.channels[index].oncommand.replace('{c}', parseInt(index));
         activeModule.channels[index].offcommand = activeModule.channels[index].offcommand.replace('{c}', parseInt(index));
+       
+        metadata = {
+          description: channel.description || `Channel ${index}`,
+          index: index,
+          shortName: `[${activeModule.id},${index}]`,
+          longName: `[${activeModule.id},${index}]`,
+          displayName: channel.description || `[${activeModule.id},${index}]`,
+          unit: 'Binary switch state (0/1)',
+          type: 'relay',
+          $source: `plugin:${plugin.id}`
+        };
+        delta.addMeta(activeModule.channels[index].path, metadata);
         delta.addValue(activeModule.channels[index].path.replace('state','order'), parseInt(index));
-        delta.addMeta(activeModule.channels[index].path, { description: channel.description || `Channel ${index}`, index: index, shortName: `[${activeModule.id},${index}]`, longName: `[${activeModule.id},${index}]`, displayName: channel.description || `[${activeModule.id},${index}]`, unit: 'Binary switch state (0/1)', type: 'relay', $source: `plugin:${plugin.id}` });
         app.registerPutHandler('vessels.self', activeModule.channels[index].path, relayPutHandler, plugin.id);
-
       }
+
       for (var i = 0; i < switchChannelCount; i++) {
         index = `${i+1}S`;
         channel = module.channels.reduce((a,c) => { return((c.index == index)?c:a); }, {});
-        activeModule.channels[index] = { index: index, type: 'relay', description: channel.description || `Channel ${index}`, path: `${activeModule.switchbankPath}.${index}.state` };
+        activeModule.channels[index] = {
+          index: index,
+          type: 'relay',
+          description: channel.description || `Channel ${index}`,
+          path: `${activeModule.switchbankPath}.${index}.state`
+        };
+
+        metadata = {
+          description: channel.description || `Channel ${index}`,
+          index: index,
+          shortName: `[${activeModule.id},${index}]`,
+          longName: `[${activeModule.id},${index}]`,
+          displayName: channel.description || `[${activeModule.id},${index}]`,
+          unit: 'Binary switch state (0/1)',
+          type: 'switch',
+          $source: `plugin:${plugin.id}`
+        };
+        delta.addMeta(activeModule.channels[index].path, metadata);
         delta.addValue(activeModule.channels[index].path.replace('state','order'), parseInt(index));
-        delta.addMeta(activeModule.channels[index].path, { description: channel.description || `Channel ${index}`, index: index, shortName: `[${activeModule.id},${index}]`, longName: `[${activeModule.id},${index}]`, displayName: channel.description || `[${activeModule.id},${index}]`, unit: 'Binary switch state (0/1)', type: 'switch', $source: `plugin:${plugin.id}` });
       }
       delta.commit().clear();
     }
