@@ -306,7 +306,7 @@ module.exports = function(app) {
     if (Object.keys(activeModule.channels).length == 0) {
       app.debug(`createActiveChannels(${activeModule.id})...`);
       var module, channel, index, metadata, delta = new Delta(app, plugin.id);
-      var module = plugin.options.modules.reduce((a,m) => { return((m.ipAddress == activeModule.ipAddress)?m:a); },  { channels: [] });
+      module = (plugin.options.modules || []).reduce((a,m) => { return((m.ipAddress == activeModule.ipAddress)?m:a); },  { channels: [] });
       for (var i = 0; i < relayChannelCount; i++) {
         index = `${i+1}R`;
         channel = module.channels.reduce((a,c) => { return((c.index == index)?c:a); }, {});
