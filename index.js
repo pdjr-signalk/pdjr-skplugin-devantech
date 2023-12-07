@@ -264,10 +264,10 @@ module.exports = function(app) {
    * @returns - the dressed-up module or exception on error.
    */
   function createActiveModule(ipAddress) {
-    if (!plugin.options.activeModules[ipAddress]) {
+    const moduleId = sprintf('%03d%03d%03d%03d', ipAddress.split('.')[0], ipAddress.split('.')[1], ipAddress.split('.')[2], ipAddress.split('.')[3]);
+    if (!plugin.options.activeModules[moduleId]) {
       var module = _.cloneDeep(plugin.schema.properties.modules.items.default);
       _.merge(module, plugin.options.modules.reduce((a,m) => { return((m.ipAddress == ipAddress)?m:a ); }, {}));
-      const moduleId = sprintf('%03d%03d%03d%03d', ipAddress.split('.')[0], ipAddress.split('.')[1], ipAddress.split('.')[2], ipAddress.split('.')[3]);
       plugin.options.activeModules[moduleId] = {
         ipAddress: ipAddress,
         commandPort: module.commandPort || plugin.options.defaultCommandPort,
