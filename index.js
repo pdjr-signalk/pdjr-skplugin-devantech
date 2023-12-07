@@ -266,9 +266,9 @@ module.exports = function(app) {
   function createActiveModule(ipAddress) {
     const moduleId = sprintf('%03d%03d%03d%03d', ipAddress.split('.')[0], ipAddress.split('.')[1], ipAddress.split('.')[2], ipAddress.split('.')[3]);
     if (!plugin.options.activeModules[moduleId]) {
+      app.debug(`createActiveModule(${moduleId})...`);
       var module = _.cloneDeep(plugin.schema.properties.modules.items.default);
       _.merge(module, plugin.options.modules.reduce((a,m) => { return((m.ipAddress == ipAddress)?m:a ); }, {}));
-      app.debug(`creating active module '${moduleId}'`)
       plugin.options.activeModules[moduleId] = {
         ipAddress: ipAddress,
         commandPort: module.commandPort || plugin.options.defaultCommandPort,
@@ -299,7 +299,7 @@ module.exports = function(app) {
 
   function createActiveChannels(activeModule, relayChannelCount, switchChannelCount) {
     if (Object.keys(activeModule.channels).length == 0) {
-      app.debug(`creating channels for module '${activeModule.id}'`)
+      app.debug(`createActiveChannels(${activeModule.id})...`);
       var index, channel, delta = new Delta(app, plugin.id);
       var module = plugin.options.modules.reduce((a,m) => { return((m.ipAddress == activeModule.ipAddress)?m:a); },  { channels: [] });
       for (var i = 0; i < relayChannelCount; i++) {
