@@ -506,7 +506,7 @@ module.exports = function(app) {
         log.W(`status listener: rejecting connection from '${clientIP}'`, false);
         client.destroy();
       }
-    };
+    });
     
     statusListener.listen(port, () => { app.debug(`status listener: listening on port ${port}`); });
   }
