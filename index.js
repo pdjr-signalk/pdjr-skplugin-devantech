@@ -284,17 +284,17 @@ module.exports = function(app) {
       };
       const metadata = {}
       metadata[`${module.switchbankPath}`] = {
-        description: plugin.options.activeModules[ipAddress].description,
-        instance: plugin.options.activeModules[ipAddress].id,
-        device: plugin.options.activeModules[ipAddress].device.id,
-        shortName: plugin.options.activeModules[ipAddress].id,
-        longName: `Module ${plugin.options.activeModules[ipAddress].id}`,
-        displayName: `Module ${plugin.options.activeModules[ipAddress].id}`,
+        description: plugin.options.activeModules[moduleId].description,
+        instance: plugin.options.activeModules[moduleId].id,
+        device: plugin.options.activeModules[moduleId].device.id,
+        shortName: plugin.options.activeModules[moduleId].id,
+        longName: `Module ${plugin.options.activeModules[moduleId].id}`,
+        displayName: `Module ${plugin.options.activeModules[moduleId].id}`,
         $source: `plugin:${plugin.id}`
       };
       (new Delta(app, plugin.id)).addMetas(metadata).commit().clear();  
     }
-    return(plugin.options.activeModules[ipAddress]);
+    return(plugin.options.activeModules[moduleId]);
   }
 
   function createActiveChannels(activeModule, relayChannelCount, switchChannelCount) {
