@@ -268,6 +268,7 @@ module.exports = function(app) {
     if (!plugin.options.activeModules[moduleId]) {
       var module = _.cloneDeep(plugin.schema.properties.modules.items.default);
       _.merge(module, plugin.options.modules.reduce((a,m) => { return((m.ipAddress == ipAddress)?m:a ); }, {}));
+      app.debug(`creating active module '${moduleId}'`)
       plugin.options.activeModules[moduleId] = {
         ipAddress: ipAddress,
         commandPort: module.commandPort || plugin.options.defaultCommandPort,
@@ -291,6 +292,7 @@ module.exports = function(app) {
         displayName: `Module ${plugin.options.activeModules[moduleId].id}`,
         $source: `plugin:${plugin.id}`
       };
+      app.debug(`creating metadata for '${moduleId}' ${JSON.stringify(metadata)}`);
       (new Delta(app, plugin.id)).addMeta(module.switchbankPath, metadata).commit().clear();  
     }
     return(plugin.options.activeModules[moduleId]);
