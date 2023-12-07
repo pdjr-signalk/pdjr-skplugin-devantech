@@ -317,7 +317,6 @@ module.exports = function(app) {
         activeModule.channels[index].offcommand = activeModule.channels[index].offcommand.replace('{c}', parseInt(index));
         delta.addValue(activeModule.channels[index].path.replace('state','order'), parseInt(index));
         delta.addMeta(activeModule.channels[index].path, { description: channel.description || `Channel ${index}`, index: index, shortName: `[${activeModule.id},${index}]`, longName: `[${activeModule.id},${index}]`, displayName: channel.description || `[${activeModule.id},${index}]`, unit: 'Binary switch state (0/1)', type: 'relay', $source: `plugin:${plugin.id}` });
-        app.debug(`registering PUT handler on '${activeModule.channels[index].path}'`);
         app.registerPutHandler('vessels.self', activeModule.channels[index].path, relayPutHandler, plugin.id);
 
       }
