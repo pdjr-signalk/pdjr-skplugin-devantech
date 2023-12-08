@@ -31,27 +31,32 @@ const PLUGIN_SCHEMA = {
     "clientIpFilter": {
       "title": "Client IP filter",
       "description": "Regular expression used to authenticate incoming client connections.",
-      "type": "string"
+      "type": "string",
+      "default": "^\\192\\.168\\.1\\.\\d+$"
     },
     "statusListenerPort": {
       "title": "Status listener port",
       "description": "TCP port on which the plugin will listen for device status updates.",
-      "type": "number"
+      "type": "number",
+      "default": 28241
     },
     "transmitQueueHeartbeat": {
       "title": "Transmit queue heartbeat",
       "description": "Interval in milliseconds between consecutive transmit queue processing tasks.",
-      "type": "number"
+      "type": "number",
+      "default": 25
     },
     "defaultDeviceId": {
       "title": "Default device ID",
       "description": "",
-      "type": "string"
+      "type": "string",
+      "default": "DS"
     },
     "defaultCommandPort": {
       "title": "Default command port",
       "description": "Remote TCP port to which module operating commands will be directed by default.",
-      "type": "number"
+      "type": "number",
+      "default": 17123
     },
     "modules" : {
       "title": "Module configurations",
@@ -138,11 +143,6 @@ const PLUGIN_SCHEMA = {
     }
   },
   "default": {
-    "clientIpFilter": "^192\\.168\\.1\\.\\d*$",
-    "statusListenerPort": 28241,
-    "transmitQueueHeartbeat" : 25,
-    "defaultDeviceId": "DS2824",
-    "defaultCommandPort": 17123,
     "devices": [
       {
         "id": "DS",
@@ -192,20 +192,14 @@ module.exports = function(app) {
     _.merge(plugin.options, options);
     plugin.options.activeModules = {};
 
-    try {
-      plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter);
-    } catch(e) {
-      log.N(`using default IP filter '${plugin.schema.properties.clientIpFilter}'`);
-      plugin.options.clientIpFilterRegex = new RegExp(plugin.schema.properties.clientIpFilter);
-    }
-    
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
-  
-    // Start listening for remote DS status reports and begin checking
-    // the transmit queue.
+
+    plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter || plugin.schema.properties.clientIpFilter.default);
+      
     log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
-    startStatusListener(plugin.options.statusListenerPort);
-    transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat);      
+
+    startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
+    transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
   }
 
   /**
@@ -247,32 +241,33 @@ module.exports = function(app) {
   function createActiveModule(ipAddress) {
     const moduleId = sprintf('%03d%03d%03d%03d', ipAddress.split('.')[0], ipAddress.split('.')[1], ipAddress.split('.')[2], ipAddress.split('.')[3]);
     if (!plugin.options.activeModules[moduleId]) {
-      app.debug(`createActiveModule(${moduleId})...`);
+      app.debug(`creating new module '${moduleId}'`);
       var module = (plugin.options.modules || []).reduce((a,m) => { return((m.ipAddress == ipAddress)?m:a ); }, {});
-      plugin.options.activeModules[moduleId] = {
+      var retval = {
         ipAddress: ipAddress,
-        commandPort: module.commandPort || plugin.options.defaultCommandPort,
-        password: module.password || undefined,
+        commandPort: module.commandPort || (plugin.options.defaultCommandPort || plugin.schema.properties.defaultCommandPort.default),
         description: module.description || `Devantech DS switchbank at '${ipAddress}'`,
         id: moduleId,
         switchbankPath: `electrical.switches.bank.${moduleId}`,
         commandConnection: null,
         commandQueue: [],
         currentCommand: null,
-        deviceId: module.deviceId || (plugin.options.defaultDeviceId || 'DS'),
+        deviceId: module.deviceId || (plugin.options.defaultDeviceId || plugin.schema.properties.defaultDeviceId.default),
         channels: {}
       };
-      plugin.options.activeModules[moduleId].device = plugin.options.devices.reduce((a,d) => { return((d.id == plugin.options.activeModules[moduleId].deviceId)?d:a); }, undefined);
+      retval.device = plugin.options.devices.reduce((a,d) => { return((d.id == retval.deviceId)?d:a); }, undefined);
+      if (!retval.device) throw new Error(`device '${retval.deviceId}' is not configured`);
+      plugin.options.activeModules[moduleId] = retval;
       const metadata = {
-        description: plugin.options.activeModules[moduleId].description,
-        instance: plugin.options.activeModules[moduleId].id,
-        device: plugin.options.activeModules[moduleId].device.id,
-        shortName: plugin.options.activeModules[moduleId].id,
-        longName: `Module ${plugin.options.activeModules[moduleId].id}`,
-        displayName: `Module ${plugin.options.activeModules[moduleId].id}`,
+        description: retval.description,
+        instance: retval.id,
+        device: retval.device.id,
+        shortName: retval.id,
+        longName: `Module ${retval.id}`,
+        displayName: `Module ${retval.id}`,
         $source: `plugin:${plugin.id}`
       };
-      (new Delta(app, plugin.id)).addMeta(plugin.options.activeModules[moduleId].switchbankPath, metadata).commit(1).clear();  
+      (new Delta(app, plugin.id)).addMeta(retval.switchbankPath, metadata).commit().clear();  
     }
     return(plugin.options.activeModules[moduleId]);
   }
@@ -519,8 +514,9 @@ module.exports = function(app) {
        * Only allow connections from configured modules.
        */
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-      if (plugin.options.clientIpFilterRegex.test(clientIP)) {
-        // Make/recover an active module
+      try {
+        if (!plugin.options.clientIpFilterRegex.test(clientIP)) throw new Error(`unauthorised device at ${clientIP}`);
+      
         var module = createActiveModule(clientIP);
 
         app.debug(`status listener: opening listener connection '${clientIP}'`);
@@ -531,8 +527,8 @@ module.exports = function(app) {
           app.debug(`status listener: opening command connection '${clientIP}'`);
           openCommandConnection(module);
         }
-      } else {
-        log.W(`status listener: rejecting connection from '${clientIP}'`, false);
+      } catch(e) {
+        log.W(`status listener: rejecting connection (${e})`, false);
         client.destroy();
       }
     });
