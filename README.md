@@ -25,19 +25,18 @@ remote DS devices, rejecting connections from devices with IP addresses
 that are excluded by a user-specified filter.
 
 When an allowed DS device first connects to the plugin a Signal K
-switchbank path is created and immediately decorated with metadata
-which incorporates any properties that may have been supplied in the
-plugin configuration.
+switchbank path is created and decorated with metadata which
+incorporates any properties that may have been supplied in the plugin
+configuration.
 
 Subsequently, the first status update received from a module results
 in the creation of a collection of Signal K switch paths for the
-associated switchbank and the decoration of these paths with metadata
+associated module and the decoration of these paths with metadata
 which incorporates any properties that may have been supplied in the
 plugin configuration.
-A persistent TCP connection is opened on the remote DS device and
-relay channels have a handler installed that responds to PUT state
-update requests by sending operating commands over this channel to the
-remote DS device.
+A persistent TCP command connection is opened to the remote DS device
+and Signal K relay paths have a handler installed that responds to PUT
+requests by sending operating commands to the remote DS device.
 
 This operating strategy is resilient to network outage and (subject
 to specification of an appropriate IP address filter) allows
@@ -61,14 +60,16 @@ Make the following configuration settings under each dashboard tab.
   <dt>Network</dt>
   <dd>
     <p>
-    Assign the DS device a static IP address on your LAN and specify a
-    control port number.
-    Make sure that the control port number you choose is not blocked by
-    any firewalls on your Signal K host and/or network router.
-    If you have more than one DS device on your network, use the same
-    port number on every device.
+    Assign the DS device a static IP address on your LAN (recommended)
+    or use DHCP ideally with a fixed IP address allocation.
     </p>
   </dd>
+  <dt>TCP/IP</dt>
+  <dd>
+    <p>
+    Check 'ASCII'.
+    Set 'TCP/IPPort' to 17123.
+    </p>  
   <dt>Relays</dt>
   <dd>
     <p>
@@ -137,48 +138,18 @@ transmitted appropriately.
 ### Plugin configuration
 
 <dl>
-  <dt>Metadata publication service configuration <code>metadataPublisher</code></dt>
-  <dd>
-    Optional object configuring access to a remote metadata publication
-    service (a suitable service is implemented by the author's
-    <a href='https://github.com/pdjr-signalk/pdjr-skplugin-metadata#readme'>metadata plugin</a>.
-    <p>
-    If this property is omitted, or if, for whatever reason, metadata cannot
-    be published to the specified service then the plugin will inject metadata
-    directly into the Signal K tree.</p>
-    <dl>
-      <dt>Metadata publication endpoint <code>endpoint</code></dt>
-      <dd>
-        Required URL of an API which will accept Signal K metadata and
-        at least insert it into the Signal K tree.
-        For example '/plugins/metadata/metadata'.
-      </dd>
-      <dt>Metadata publication method <code>method</code></dt>
-      <dd>
-        Optional string specifying the HTTP method which should be used
-        to submit metadata to the publication service.
-        Defaults to 'POST', but 'PUT' or 'PATCH' may be specified.
-      </dd>
-      <dt>Metadata publisher credentials <code>credentials</code></dt>
-      <dd>
-        Required string of the form 'username:password' specifying
-        Signal K credentials that will allow access to the publication
-        service.
-      </dd>
-    </dl>
-  </dd>
-  <dt>IP address filter <code>ipFilter</code></dt>
+  <dt>Client IP filter <code>clientIpFilter</code></dt>
   <dd>
     <p>
-    Optional regular expression used to determine if a connection from
-    a specific IP address should be accepted.
+    Optional string containing a regular expression used to determine
+    if a connection request from a remote client IP should be accepted.
     </p>
     <p>
-    Defaults to '^192\\.168\\.1\\.\\d*$' which matches all devices on the
-    192.168.1.0 subnet.
+    Defaults to '^192\\.168\\.1\\.\\d*$' which allows connection from
+    all devices on the 192.168.1.0 subnet.
     </p>
   </dd>
-  <dt>Port on which to listen for module status reports <code>statusListenerPort</code></dt>
+  <dt>Status listener port <code>statusListenerPort</code></dt>
   <dd>
     <p>
     Optional number specifying the TCP port on which the plugin will
@@ -188,6 +159,23 @@ transmitted appropriately.
     </p>
     <p>
     Defaults to 28241.
+    </p>
+  </dd>
+  <dt>Transmit queue heartbeat <code>transmitQueueHeartbeat</code></dt>
+  <dd>
+    <p>
+    Optional number specifying the transmit queue processing interval
+    in milliseconds.
+    </p>
+    <p>
+    Defaults to 25.
+    </p>
+  </dd>
+  <dt>Default device identifier <code>defaultDeviceId</code></dt>
+  <dd>
+    <p>
+    Optional string specifying the device identifier that should be
+    used for modules which do not define their own <em>deviceId</em>.
     </p>
   </dd>
   <dt>Default command port <code>defaultCommandPort</code></dt>
@@ -200,105 +188,114 @@ transmitted appropriately.
     <p>
     Defaults to 17123.
   </dd>
-  <dt>Default command password <code>defaultCommandPassword</code></dt>
-  <dd>
-    <p>
-    Optional string specifying a password to be used when transmitting
-    commands to remote DS devices.
-    Can be overridden by individual module configuration.
-    </p>
-  </dd>
-  <dt>Process the transmit queue every this many milliseconds <code>transmitQueueHeartbeat</code></dt>
-  <dd>
-    <p>
-    Optional number specifying the transmit queue processing interval
-    in milliseconds.
-    Defaults to 25.
-    </p>
-  </dd>
-  <dt>Module configurations <code>modules</code></dt>
+  <dt>Modules <code>modules</code></dt>
   <dd>
     <p>
     Optional array of *module* objects each of which configures a
     Devantech DS module by overriding any top-level defaults and/or by
     specifying particular module or channel properties.
     </p>
-    <p>
-    Each *module* object has the following configuration properties.
-    </p>
     <dl>
-      <dt>Module IP address <code>ipAddress</code></dt>
+      <dt>Module</dt>
       <dd>
         <p>
-        Required string specifying the IP address of the module being
-        configured.
-        </p>
-      </dd>
-      <dt>Relay operation command port <code>commandPort</code></dt>
-      <dd>
-        <p>
-        Optional number specifying the port on which this module
-        listens for relay operating commands, overriding
-        <em>defaultCommandPort</em>.
-        This value must match the 'Control port' number specified on
-        the associated DS module's 'Network' configuration page.
-        </p>
-      </dd>
-      <dt>Password for command port access <code>commandPassword</code></dt>
-      <dd>
-        <p>
-        If the DS module was configured with password security, then the
-        configured password may be supplied here, overriding
-        <em>defaultCommandPassword</em>.
-        </p>
-      </dd>
-      <dt>Device id <code>deviceId</code></dt>
-      <dd>
-        <p>
-        Optional identifier of a <em>device</em> configuration (see below)
-        which describes this module's operating protocol.
-        </p>
-        <p>
-        Defaults to 'DS'.
-        </p>
-      </dd>
-      <dt>Description <code>description</code></dt>
-      <dd>
-        <p>
-        Optional text describing the module.
-        </p>
-      </dd>
-      <dt>Channels <code>channels</code></dt>
-      <dd>
-        <p>
-        The channels array property defines the Signal K interface to
-        the relay and switch channels supported by the DS module.
-        Each item in the *channels* array is an object defining a
-        single channel and had the following properties.
-        </p>
-        <dl>
-          <dt>Channel index <code>index</code></dt>
-          <dd>
-            <p>
-            Required string value giving a name which will be used to
-            identify the channel in Signal K.
-            This name <em>must</em> have the form '<em>nT</em>' where
-            <em>n</em> is a decimal channel number in the range 1..
-            and <em>T</em> is either 'R' (to identify a relay output
-            channel) or 'S' (to identify a switch input channel).
-            </p>
-          </dd>
-          <dt>Description <code>description</code></dt>
-          <dd>
-            <p>
-            Optional text describing the channel.
-            </p>
-          </dd>
-        </dl>
-      </dd>
+        Each *module* item in the *modules* array has the following
+        configuration properties.
+      </p>
+      <dl>
+        <dt>IP address <code>ipAddress</code></dt>
+        <dd>
+          <p>
+          Required string specifying the IP address of the module being
+          configured.
+          </p>
+        </dd>
+        <dt>Relay operation command port <code>commandPort</code></dt>
+        <dd>
+          <p>
+          Optional number specifying the port on which this module
+          listens for relay operating commands, overriding
+          <em>defaultCommandPort</em>.
+          This value must match the 'Control port' number specified on
+          the associated DS module's 'Network' configuration page.
+          </p>
+        </dd>
+        <dt>Device id <code>deviceId</code></dt>
+        <dd>
+          <p>
+          Optional identifier of a <em>device</em> configuration (see below)
+          which describes this module's operating protocol.            
+          </p>
+        </dd>
+        <dt>Description <code>description</code></dt>
+        <dd>
+          <p>
+          Optional text describing the module.
+          </p>
+        </dd>
+        <dt>Channels <code>channels</code></dt>
+        <dd>
+          <p>
+          The channels array property defines the Signal K interface to
+          the relay and switch channels supported by the DS module.
+          Each item in the *channels* array is an object defining a
+          single channel and had the following properties.
+          </p>
+          <dl>
+            <dt>Channel</dt>
+            <dd>
+              <p>
+              </p>
+              <dl>
+                <dt>Channel index <code>index</code></dt>
+                <dd>
+                  <p>
+                  Required string value giving a name which will be used to
+                  identify the channel in Signal K.
+                  This name <em>must</em> have the form '<em>nT</em>' where
+                  <em>n</em> is a decimal channel number in the range 1..
+                  and <em>T</em> is either 'R' (to identify a relay output
+                  channel) or 'S' (to identify a switch input channel).
+                  </p>
+                </dd>
+                <dt>Description <code>description</code></dt>
+                <dd>
+                  <p>
+                  Optional text describing the channel.
+                  </p>
+                </dd>
+              </dl>
+            </dd>
+          </dl>
+        </dd>
+      </dl>
     </dl>
   </dd>
 </dl>
+
+#### Example configuration file
+
+My ```devantech.json``` configuration file looks like this.
+
+```
+{
+  "enabled": true,
+  "configuration": {
+
+    "modules": [
+      {
+        "ipAddress": "192.168.1.6",
+        "description": "DS2824 Test Module",
+        "deviceId": "DS2824",
+	"channels": [
+          { "index": "1R", "description": "Test output" },
+          { "index": "1S", "description": "Test input" }
+        ]
+      }
+    ]
+  }
+}
+```
 
 The plugin configuration has the following properties.
 
@@ -359,24 +356,44 @@ making bilge annunciation independent of Signal K.
   "enabled": true,
   "enableDebug": false,
   "configuration": {
-    "metadataPublisher": {
-      "endpoint": "/plugins/metadata/metadata",
-      "method": "POST",
-      "credentials": "username:password"
-    },
     "modules": [
       {
-        "id": "helm-alarm"
         "ipAddress": "192.168.1.6",
-        "commandPort": 17123,
+        "deviceId": "DS2242",
         "description": "DS2242 Helm Alarm Module",
         "channels": [
-          { "index": "r-beacon", "address": 1 },
-          { "index": "r-sounder", "address": 2 },
-          { "index": "s-mc-bilge-float-switch", "address": 1 },
-          { "index": "s-mc-bilge-level-sensor", "address": 2 },
-          { "index": "s-er-bilge-float-switch", "address": 3 },
-          { "index": "s-er-bilge-level-sensor", "address": 4 }
+          { "index": "1R", "description": "Alarm beacon" },
+          { "index": "2R", "description": "Alarm sounder" },
+          { "index": "1S", "description": "ER bilge pump float switch" },
+          { "index": "2S", "description": "ER bilge level sensor" },
+          { "index": "3S", "description": "MC bilge pump float switch" },
+          { "index": "4S", "description": "MC bilge level sensor" }
+        ]
+      }
+    ],
+    "devices": [
+      {
+        "id": "DS",
+        "relays": 32,
+        "switches": 8,
+        "channels": [
+          {
+            "address": 0,
+            "oncommand": "SR {c} ON",
+            "offcommand": "SR {c} OFF"
+          }
+        ]
+      },
+      {
+        "id": "DS2242",
+        "relays": 2,
+        "switches": 4,
+        "channels": [
+          {
+            "address": 0,
+            "oncommand": "SR {c} ON",
+            "offcommand": "SR {c} OFF"
+          }
         ]
       }
     ]
@@ -386,18 +403,18 @@ making bilge annunciation independent of Signal K.
 
 ### Device definitions
 
-A *devices* array property can be included at the top-level of the
-plugin configuration to add relay device definitions to those which are
-pre-defined in the plugin or to override the existing 'DS' definition.
-Each item in the 'devices' array is a *device* definition object which
-describes the physical and interfacing characteristics of a supported
-relay device.
+Each *device* entry in the *devices* array defines the characteristics
+of a DS-series device.
 
-The plugin includes this device definition suitable for DS-series relay
-modules:
+The plugin includes the following definition of a device called 'DS'
+that provides a configuration which will work for all devices in the DS
+range, most-likely at the expense of bloating the Signal K data store
+with 40 switchbank channel paths.
 ```
 {
   "id": "DS",
+  "relays": 32,
+  "switches": 8,
   "channels": [
     {
       "address": 0,
@@ -407,6 +424,12 @@ modules:
   ]
 }
 ```
+Additional devices can be added to the *devices* array which provide
+tighter configuration for specific DS device models by specifying the
+exact number of I/O channels supported by a particular device.
+
+The plugin includes this device definition suitable for DS-series relay
+modules:
 Each device definition has the following properties.
 
 | Property name | Value type | Value default | Description |

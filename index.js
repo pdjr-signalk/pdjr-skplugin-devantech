@@ -28,8 +28,8 @@ const PLUGIN_DESCRIPTION = 'Signal K interface to the Devantech DS range of gene
 const PLUGIN_SCHEMA = {
   "type": "object",
   "properties": {
-    "statusListenerIpFilter": {
-      "title": "IP filter",
+    "clientIpFilter": {
+      "title": "Client IP filter",
       "description": "Regular expression used to authenticate incoming client connections.",
       "type": "string"
     },
@@ -53,11 +53,6 @@ const PLUGIN_SCHEMA = {
       "description": "Remote TCP port to which module operating commands will be directed by default.",
       "type": "number"
     },
-    "defaultCommandPassword": {
-      "title": "Default command password",
-      "description": "",
-      "type": "string"
-    },
     "modules" : {
       "title": "Module configurations",
       "type": "array",
@@ -75,10 +70,6 @@ const PLUGIN_SCHEMA = {
           "commandPort": {
             "title": "Command port",
             "type": "number"
-          },
-          "commandPassword": {
-            "title": "Password for command port access",
-            "type": "string"
           },
           "description": {
             "title": "Module description",
@@ -147,9 +138,9 @@ const PLUGIN_SCHEMA = {
     }
   },
   "default": {
-    "statusListenerIpFilter": "^192\\.168\\.1\\.\\d*$",
+    "clientIpFilter": "^192\\.168\\.1\\.\\d*$",
     "statusListenerPort": 28241,
-    "commandQueueHeartbeat" : 25,
+    "transmitQueueHeartbeat" : 25,
     "defaultDeviceId": "DS2824",
     "defaultCommandPort": 17123,
     "devices": [
@@ -202,10 +193,10 @@ module.exports = function(app) {
     plugin.options.activeModules = {};
 
     try {
-      plugin.options.statusListenerIpFilterRegex = new RegExp(plugin.options.statusListenerIpFilter);
+      plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter);
     } catch(e) {
-      log.N(`using default IP filter '${plugin.schema.properties.statusListenerIpFilter}'`);
-      plugin.options.statusListenerIpFilterRegex = new RegExp(plugin.schema.properties.statusListenerIpFilter);
+      log.N(`using default IP filter '${plugin.schema.properties.clientIpFilter}'`);
+      plugin.options.clientIpFilterRegex = new RegExp(plugin.schema.properties.clientIpFilter);
     }
     
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
@@ -528,7 +519,7 @@ module.exports = function(app) {
        * Only allow connections from configured modules.
        */
       var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-      if (plugin.options.statusListenerIpFilterRegex.test(clientIP)) {
+      if (plugin.options.clientIpFilterRegex.test(clientIP)) {
         // Make/recover an active module
         var module = createActiveModule(clientIP);
 
