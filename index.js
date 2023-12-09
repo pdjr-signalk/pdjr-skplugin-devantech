@@ -20,7 +20,6 @@ const sprintf = require('sprintf-js').sprintf;
 const { networkInterfaces } = require('os');
 
 const Delta = require('signalk-libdelta/Delta.js');
-const HttpInterface = require('signalk-libhttpinterface/HttpInterface.js');
 const Log = require('signalk-liblog/Log.js');
 
 const PLUGIN_ID = 'devantech';
@@ -195,7 +194,7 @@ module.exports = function(app) {
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
 
     try {
-      plugin.options.clientIpFilterRegex = (plugin.ptions.clientIpFilter)?(new RegExp(plugin.options.clientIpFilter)):getPrivateAddressRegExp(getHostIpAddress());
+      plugin.options.clientIpFilterRegex = (plugin.options.clientIpFilter)?(new RegExp(plugin.options.clientIpFilter)):getPrivateAddressRegExp(getHostIpAddress());
       log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
       startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
       transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
