@@ -287,7 +287,7 @@ My ```devantech.json``` configuration file looks like this.
         "ipAddress": "192.168.1.6",
         "description": "DS2824 Test Module",
         "deviceId": "DS2824",
-	"channels": [
+        "channels": [
           { "index": "1R", "description": "Test output" },
           { "index": "1S", "description": "Test input" }
         ]
@@ -408,8 +408,7 @@ of a DS-series device.
 
 The plugin includes the following definition of a device called 'DS'
 that provides a configuration which will work for all devices in the DS
-range, most-likely at the expense of bloating the Signal K data store
-with 40 switchbank channel paths.
+range.
 ```
 {
   "id": "DS",
