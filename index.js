@@ -20,6 +20,7 @@ const sprintf = require('sprintf-js').sprintf;
 const { networkInterfaces } = require('os');
 
 const Delta = require('signalk-libdelta/Delta.js');
+const HttpInterface = require('signalk-libhttpinterface/HttpInterface.js');
 const Log = require('signalk-liblog/Log.js');
 
 const PLUGIN_ID = 'devantech';
