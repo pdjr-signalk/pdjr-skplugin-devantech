@@ -137,16 +137,31 @@ transmitted appropriately.
 
 ### Plugin configuration
 
+As long as DS modules are configured using the expected default values
+discussed above, then no explicit plugin configuration is required and
+use of DS modules can be considered to be a 'plug-and-play' activity.
+
+Typically, users may want to supply at least descriptions for their
+installed modules and the channels they operate.
+
 <dl>
   <dt>Client IP filter <code>clientIpFilter</code></dt>
   <dd>
     <p>
-    Optional string containing a regular expression used to determine
-    if a connection request from a remote client IP should be accepted.
+    String containing a regular expression used to determine if a
+    connection request from a remote client IP hould be accepted.
     </p>
     <p>
-    Defaults to '^192\\.168\\.1\\.\\d*$' which allows connection from
-    all devices on the 192.168.1.0 subnet.
+    This property may (depending on the user's security sensitivity)
+    be optional if the host server is on a private network and
+    otherwise must be specified.
+    </p>
+    <p>
+    On a private network a default regular expression is computed
+    from the host server IP address which will allow connection from
+    any peer on the private network.
+    If you need better security than this, then specify your own, more
+    restrictive, regex.
     </p>
   </dd>
   <dt>Status listener port <code>statusListenerPort</code></dt>
@@ -210,7 +225,7 @@ transmitted appropriately.
           configured.
           </p>
         </dd>
-        <dt>Relay operation command port <code>commandPort</code></dt>
+        <dt>Command port <code>commandPort</code></dt>
         <dd>
           <p>
           Optional number specifying the port on which this module
@@ -224,7 +239,8 @@ transmitted appropriately.
         <dd>
           <p>
           Optional identifier of a <em>device</em> configuration (see below)
-          which describes this module's operating protocol.            
+          which describes this module's operating protocol, overriding
+          <em>defaultDeviceId</em>.
           </p>
         </dd>
         <dt>Description <code>description</code></dt>

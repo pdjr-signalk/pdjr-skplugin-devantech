@@ -203,11 +203,6 @@ module.exports = function(app) {
     }
   }
 
-  /**
-   * Clean uo plugin resources and services by destroying open client
-   * connections, stopping the status listener and stopping the
-   * transmit queue processor. 
-   */
   plugin.stop = function() {
     plugin.options.modules.forEach(module => {
       if (module.listenerConnection) module.listenerConnection.destroy();
@@ -223,6 +218,10 @@ module.exports = function(app) {
 
   plugin.getOpenApi = () => require("./resources/openApi.json");
 
+  /********************************************************************
+   * Return the host's Version 4 IP address, disregarding the localhost
+   * address or throw and exception if the address cannot be retrieved.
+   */
   function getHostIpAddress() {
     const nets = networkInterfaces();
 
@@ -235,6 +234,11 @@ module.exports = function(app) {
     throw new Error("could not get host IP address");
   }
 
+  /********************************************************************
+   * Get a RegExp object that can be used to filter IP addresses to
+   * ensure that they fall within the same private subnet as
+   * <ipAddress> or throw an exception. 
+   */
   function getPrivateAddressRegExp(ipAddress) {
     var parts = ipAddress.split('.').map(n => parseInt(n));
     if (parts.length != 4) throw new Error("invalid IP address");
@@ -373,53 +377,6 @@ module.exports = function(app) {
       }
       delta.commit().clear();
     }
-  }
-
-  /********************************************************************
-   * Handler function triggered by a PUT request on a switch path.
-   * 
-   * The function recovers a command string dictated by path and value
-   * and places this and the passed callback into the module's command
-   * queue returning a PENDING response to Signal K.
-   * 
-   * The PUT handling process will resolve when processCommandQueues() 
-   * actually transmits the command to the target device and the device
-   * confirms action.
-   * 
-   * @param {*} context - not used. 
-   * @param {*} path - path of the switch to be updated.
-   * @param {*} value - requested state (0 or 1).
-   * @param {*} callback - saved for use by processCommandQueues().
-   * @returns PENDING on success, COMPLETED/400 on error.
-   */
-  function relayPutHandler(context, path, value, callback) {
-    app.debug(`relayPutHandler(${context},${path},${value})`);
-    var moduleId, module, channelIndex, channel, relayCommand;
-    var retval = { state: 'COMPLETED', statusCode: 400 };
-    var module = plugin.options.activeModules[getModuleIdFromPath(path)];
-    if (module) {
-      if (module.commandConnection) {
-        var channel = module.channels[getChannelIndexFromPath(path)];
-        if (channel) {
-          relayCommand = ((value)?channel.oncommand:channel.offcommand);
-          module.commandQueue.push({ command: relayCommand, callback: callback });
-          retval = { state: 'PENDING' };
-        }
-      } else {
-        app.debug(`PUT request cannot be actioned (module '${module.ipAddress}' has no open command connection)`);
-      }
-    }
-    return(retval);
-
-    function getModuleIdFromPath(path) {
-      var parts = path.split('.');
-      return((parts.length >= 4)?parts[3]:null);
-    }
-  
-    function getChannelIndexFromPath(path) {
-      var parts = path.split('.');
-      return((parts.length >= 5)?parts[4]:null);
-    }    
   }
 
   /********************************************************************
@@ -577,6 +534,53 @@ module.exports = function(app) {
       }
     }
 
+  }
+
+  /********************************************************************
+   * Handler function triggered by a PUT request on a switch path.
+   * 
+   * The function recovers a command string dictated by path and value
+   * and places this and the passed callback into the module's command
+   * queue returning a PENDING response to Signal K.
+   * 
+   * The PUT handling process will resolve when processCommandQueues() 
+   * actually transmits the command to the target device and the device
+   * confirms action.
+   * 
+   * @param {*} context - not used. 
+   * @param {*} path - path of the switch to be updated.
+   * @param {*} value - requested state (0 or 1).
+   * @param {*} callback - saved for use by processCommandQueues().
+   * @returns PENDING on success, COMPLETED/400 on error.
+   */
+  function relayPutHandler(context, path, value, callback) {
+    app.debug(`relayPutHandler(${context},${path},${value})`);
+    var moduleId, module, channelIndex, channel, relayCommand;
+    var retval = { state: 'COMPLETED', statusCode: 400 };
+    var module = plugin.options.activeModules[getModuleIdFromPath(path)];
+    if (module) {
+      if (module.commandConnection) {
+        var channel = module.channels[getChannelIndexFromPath(path)];
+        if (channel) {
+          relayCommand = ((value)?channel.oncommand:channel.offcommand);
+          module.commandQueue.push({ command: relayCommand, callback: callback });
+          retval = { state: 'PENDING' };
+        }
+      } else {
+        app.debug(`PUT request cannot be actioned (module '${module.ipAddress}' has no open command connection)`);
+      }
+    }
+    return(retval);
+
+    function getModuleIdFromPath(path) {
+      var parts = path.split('.');
+      return((parts.length >= 4)?parts[3]:null);
+    }
+  
+    function getChannelIndexFromPath(path) {
+      var parts = path.split('.');
+      return((parts.length >= 5)?parts[4]:null);
+    }    
   }
 
   /********************************************************************
