@@ -202,6 +202,7 @@ module.exports = function(app) {
         transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
       } else { 
         (new HttpInterface(app.getSelfPath('uuid'))).getServerAddress().then((serverAddress) => {
+          app.debug(`acquired server address ${serverAddress}`);
           if (isPrivate(serverAddress)) {
             const computedIpFilter = `^${serverAddress.split('.')[0]}\\.${serverAddress.split('.')[1]}\\.${serverAddress.split('.')[2]}\\.\\d+$`;
             plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter || computedIpFilter);      
