@@ -201,6 +201,7 @@ module.exports = function(app) {
         startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
         transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
       } else { 
+        app.debug(`uuid ${app.getSelfPath('uuid')}`);
         (new HttpInterface(app.getSelfPath('uuid'))).getServerAddress().then((serverAddress) => {
           app.debug(`acquired server address ${serverAddress}`);
           if (isPrivate(serverAddress)) {
