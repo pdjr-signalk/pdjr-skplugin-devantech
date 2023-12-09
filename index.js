@@ -201,22 +201,18 @@ module.exports = function(app) {
         startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
         transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
       } else { 
-        app.debug(`uuid ${app.getSelfPath('uuid')}`);
-        (new HttpInterface(app.getSelfPath('uuid'))).getServerAddress().then((serverAddress) => {
-          app.debug(`acquired server address ${serverAddress}`);
-          if (isPrivate(serverAddress)) {
-            const computedIpFilter = `^${serverAddress.split('.')[0]}\\.${serverAddress.split('.')[1]}\\.${serverAddress.split('.')[2]}\\.\\d+$`;
-            plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter || computedIpFilter);      
-            log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default}`);
-            startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
-            transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
-          } else {
-            throw new Error("host IP address is public and you have not configured a client IP filter")
-          }
-        }).catch((e) => {
-          throw new Error("host IP address cannot be recovered and you have not configured a client IP filter");
-        });
-      };
+        const serverAddress = getHostIpAddress();
+        console.log(serverAddress);
+        if (serverAddress) {
+          const computedIpFilter = `^${serverAddress.split('.')[0]}\\.${serverAddress.split('.')[1]}\\.${serverAddress.split('.')[2]}\\.\\d+$`;
+          plugin.options.clientIpFilterRegex = new RegExp(computedIpFilter);      
+          log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default}`);
+          startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
+          transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
+        } else {
+          throw new Error("host IP address is public and you have not configured a client IP filter")
+        }
+      }
     } catch(e) {
       log.E(`stopped: ${e.message}`);
     }
@@ -242,7 +238,25 @@ module.exports = function(app) {
 
   plugin.getOpenApi = () => require("./resources/openApi.json");
 
-  function isPrivate(ipAddress) {
+  function getHostIpAddress() {
+    const nets = networkInterfaces();
+
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        const familyV4Value = typeof net.family === 'string' ? 'IPv4' : 4
+        if (net.family === familyV4Value) {
+          if (!net.internal) {
+            if (isPrivateAddress(net.address)) {
+              return(net.address);
+            }
+          }
+        }
+      }
+    }
+    return(undefined);
+  }
+
+  function isPrivateAddress(ipAddress) {
     var parts = ipAddress.split('.').map(n => parseInt(n));
     if (parts.length != 4) return(false);
     if ((parts[0] == 192) && (parts[1] == 168)) return(true);
