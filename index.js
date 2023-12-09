@@ -17,9 +17,9 @@
 const net = require('net');
 const _ = require('lodash');
 const sprintf = require('sprintf-js').sprintf;
+const { networkInterfaces } = require('os');
 
 const Delta = require('signalk-libdelta/Delta.js');
-const HttpInterface = require('signalk-libhttpinterface/HttpInterface.js');
 const Log = require('signalk-liblog/Log.js');
 
 const PLUGIN_ID = 'devantech';
@@ -31,8 +31,7 @@ const PLUGIN_SCHEMA = {
     "clientIpFilter": {
       "title": "Client IP filter",
       "description": "Regular expression used to authenticate incoming client connections.",
-      "type": "string",
-      "default": "^192\\.168\\.1\\.\\d+$"
+      "type": "string"
     },
     "statusListenerPort": {
       "title": "Status listener port",
@@ -194,12 +193,26 @@ module.exports = function(app) {
 
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
 
-    plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter || plugin.schema.properties.clientIpFilter.default);
-      
-    log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
-
-    startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
-    transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
+    try {
+      (new HttpInterface).getServerAddress().then((serverAddress) => {
+        const computedIpFilter = `^${serverAddress.split('.')[0]}\\.${serverAddress.split('.')[1]}\\.${serverAddress.split('.')[2]}\\.\\d+$`;
+        plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter || computedIpFilter);      
+        log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
+        startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
+        transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
+      }).catch((e) => {
+        if (plugin.options.clientIpFilter) {
+          plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter);
+          log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
+          startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
+          transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
+        } else {
+          throw new Error("failed to recover a client IP filter");
+        }
+      });
+    } catch(e) {
+      log.E(`stopped: ${e.message}`);
+    }
   }
 
   /**
