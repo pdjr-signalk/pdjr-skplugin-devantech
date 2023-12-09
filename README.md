@@ -22,7 +22,8 @@ the state of a relay output or a switch input.
 
 The plugin listens on a user-configured TCP port for connections from
 remote DS devices, rejecting connections from devices with IP addresses
-that are excluded by a user-specified filter.
+that are not on the local private network and/or which are excluded by
+a user-specified filter.
 
 When an allowed DS device first connects to the plugin a Signal K
 switchbank path is created and decorated with metadata which
@@ -36,7 +37,8 @@ which incorporates any properties that may have been supplied in the
 plugin configuration.
 A persistent TCP command connection is opened to the remote DS device
 and Signal K relay paths have a handler installed that responds to PUT
-requests by sending operating commands to the remote DS device.
+requests by sending operating commands over this connection to the
+remote DS device.
 
 This operating strategy is resilient to network outage and (subject
 to specification of an appropriate IP address filter) allows
@@ -61,7 +63,7 @@ Make the following configuration settings under each dashboard tab.
   <dd>
     <p>
     Assign the DS device a static IP address on your LAN (recommended)
-    or use DHCP ideally with a fixed IP address allocation.
+    or use DHCP with a fixed IP address allocation.
     </p>
   </dd>
   <dt>TCP/IP</dt>
@@ -94,8 +96,9 @@ Make the following configuration settings under each dashboard tab.
     'Triggers' should be set to monitor events on the switch inputs and
     relay outputs supported by the DS device and also the virtual relay
     R32.
-    For a four-relay DS device the trigger value will be
-    ```{D1|D2|D3|D4|D5|D6|D7|D8|R1|R2|R3|R4|R32}```.
+    The DS2242 device has two switch inputs and four-relay outputs and
+    would be configured as:
+    ```{D1|D2|R1|R2|R3|R4|R32}```.
     </p>
     <p>
     'Target IP' should be set to the IP address of the Signal K host.
