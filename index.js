@@ -195,7 +195,7 @@ module.exports = function(app) {
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
 
     try {
-      (new HttpInterface).getServerAddress().then((serverAddress) => {
+      (new HttpInterface(app.getSelfPath('uuid'))).getServerAddress().then((serverAddress) => {
         console.log(`>>>>>> ${serverAddress}`);
         const computedIpFilter = `^${serverAddress.split('.')[0]}\\.${serverAddress.split('.')[1]}\\.${serverAddress.split('.')[2]}\\.\\d+$`;
         plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter || computedIpFilter);      
