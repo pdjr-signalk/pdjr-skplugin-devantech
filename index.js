@@ -196,10 +196,9 @@ module.exports = function(app) {
 
     try {
       (new HttpInterface(app.getSelfPath('uuid'))).getServerAddress().then((serverAddress) => {
-        console.log(`>>>>>> ${serverAddress}`);
         const computedIpFilter = `^${serverAddress.split('.')[0]}\\.${serverAddress.split('.')[1]}\\.${serverAddress.split('.')[2]}\\.\\d+$`;
         plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter || computedIpFilter);      
-        log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
+        log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default}`);
         startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
         transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
       }).catch((e) => {
