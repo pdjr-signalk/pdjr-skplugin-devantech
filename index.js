@@ -32,7 +32,7 @@ const PLUGIN_SCHEMA = {
       "title": "Client IP filter",
       "description": "Regular expression used to authenticate incoming client connections.",
       "type": "string",
-      "default": "^\\192\\.168\\.1\\.\\d+$"
+      "default": "^192\\.168\\.1\\.\\d+$"
     },
     "statusListenerPort": {
       "title": "Status listener port",
@@ -528,7 +528,7 @@ module.exports = function(app) {
           openCommandConnection(module);
         }
       } catch(e) {
-        log.W(`status listener: rejecting connection (${e})`, false);
+        log.W(`status listener: rejecting connection (${e.message})`, false);
         client.destroy();
       }
     });
