@@ -195,22 +195,26 @@ module.exports = function(app) {
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
 
     try {
-      (new HttpInterface(app.getSelfPath('uuid'))).getServerAddress().then((serverAddress) => {
-        const computedIpFilter = `^${serverAddress.split('.')[0]}\\.${serverAddress.split('.')[1]}\\.${serverAddress.split('.')[2]}\\.\\d+$`;
-        plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter || computedIpFilter);      
-        log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default}`);
+      if (plugin.options.clientIpFilter) {
+        plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter);
+        log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
         startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
         transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
-      }).catch((e) => {
-        if (plugin.options.clientIpFilter) {
-          plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter);
-          log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
-          startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
-          transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
-        } else {
-          throw new Error("failed to recover a client IP filter");
-        }
-      });
+      } else { 
+        (new HttpInterface(app.getSelfPath('uuid'))).getServerAddress().then((serverAddress) => {
+          if (isPrivate(serverAddress)) {
+            const computedIpFilter = `^${serverAddress.split('.')[0]}\\.${serverAddress.split('.')[1]}\\.${serverAddress.split('.')[2]}\\.\\d+$`;
+            plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter || computedIpFilter);      
+            log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default}`);
+            startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
+            transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
+          } else {
+            throw new Error("host IP address is public and you have not configured a client IP filter")
+          }
+        }).catch((e) => {
+          throw new Error("host IP address cannot be recovered and you have not configured a client IP filter");
+        });
+      };
     } catch(e) {
       log.E(`stopped: ${e.message}`);
     }
@@ -235,6 +239,15 @@ module.exports = function(app) {
   }
 
   plugin.getOpenApi = () => require("./resources/openApi.json");
+
+  function isPrivate(ipAddress) {
+    var parts = ipAddress.split('.').map(n => parseInt(n));
+    if (parts.length != 4) return(false);
+    if ((parts[0] == 192) && (parts[1] == 168)) return(true);
+    if ((parts[0] == 172) && (parts[1] >= 16) && (parts[1] <= 31)) return(true);
+    if (parts[0] == 10) return(true);
+    return(false);
+  }
 
   /********************************************************************
    * If the plugin.options.activeModules dictionary does not contain a
