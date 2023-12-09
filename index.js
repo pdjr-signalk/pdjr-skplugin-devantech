@@ -195,6 +195,7 @@ module.exports = function(app) {
 
     try {
       (new HttpInterface).getServerAddress().then((serverAddress) => {
+        console.log(`>>>>>> ${serverAddress}`);
         const computedIpFilter = `^${serverAddress.split('.')[0]}\\.${serverAddress.split('.')[1]}\\.${serverAddress.split('.')[2]}\\.\\d+$`;
         plugin.options.clientIpFilterRegex = new RegExp(plugin.options.clientIpFilter || computedIpFilter);      
         log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort}`);
