@@ -189,7 +189,7 @@ module.exports = function(app) {
   plugin.uiSchema = PLUGIN_UISCHEMA;
 
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
-  const httpInterface = new HttpInterface(self.uuid);
+  const httpInterface = new HttpInterface(app.getSelfPath('uuid'));
 
   var statusListener = null;
   var transmitQueueTimer = null;
