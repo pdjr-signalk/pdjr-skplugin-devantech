@@ -197,7 +197,7 @@ module.exports = function(app) {
     _.merge(plugin.options, options);
     plugin.options.activeModules = {};
 
-    console.log(JSON.stringify(app, null, 2));
+    console.log(app.port);
 
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
 
