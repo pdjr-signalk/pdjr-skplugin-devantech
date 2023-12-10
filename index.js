@@ -198,7 +198,7 @@ module.exports = function(app) {
     plugin.options.activeModules = {};
 
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
-    console.log(process.env.PORT);
+    console.log(JSON.stringify(process.env, null, 2));
 
     try {
       plugin.options.clientIpFilterRegex = (plugin.options.clientIpFilter)?(new RegExp(plugin.options.clientIpFilter)):getPrivateAddressRegExp(getHostIpAddress());
@@ -231,7 +231,6 @@ module.exports = function(app) {
    */
   function getHostIpAddress() {
     const nets = networkInterfaces();
-    console.log(JSON.stringify(nets, null, 2));
 
     for (const name of Object.keys(nets)) {
       for (const net of nets[name]) {
