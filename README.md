@@ -7,7 +7,7 @@ DS general-purpose relay modules.
 ## Description
 
 **pdjr-skplugin-devantech** implements an interface to Devantech DS
-series Ethernet relay devices.
+range of Ethernet relay devices.
 
 DS devices provide a mix of general purpose analogue and digital I/O
 and relay output channels: the number and type of channels varies

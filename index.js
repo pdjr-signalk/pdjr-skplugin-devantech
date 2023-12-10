@@ -227,36 +227,6 @@ module.exports = function(app) {
   plugin.getOpenApi = () => require("./resources/openApi.json");
 
   /********************************************************************
-   * Return the host's Version 4 IP address, disregarding the localhost
-   * address or throw and exception if the address cannot be retrieved.
-   */
-  function getHostIpAddress() {
-    const nets = networkInterfaces();
-
-    for (const name of Object.keys(nets)) {
-      for (const net of nets[name]) {
-        const familyV4Value = typeof net.family === 'string' ? 'IPv4' : 4
-        if ((net.family === familyV4Value) && (!net.internal)) return(net.address);
-      }
-    }
-    throw new Error("could not get host IP address");
-  }
-
-  /********************************************************************
-   * Get a RegExp object that can be used to filter IP addresses to
-   * ensure that they fall within the same private subnet as
-   * <ipAddress> or throw an exception. 
-   */
-  function getPrivateAddressRegExp(ipAddress) {
-    var parts = ipAddress.split('.').map(n => parseInt(n));
-    if (parts.length != 4) throw new Error("invalid IP address");
-    if ((parts[0] == 192) && (parts[1] == 168)) return(new RegExp('^192\\.168\\.\\d+\\.\\d+$'));
-    if ((parts[0] == 172) && (parts[1] >= 16) && (parts[1] <= 31)) return(new RegExp('^172\\.16\\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31)\\.\\d+\\.\\d+$'));
-    if (parts[0] == 10) return(new RegExp('^10\\.\\d+\\.\\d+\\.\\d+$'));
-    throw new Error("IP address is public");
-  }
-
-  /********************************************************************
    * If the plugin.options.activeModules dictionary does not contain a
    * property for ipAddress then:
    * 
