@@ -20,6 +20,7 @@ const sprintf = require('sprintf-js').sprintf;
 const { networkInterfaces } = require('os');
 
 const Delta = require('signalk-libdelta/Delta.js');
+const HttpInterface = require('signalk-libhttpinterface/HttpInterface.js');
 const Log = require('signalk-liblog/Log.js');
 
 const PLUGIN_ID = 'devantech';
@@ -188,6 +189,7 @@ module.exports = function(app) {
   plugin.uiSchema = PLUGIN_UISCHEMA;
 
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
+  const httpInterface = new HttpInterface(self.uuid);
 
   var statusListener = null;
   var transmitQueueTimer = null;
@@ -197,12 +199,10 @@ module.exports = function(app) {
     _.merge(plugin.options, options);
     plugin.options.activeModules = {};
 
-    console.log(app.portNumber);
-
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
 
     try {
-      plugin.options.clientIpFilterRegex = (plugin.options.clientIpFilter)?(new RegExp(plugin.options.clientIpFilter)):getPrivateAddressRegExp(getHostIpAddress());
+      plugin.options.clientIpFilterRegex = (plugin.options.clientIpFilter)?(new RegExp(plugin.options.clientIpFilter)):httpInterface.getPrivateAddressRegExp(httpInterface.getHostIpAddress());
       log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default}`);
       startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
       transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
