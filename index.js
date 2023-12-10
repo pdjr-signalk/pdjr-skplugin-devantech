@@ -201,7 +201,6 @@ module.exports = function(app) {
 
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
 
-    
     try {
       plugin.options.clientIpFilterRegex = (plugin.options.clientIpFilter)?(new RegExp(plugin.options.clientIpFilter)):httpInterface.getPrivateAddressRegExp(httpInterface.getHostIpAddress());
       log.N(`listening for DS module connections on ${httpInterface.getHostIpAddress()}:${plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default}`);
