@@ -292,28 +292,82 @@ installed modules and the channels they operate.
   </dd>
 </dl>
 
-#### Example configuration file
+#### Some example configuration files
 
-My ```devantech.json``` configuration file looks like this.
-
+##### 1. The absolute minimum
 ```
 {
   "enabled": true,
   "configuration": {
-
-    "modules": [
+    "devices": [
       {
-        "ipAddress": "192.168.1.6",
-        "description": "DS2824 Test Module",
-        "deviceId": "DS2824",
+        "id": "DS",
+        "relays": 32,
+        "switches": 8,
         "channels": [
-          { "index": "1R", "description": "Test output" },
-          { "index": "1S", "description": "Test input" }
+          {
+            "address": 0,
+            "oncommand": "SR {c} ON",
+            "offcommand": "SR {c} OFF"
+          }
         ]
       }
     ]
   }
 }
+```
+##### 2. A simple configuratio
+My ```devantech.json``` configuration file looks like this.
+
+```
+{
+  "enabled": true,
+  "enableDebug": false,
+  "configuration": {
+    "modules": [
+      {
+        "ipAddress": "192.168.1.6",
+        "deviceId": "DS2242",
+        "description": "DS2242 Helm Alarm Module",
+        "channels": [
+          { "index": "1R", "description": "Alarm beacon" },
+          { "index": "2R", "description": "Alarm sounder" },
+          { "index": "1S", "description": "ER bilge pump float switch" },
+          { "index": "2S", "description": "ER bilge level sensor" },
+          { "index": "3S", "description": "MC bilge pump float switch" },
+          { "index": "4S", "description": "MC bilge level sensor" }
+        ]
+      }
+    ],
+    "devices": [
+      {
+        "id": "DS",
+        "relays": 32,
+        "switches": 8,
+        "channels": [
+          {
+            "address": 0,
+            "oncommand": "SR {c} ON",
+            "offcommand": "SR {c} OFF"
+          }
+        ]
+      },
+      {
+        "id": "DS2242",
+        "relays": 2,
+        "switches": 4,
+        "channels": [
+          {
+            "address": 0,
+            "oncommand": "SR {c} ON",
+            "offcommand": "SR {c} OFF"
+          }
+        ]
+      }
+    ]
+  }
+}
+
 ```
 
 The plugin configuration has the following properties.
