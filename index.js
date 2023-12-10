@@ -197,8 +197,9 @@ module.exports = function(app) {
     _.merge(plugin.options, options);
     plugin.options.activeModules = {};
 
+    console.log(JSON.stringify(app, null, 2));
+
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
-    console.log(JSON.stringify(process.env, null, 2));
 
     try {
       plugin.options.clientIpFilterRegex = (plugin.options.clientIpFilter)?(new RegExp(plugin.options.clientIpFilter)):getPrivateAddressRegExp(getHostIpAddress());
