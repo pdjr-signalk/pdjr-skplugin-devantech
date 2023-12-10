@@ -230,6 +230,7 @@ module.exports = function(app) {
    */
   function getHostIpAddress() {
     const nets = networkInterfaces();
+    console.log(JSON.stringify(nets, null, 2));
 
     for (const name of Object.keys(nets)) {
       for (const net of nets[name]) {
