@@ -125,26 +125,26 @@ const PLUGIN_SCHEMA = {
           },
           "channels" : {
             "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "address": {
-                    "title": "Relay channel address/index",
-                    "type": "number"
-                  },
-                  "oncommand": {
-                    "title": "ON command",
-                    "type": "string"
-                  },
-                  "offcommand": {
-                    "title": "OFF command",
-                    "type": "string"
-                  }
+            "items": {
+              "type": "object",
+              "properties": {
+                "address": {
+                  "title": "Relay channel address/index",
+                  "type": "number"
+                },
+                "oncommand": {
+                  "title": "ON command",
+                  "type": "string"
+                },
+                "offcommand": {
+                  "title": "OFF command",
+                  "type": "string"
                 }
               }
             }
           } 
         }
+      }
     }
   },
   "default": {
@@ -198,6 +198,7 @@ module.exports = function(app) {
     plugin.options.activeModules = {};
 
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
+    console.log(process.env.port);
 
     try {
       plugin.options.clientIpFilterRegex = (plugin.options.clientIpFilter)?(new RegExp(plugin.options.clientIpFilter)):getPrivateAddressRegExp(getHostIpAddress());
