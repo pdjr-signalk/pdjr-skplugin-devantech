@@ -203,7 +203,7 @@ module.exports = function(app) {
 
     try {
       plugin.options.clientIpFilterRegex = (plugin.options.clientIpFilter)?(new RegExp(plugin.options.clientIpFilter)):httpInterface.getPrivateAddressRegExp(httpInterface.getHostIpAddress());
-      log.N(`listening for DS module connections on port ${plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default}`);
+      log.N(`listening for DS module connections on ${httpInterface.getHostIpAddress()}:${plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default}`);
       startStatusListener(plugin.options.statusListenerPort || plugin.schema.properties.statusListenerPort.default);
       transmitQueueTimer = setInterval(processCommandQueues, plugin.options.transmitQueueHeartbeat || plugin.schema.properties.transmitQueueHeartbeat);
     } catch(e) {
