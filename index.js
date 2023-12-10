@@ -64,19 +64,23 @@ const PLUGIN_SCHEMA = {
         "type": "object",
         "properties": {
           "ipAddress": {
-            "title": "Module IP address",
+            "title": "IP address",
+            "description": "IP address of the module to which this configuration applies.",
             "type": "string"
           },
           "deviceId": {
             "title": "Device ID",
+            "description": "ID of the type of the remote device (overrides any default).",
             "type": "string"
           },
           "commandPort": {
             "title": "Command port",
+            "description": "Command port on the remote device (overrides any default).",
             "type": "number"
           },
           "description": {
-            "title": "Module description",
+            "title": "Description",
+            "description": "Description of this module.",
             "type": "string"
           },
           "channels": {
@@ -85,11 +89,13 @@ const PLUGIN_SCHEMA = {
               "type": "object",
               "properties": {
                 "index": {
-                  "title": "Signal K channel index",
+                  "title": "Index",
+                  "description": "Signal K channel index to which this configuration applies.",
                   "type": "string"
                 },
                 "description": {
-                  "title": "Channel description",
+                  "title": "Description",
+                  "description": "Description of this channel.",
                   "type": "string"
                 }
               }
