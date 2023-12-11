@@ -311,6 +311,9 @@ The full range of configuration properties is described below.
           <dt>Channels <code>channels</code></dt>
           <dd>
             <p>
+            Required array of 1 or more <em>channel</em> objects each
+            of which supplies the operating commands for a particular
+            or generic relay output.
             <dl>
               <dt>Channel</dt>
               <dd>
@@ -318,12 +321,32 @@ The full range of configuration properties is described below.
                 <dl>
                   <dt>Address <code>address</code></dt>
                   <dd>
+                    <p>
+                    Required number giving the address of the relay
+                    channel being configured (in the range
+                    1..<em>relays</em>) or 0 if <em>channel</em>
+                    defines a global/generic configuration.
+                    </p>
                   </dd>
                   <dt>ON command <code>oncommand</code></dt>
                   <dd>
+                    <p>
+                    Required string supplying the ASCII string that is
+                    required to switch this channel on.
+                    If this is a generic command then the token '{c}'
+                    can be used to indicate where in the command a 
+                    specific channel number should be interpolated.
+                    </p>
                   </dd>
                   <dt>OFF command <code>offcommand</code></dt>
                   <dd>
+                    <p>
+                    Required string supplying the ASCII string that is
+                    required to switch this channel off.
+                    If this is a generic command then the token '{c}'
+                    can be used to indicate where in the command a 
+                    specific channel number should be interpolated.
+                    </p>
                   </dd>
                 </dl>
                 </p>
