@@ -282,17 +282,33 @@ The full range of configuration properties is described below.
   <dt>Devices <code>devices</code></dt>
   <dd>
     <p>
+    Required array of <em>device</em> objects each of which defines
+    the size of a specific DS device and the commands required to
+    operate its relay outputs.
+    </p>
+    <p>
+    The plugin includes an embedded definition for a generic device
+    called 'DS' supporting a maximum of eight I/O and 32 relay channels
+    and which is compatible with all available DS series devices.
+    </p>
+    <p> 
+    The *devices* array can be used to add additional <em>device</em>
+    entries which provide tighter configurations for specific DS
+    devices by specifying the exact number of supported I/O and relay
+    channels.
+    </p>
     <dl>
       <dt>Device</dt>
       <dd>
         <p>
+        Characteristics of a single DS device.
         <dl>
           <dt>Device ID <code>id</code></dt>
           <dd>
             <p>
             Required string value giving an dentifier for this
-            definition - typically this should be the model number
-            assigned by the device manufacturer.
+            device definition - typically this should be the model
+            number assigned by the device manufacturer.
           </dd>
           <dt>Inputs <code>inputs</code></dt>
           <dd>
@@ -362,58 +378,7 @@ The full range of configuration properties is described below.
   </dd>
 </dl>
 
-  "id": "DS",
-  "relays": 32,
-  "switches": 8,
-  "channels": [
-    {
-      "address": 0,
-      "oncommand": "SR {c} ON",
-      "offcommand": "SR {c} OFF"
-    }
-  ]
-}
-```
-Additional devices can be added to the *devices* array which provide
-tighter configuration for specific DS device models by specifying the
-exact number of I/O channels supported by a particular device.
-
-The plugin includes this device definition suitable for DS-series relay
-modules:
-Each device definition has the following properties.
-
-| Property name | Value type | Value default | Description |
-| :------------ | :--------- | :------------ | :---------- |
-| id            | String     | (none)        |  |
-| channels      | Array      | (none)        | Array of *channel* definitions each of which specifies the commands required to operate a particular relay on the device being defined. |
-
-Relays are identified by an ordinal *address* in the range 1..[size] and
-each channel can be defined explicitly, but if there is a common format
-for commands that applies to all channels, then a pattern can be defined
-for a fake channel with address 0 that will be elaborated for each of the
-real channels on the device.
-
-Each channel definition has the following properties.
-
-| Property name | Value type | Value default | Description |
-| :------------ | ---------- | :------------ | :---------- |
-| address       | Number     | (none)        | Physical address of the relay that is being defined (or 0 for a generic definition). |
-| oncommand     | String     | (none)        | Command that should be transmitted to the device to turn relay ON. |
-| offcommand    | String     | (none)        | Command that should be transmitted to the device to turn relay OFF. |
-
-Both *oncommand* and *offcommand* can contain embedded JSON escape
-sequences.
-Additionally, the following wildcard tokens will be substituted
-with appropriate values before string transmission.
-
-| Token | Replacement value |
-| :---- | :---------------- |
-| {c}   | The ASCII encoded address of the channel being processed. |
-| {C}   | The binary encoded address of the channel being processed. |
-
-#### Some example configuration files
-
-##### 1. The absolute minimum
+The module includes the following embedded configuration.
 ```
 {
   "enabled": true,
@@ -435,9 +400,8 @@ with appropriate values before string transmission.
   }
 }
 ```
-##### 2. A simple configuratio
-My ```devantech.json``` configuration file looks like this.
-
+On my ship I use a small DS device as an alarm annunciator and
+configure this in the following way.
 ```
 {
   "enabled": true,
@@ -460,88 +424,6 @@ My ```devantech.json``` configuration file looks like this.
     ],
     "devices": [
       {
-        "id": "DS",
-        "relays": 32,
-        "switches": 8,
-        "channels": [
-          {
-            "address": 0,
-            "oncommand": "SR {c} ON",
-            "offcommand": "SR {c} OFF"
-          }
-        ]
-      },
-      {
-        "id": "DS2242",
-        "relays": 2,
-        "switches": 4,
-        "channels": [
-          {
-            "address": 0,
-            "oncommand": "SR {c} ON",
-            "offcommand": "SR {c} OFF"
-          }
-        ]
-      }
-    ]
-  }
-}
-
-```
-
-
-
-### Example configuration
-
-I use a
-[DS2242](https://www.robot-electronics.co.uk/ds2242.html)
-(four digital inputs, two relay outputs) as an alarm annunciator at my
-ship's helm.
-
-The module's relays operate an LED beacon and a piezo-electric sounder
-and are used by an alarm manager plugin in Signal K.
-Float switch and level sensor signals from my two bilge installations
-are connected to the DS2242 inputs making their states available in
-Signal K.
-
-With some tweaking of the DS2242's 'Pulse/Follow' configuration I allow
-the bilge sensor inputs to directly drive the module's relay outputs,
-making bilge annunciation independent of Signal K.
-
-```
-{
-  "enabled": true,
-  "enableDebug": false,
-  "configuration": {
-    "modules": [
-      {
-        "ipAddress": "192.168.1.6",
-        "deviceId": "DS2242",
-        "description": "DS2242 Helm Alarm Module",
-        "channels": [
-          { "index": "1R", "description": "Alarm beacon" },
-          { "index": "2R", "description": "Alarm sounder" },
-          { "index": "1S", "description": "ER bilge pump float switch" },
-          { "index": "2S", "description": "ER bilge level sensor" },
-          { "index": "3S", "description": "MC bilge pump float switch" },
-          { "index": "4S", "description": "MC bilge level sensor" }
-        ]
-      }
-    ],
-    "devices": [
-      {
-        "id": "DS",
-        "relays": 32,
-        "switches": 8,
-        "channels": [
-          {
-            "address": 0,
-            "oncommand": "SR {c} ON",
-            "offcommand": "SR {c} OFF"
-          }
-        ]
-      },
-      {
         "id": "DS2242",
         "relays": 2,
         "switches": 4,
@@ -557,24 +439,13 @@ making bilge annunciation independent of Signal K.
   }
 }
 ```
-
-### Device definitions
-
-Each *device* entry in the *devices* array defines the characteristics
-of a DS-series device.
-
-The plugin includes the following definition of a device called 'DS'
-that provides a configuration which will work for all devices in the DS
-range.
-```
-{
 
 ## Operation
 
-The plugin listens on a user-configured TCP port for connections from
+The plugin listens on the configured TCP port for connections from
 remote DS devices, rejecting connections from devices with IP addresses
 that are not on the local private network and/or which are excluded by
-a user-specified filter.
+the user-configured filter.
 
 When an allowed DS device first connects to the plugin a Signal K
 switchbank path is created and decorated with metadata which
@@ -586,14 +457,11 @@ in the creation of a collection of Signal K switch paths for the
 associated module and the decoration of these paths with metadata
 which incorporates any properties that may have been supplied in the
 plugin configuration.
+
 A persistent TCP command connection is opened to the remote DS device
 and Signal K relay paths have a handler installed that responds to PUT
 requests by sending operating commands over this connection to the
 remote DS device.
-
-
-The plugin will start immediately it is installed but must be configured
-with at least one 'module' definition before it can do something useful.
 
 ## Author
 
