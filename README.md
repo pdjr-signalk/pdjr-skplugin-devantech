@@ -6,12 +6,19 @@ DS general-purpose relay modules.
 
 ## Description
 
-**pdjr-skplugin-devantech** implements an interface to Devantech DS
-range of Ethernet relay devices.
+**pdjr-skplugin-devantech** implements an operating interface for
+the DS range of Ethernet relay devices manufactured by Devantech.
+The plugin maintains Signal K switchbank keys for connected DS devices,
+updating state information and allowing operation of relays on the
+remote device.
+Typically such devices will be installed on the local network, but
+it is a simple matter to connect to a remote device located elsewhere
+on the Internet.
 
-DS devices provide a mix of general purpose analogue and digital I/O
-and relay output channels: the number and type of channels varies
-across the product range.
+Once a DS device has been appropriately configured (see below) it will
+automatically connect to the plugin and become available within Signal
+K.
+Configuration of the plugin is not required, but may be desirable.
 
 The plugin represents DS module channel states as a Signal K path
 of the form 'electrical.switches.bank.*address*.*index**type*.state'.
