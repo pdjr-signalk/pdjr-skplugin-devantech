@@ -8,130 +8,112 @@ DS general-purpose relay modules.
 
 **pdjr-skplugin-devantech** implements an operating interface for
 the DS range of Ethernet relay devices manufactured by Devantech.
-The plugin maintains Signal K switchbank keys for connected DS devices,
-updating state information and allowing operation of relays on the
-remote device.
-Typically such devices will be installed on the local network, but
-it is a simple matter to connect to a remote device located elsewhere
-on the Internet.
+An interfaced DS device presents as a Signal K switchbank with
+subordinate keys indiating the state of the device's I/O and relay
+channels.
+Relays on the remote device are operated by PUT requests on an
+interfaced relay channel.
 
-Once a DS device has been appropriately configured (see below) it will
-automatically connect to the plugin and become available within Signal
-K.
-Configuration of the plugin is not required, but may be desirable.
+Typically DS devices used by Signal K will be installed on the local
+network, but it is a simple matter to interface a remote DS device
+located elsewhere on the Internet.
 
-The plugin represents DS module channel states as a Signal K path
-of the form 'electrical.switches.bank.*address*.*index**type*.state'.
-Where *address* is a representation of a DS module's IP address;
-*index* is the ordinal number of a channel on the DS module and
-*type* is either 'R' or 'S' to indicate whether the path represents
-the state of a relay output or a switch input.
-
-The plugin listens on a user-configured TCP port for connections from
-remote DS devices, rejecting connections from devices with IP addresses
-that are not on the local private network and/or which are excluded by
-a user-specified filter.
-
-When an allowed DS device first connects to the plugin a Signal K
-switchbank path is created and decorated with metadata which
-incorporates any properties that may have been supplied in the plugin
-configuration.
-
-Subsequently, the first status update received from a module results
-in the creation of a collection of Signal K switch paths for the
-associated module and the decoration of these paths with metadata
-which incorporates any properties that may have been supplied in the
-plugin configuration.
-A persistent TCP command connection is opened to the remote DS device
-and Signal K relay paths have a handler installed that responds to PUT
-requests by sending operating commands over this connection to the
-remote DS device.
+DS devices require some trivial initial configuration to make them
+usable by the plugin but afterwards will automatically interface
+with Signal K as soon as they appear on the host LAN.
+Configuration of the plugin is not required, but may be desirable
+for the purposes of documentation or specialisation.
 
 This operating strategy is resilient to network outage and (subject
-to specification of an appropriate IP address filter) allows
-*ad-hoc* connection of DS devices to a live system without further
-operator intervention.
+to the presence of an appropriate IP address filter) allows *ad-hoc*
+connection of DS devices to a live system without further operator
+intervention.
 
 The plugin exposes an
 [HTTP API](https://pdjr-signalk.github.io/pdjr-skplugin-devantech/)
 and contributes documentation of this interface to the Signal K
 OpenAPI service.
 
-## Configuration
+## Configuring a DS module for use with this plugin
 
-### Preparing a DS module for use with this plugin
-
-Refer to the DS device user manual for information on how to install
-the device and access its configuration dashboard.
-Make the following configuration settings under each dashboard tab.
-
+Refer to the DS device user manual for information on how to access a
+device's configuration dashboard and then make the following settings
+under each indicated dashboard tab.
 <dl>
   <dt>Network</dt>
   <dd>
     <p>
-    Assign the DS device a static IP address on your LAN (recommended)
-    or use DHCP with a fixed IP address allocation.
+    <ul>
+      <li>Uncheck 'Enable DHCP';</li>
+      <li>Assign the DS device a static IP address and configure other network properties to suit your LAN.</li>
+    </ul>
     </p>
   </dd>
   <dt>TCP/IP</dt>
   <dd>
     <p>
-    Check 'ASCII'.
-    Set 'TCP/IPPort' to 17123.
+    <uL>
+      <li>Check 'ASCII';</li>
+      <li>Set 'TCP/IP Port' to 17123.</li>
+    </ul>
     </p>  
   <dt>Relays</dt>
   <dd>
     <p>
-    Set 'Relay Name' if you wish.
-    Set 'Pulse/Follow' to ```0```.
-    Set 'Power-up Restore' to suit your needs.
-    Set all other fields to blank.
+    For relays 1 to 31:
+    <ul>
+      <li>Set 'Relay Name' if you wish;</li>
+      <li>Set 'Pulse/Follow' to ```0```;</li>
+      <li>Uncheck 'Power-up Restore';</li>
+      <li>Set all other fields to blank.</li>
+    </ul>
     </p>
+    For relay 32:
+    <ul>
+      <li>Set 'Relay Name' if you wish;</li>
+      <li>Set 'Pulse/Follow' to ```C1>4```;</li>
+      <li>Uncheck 'Power-up Restore';</li>
+      <li>Set all other fields to blank.</li>
+    </ul>
+    <p>
   </dd>
   <dt>Input/Output</dt>
   <dd>
     <p>
     For all I/O channels.
-    Set 'Name' if you wish.
-    Set 'Type' to ```Digital With Pullup```.
-    Set 'Attached Relay Number' to ```None```.
+    <ul>
+      <li>Set 'Name' if you wish;</li>
+      <li>Set 'Type' to ```Digital With Pullup```;</li>
+      <li>Set 'Attached Relay Number' to ```None```.</li>
+    </ul>
+    </p>
+  </dd>
+  <dt>Counter/Timer</dt>
+  <dd>
+    <p>
+    Select 'Counter No.' ```1```, and:
+    <ul>
+      <li>Set 'Counter Name' to ```Ctr1``` or whatever;</li>
+      <li>Set 'Counter Input' to ```T1```;</li>
+      <li>Set 'Capture Input' to blank;</li>
+      <li>Set 'Reset Input" to ```C1>9```.</li>
+    </ul>
     </p>
   </dd>
   <dt>Event Notifications</dt>
   <dd>
     <p>
-    'Triggers' should be set to monitor events on the switch inputs and
-    relay outputs supported by the DS device and also the virtual relay
-    R32.
-    The DS2242 device has two switch inputs and four-relay outputs and
-    would be configured as:
-    ```{D1|D2|R1|R2|R3|R4|R32}```.
-    </p>
-    <p>
-    'Target IP' should be set to the IP address of the Signal K host.
-    </p>
-    <p>
-    'Target Port' should be set to some preferred value and, if you
-    have more than one DS device then the same value should be used
-    on all devices.
-    Make sure any firewalls in your environment do not block your 
-    chosen port.
-    </p>
-    <p>
-    'TCP/IP Timeout' should be set to 100.
-    </p>
-  </dd>
-  <dt>Timers</dt>
-  <dd>
-    <p>
-    Select 'Counter No.' 1 and set 'Counter Input' to ```T1``` and
-    'Reset Input' to ```C1>9```.
-    </p>
-  </dd>
-  <dt>Relays</dt>
-  <dd>
-    <p>
-    Select 'Relay No' 32 and set 'Pulse/Follow' to ```C1>4```.
+    <ul>
+      <li>Set 'Event Triggers' to monitor the physical switch inputs
+      and relay outputs supported by the DS device and also the virtual
+      relay R32. For example, The DS2242 device has two switch inputs
+      and four-relay outputs and would be configured as
+      ```{D1|D2|R1|R2|R3|R4|R32}```.</li>
+      <li>Set 'Target IP' to the IP address of the Signal K host.</li>
+      <li>Set 'Target Port' t0 28241.</li>
+      <li>Set 'TCP/IP Timeout' to 100.</li>
+      <li>Uncheck 'Timestamp'.
+    </ul>
     </p>
   </dd>
 </dl>
@@ -142,17 +124,17 @@ device changes state.
 Virtual relay R32 undergoes a state change every five seconds ensuring
 a regular 'heartbeat' status update.
 
-In Linux you can use ```nc``` to confirm status messages are being
-transmitted appropriately.
-
-### Plugin configuration
+## Plugin configuration
 
 As long as DS modules are configured using the expected default values
 discussed above, then no explicit plugin configuration is required and
 use of DS modules can be considered to be a 'plug-and-play' activity.
 
-Typically, users may want to supply at least descriptions for their
-installed modules and the channels they operate.
+Typically, users may want to supply a *modules* configuration which
+includes *description* properties for installed modules and the
+channels that they operate.
+
+The full range of configuration properties is described below.
 
 <dl>
   <dt>Client IP filter <code>clientIpFilter</code></dt>
@@ -297,7 +279,114 @@ installed modules and the channels they operate.
       </dl>
     </dl>
   </dd>
+  <dt>Devices <code>devices</code></dt>
+  <dd>
+    <p>
+    <dl>
+      <dt>Device</dt>
+      <dd>
+        <p>
+        <dl>
+          <dt>Device ID <code>id</code></dt>
+          <dd>
+            <p>
+            Required string value giving an dentifier for this
+            definition - typically this should be the model number
+            assigned by the device manufacturer.
+          </dd>
+          <dt>Inputs <code>inputs</code></dt>
+          <dd>
+            <p>
+            Required number value giving the number of input channels
+            on this device.
+            </p>
+          </dd>
+          <dt>Relays <code>relays</code></dt>
+          <dd>
+            <p>
+            Required number value giving the number of relay channels
+            on this device.
+            </p>
+          </dd>
+          <dt>Channels <code>channels</code></dt>
+          <dd>
+            <p>
+            <dl>
+              <dt>Channel</dt>
+              <dd>
+                <p>
+                <dl>
+                  <dt>Address <code>address</code></dt>
+                  <dd>
+                  </dd>
+                  <dt>ON command <code>oncommand</code></dt>
+                  <dd>
+                  </dd>
+                  <dt>OFF command <code>offcommand</code></dt>
+                  <dd>
+                  </dd>
+                </dl>
+                </p>
+              </dd>
+            </dl>
+            </p>
+          </dd>
+        </dl>
+        </p>
+      </dd>
+    </dl>
+    </p>
+  </dd>
 </dl>
+
+  "id": "DS",
+  "relays": 32,
+  "switches": 8,
+  "channels": [
+    {
+      "address": 0,
+      "oncommand": "SR {c} ON",
+      "offcommand": "SR {c} OFF"
+    }
+  ]
+}
+```
+Additional devices can be added to the *devices* array which provide
+tighter configuration for specific DS device models by specifying the
+exact number of I/O channels supported by a particular device.
+
+The plugin includes this device definition suitable for DS-series relay
+modules:
+Each device definition has the following properties.
+
+| Property name | Value type | Value default | Description |
+| :------------ | :--------- | :------------ | :---------- |
+| id            | String     | (none)        |  |
+| channels      | Array      | (none)        | Array of *channel* definitions each of which specifies the commands required to operate a particular relay on the device being defined. |
+
+Relays are identified by an ordinal *address* in the range 1..[size] and
+each channel can be defined explicitly, but if there is a common format
+for commands that applies to all channels, then a pattern can be defined
+for a fake channel with address 0 that will be elaborated for each of the
+real channels on the device.
+
+Each channel definition has the following properties.
+
+| Property name | Value type | Value default | Description |
+| :------------ | ---------- | :------------ | :---------- |
+| address       | Number     | (none)        | Physical address of the relay that is being defined (or 0 for a generic definition). |
+| oncommand     | String     | (none)        | Command that should be transmitted to the device to turn relay ON. |
+| offcommand    | String     | (none)        | Command that should be transmitted to the device to turn relay OFF. |
+
+Both *oncommand* and *offcommand* can contain embedded JSON escape
+sequences.
+Additionally, the following wildcard tokens will be substituted
+with appropriate values before string transmission.
+
+| Token | Replacement value |
+| :---- | :---------------- |
+| {c}   | The ASCII encoded address of the channel being processed. |
+| {C}   | The binary encoded address of the channel being processed. |
 
 #### Some example configuration files
 
@@ -377,41 +466,6 @@ My ```devantech.json``` configuration file looks like this.
 
 ```
 
-The plugin configuration has the following properties.
-
-| Property name          | Value type | Value default | Description |
-| :--------------------- | :---------- | :----------- | :---------- |
-| modules                | Array       | (none)       | Collection of *module* objects. |
-| statusListenerPort     | Number      | 24281        | The TCP port on which the plugin will listen for DS event notificataions. |
-| transmitQueueHeartbeat | Number      | 25           | Transmit queue processing interval in milliseconds. |
-| devices                | Array       | (see below)  | Collection of *device* objects.|
-
-
-Most installations will only need to specify entries in this array,
-leaving other properties to assume their defaults.
-
-The *devices* array can be used to introduce new operating commands
-for particular Devantech relay devices.
-The plugin includes a definition with the id 'DS' for operating a
-device using the DS ASCII protocol.
-
-Each *module* object has the following properties.
-
-| Property name      | Value type | Value default | Description |
-| :----------------- | :--------- | :------------ | :---------- |
-| id                 | String     | (none)        | Unique identifier that will be used as the 'bank' part of the Signal K switch path used to identify thus module's switch channels. |
-| cstring            | String     | (none)        | Connection specification of the form '*address*:*port*' that gives the IP address of the physical device implementing this module and the TCP port number on which it listens for commands. |
-| channels           | Array      | (none)        | Array of *channel* objects. |
-| description        | String     | ''            | Text for the meta data 'description' property that will be associated with the Signal K switch bank *id*. |
-| deviceid           | String     | 'DS'          | Id of the *device* defining the operating characteristics of this module. |
-
-Each *channel* object has the following properties.
-
-| Property name | Value type | Value default | Description |
-| :----------   | :--------- | :------------ | :---------- |
-| index         | Number     | (none)        | Identifier that will be used as the 'channel' part of the Signal K switch path used to identify this relay. Signal K convention starts channel numbering at 1. |
-| address       | Number     | *index*       | Address of the physical channel on the remote device with which this channel is associated. |
-| description   | String     | ''            | Text for the meta data 'description' property that will be associated with this channel in Signal K. |
 
 
 ### Example configuration
@@ -491,56 +545,29 @@ that provides a configuration which will work for all devices in the DS
 range.
 ```
 {
-  "id": "DS",
-  "relays": 32,
-  "switches": 8,
-  "channels": [
-    {
-      "address": 0,
-      "oncommand": "SR {c} ON",
-      "offcommand": "SR {c} OFF"
-    }
-  ]
-}
-```
-Additional devices can be added to the *devices* array which provide
-tighter configuration for specific DS device models by specifying the
-exact number of I/O channels supported by a particular device.
-
-The plugin includes this device definition suitable for DS-series relay
-modules:
-Each device definition has the following properties.
-
-| Property name | Value type | Value default | Description |
-| :------------ | :--------- | :------------ | :---------- |
-| id            | String     | (none)        | Space-separated list of identifiers, one for each of the relay devices to which the definition applies. Typically these identifiers should be the model number or model group name assigned by the device manufacturer. |
-| channels      | Array      | (none)        | Array of *channel* definitions each of which specifies the commands required to operate a particular relay on the device being defined. |
-
-Relays are identified by an ordinal *address* in the range 1..[size] and
-each channel can be defined explicitly, but if there is a common format
-for commands that applies to all channels, then a pattern can be defined
-for a fake channel with address 0 that will be elaborated for each of the
-real channels on the device.
-
-Each channel definition has the following properties.
-
-| Property name | Value type | Value default | Description |
-| :------------ | ---------- | :------------ | :---------- |
-| address       | Number     | (none)        | Physical address of the relay that is being defined (or 0 for a generic definition). |
-| oncommand     | String     | (none)        | Command that should be transmitted to the device to turn relay ON. |
-| offcommand    | String     | (none)        | Command that should be transmitted to the device to turn relay OFF. |
-
-Both *oncommand* and *offcommand* can contain embedded JSON escape
-sequences.
-Additionally, the following wildcard tokens will be substituted
-with appropriate values before string transmission.
-
-| Token | Replacement value |
-| :---- | :---------------- |
-| {c}   | The ASCII encoded address of the channel being processed. |
-| {C}   | The binary encoded address of the channel being processed. |
 
 ## Operation
+
+The plugin listens on a user-configured TCP port for connections from
+remote DS devices, rejecting connections from devices with IP addresses
+that are not on the local private network and/or which are excluded by
+a user-specified filter.
+
+When an allowed DS device first connects to the plugin a Signal K
+switchbank path is created and decorated with metadata which
+incorporates any properties that may have been supplied in the plugin
+configuration.
+
+Subsequently, the first status update received from a module results
+in the creation of a collection of Signal K switch paths for the
+associated module and the decoration of these paths with metadata
+which incorporates any properties that may have been supplied in the
+plugin configuration.
+A persistent TCP command connection is opened to the remote DS device
+and Signal K relay paths have a handler installed that responds to PUT
+requests by sending operating commands over this connection to the
+remote DS device.
+
 
 The plugin will start immediately it is installed but must be configured
 with at least one 'module' definition before it can do something useful.
