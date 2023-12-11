@@ -571,10 +571,10 @@ module.exports = function(app) {
   }
 
   expressGetStatus = function(req, res) {
-    const body = plugin.options.activeModules.reduce((a,module) => {
-      a[module.id] = {
-        address: module.ipAddress,
-        connected: (module.commandConnection)?true:false
+    const body = Object.keys(plugin.options.activeModules).reduce((a,id) => {
+      a[id] = {
+        address: plugin.options.activeModules[id].ipAddress,
+        connected: (plugin.options.activeModules[id].commandConnection)?true:false
       }
       return(a);
     }, {});
