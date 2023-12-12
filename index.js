@@ -437,7 +437,7 @@ module.exports = function(app) {
             const switchStates = messageLines[2].replaceAll(' ','').trim().slice(0, module.activeInputCount);
             app.debug(`status listener: received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
-            for (var i = 0; i < relays:relayStates.length; i++) {
+            for (var i = 0; i < relayStates.length; i++) {
               delta.addValue(`${module.switchbankPath}.${i+1}R.order`, (i+1));
               delta.addValue(`${module.switchbankPath}.${i+1}R.state`, ((relayStates.charAt(i) == '0')?0:1));
             }
