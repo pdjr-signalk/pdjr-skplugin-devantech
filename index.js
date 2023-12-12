@@ -429,17 +429,19 @@ module.exports = function(app) {
           const moduleId = sprintf('%03d%03d%03d%03d', clientIP.split('.')[0], clientIP.split('.')[1], clientIP.split('.')[2], clientIP.split('.')[3]);
           var module = plugin.options.activeModules[moduleId];
           if (module) {
-            createActiveChannels(module, (module.device.relays || relayStates.length), (module.device.switches || switchStates.length));
+            module.activeInputCount = (module.device.switches || switchStates.length);
+            module.activeRelayCount = (module.device.relays || relayStates.length);
+            createActiveChannels(module, module.activeRelayCount, module.activeInputCount);
             const messageLines = data.toString().split('\n');
-            const relayStates = messageLines[1].trim();
-            const switchStates = messageLines[2].replaceAll(' ','').trim();
+            const relayStates = messageLines[1].trim().slice(0, module.activeRelayCount);
+            const switchStates = messageLines[2].replaceAll(' ','').trim().slice(0, module.activeInputCount);
             app.debug(`status listener: received status: ${relayStates} ${switchStates}`);
             var delta = new Delta(app, plugin.id);
-            for (var i = 0; i < ((module.device.relays)?module.device.relays:relayStates.length); i++) {
+            for (var i = 0; i < relays:relayStates.length; i++) {
               delta.addValue(`${module.switchbankPath}.${i+1}R.order`, (i+1));
               delta.addValue(`${module.switchbankPath}.${i+1}R.state`, ((relayStates.charAt(i) == '0')?0:1));
             }
-            for (var i = 0; i < ((module.device.switches)?module.device.switches:switchStates.length); i++) {
+            for (var i = 0; i < switchStates.length; i++) {
               delta.addValue(`${module.switchbankPath}.${i+1}S.order`, (i+1));
               delta.addValue(`${module.switchbankPath}.${i+1}S.state`, ((switchStates.charAt(i) == '0')?0:1));
             }
