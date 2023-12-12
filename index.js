@@ -459,7 +459,7 @@ module.exports = function(app) {
        * status report.
        */
       client.on('close', () => {
-        try {
+        if (client.remoteAddress) {
           var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
           const moduleId = sprintf('%03d%03d%03d%03d', clientIP.split('.')[0], clientIP.split('.')[1], clientIP.split('.')[2], clientIP.split('.')[3]);
           var module = plugin.options.activeModules[moduleId];
@@ -468,8 +468,6 @@ module.exports = function(app) {
             module.listenerConnection.destroy();
             module.listenerConnection = null;
           }
-        } catch(e) {
-          log.W(`status listener: unable to close connection`, false);
         }
       });
 
@@ -477,18 +475,20 @@ module.exports = function(app) {
        * Only allow connections from configured modules.
        */
       try {
-        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-        if (!plugin.options.clientIpFilterRegex.test(clientIP)) throw new Error(`unauthorised device at ${clientIP}`);
+        if (client.remoteAddress) {
+          var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+          if (!plugin.options.clientIpFilterRegex.test(clientIP)) throw new Error(`unauthorised device at ${clientIP}`);
       
-        var module = createActiveModule(clientIP);
+          var module = createActiveModule(clientIP);
 
-        app.debug(`status listener: opening listener connection '${clientIP}'`);
-        if (module.listenerConnection) module.listenerConnection.destroy();
-        module.listenerConnection = client;
+          app.debug(`status listener: opening listener connection '${clientIP}'`);
+          if (module.listenerConnection) module.listenerConnection.destroy();
+          module.listenerConnection = client;
         
-        if ((module.commandPort) && (!module.commandConnection)) {
-          app.debug(`status listener: opening command connection '${clientIP}'`);
-          openCommandConnection(module);
+          if ((module.commandPort) && (!module.commandConnection)) {
+            app.debug(`status listener: opening command connection '${clientIP}'`);
+            openCommandConnection(module);
+          }
         }
       } catch(e) {
         log.W(`status listener: rejecting connection (${e.message})`, false);
