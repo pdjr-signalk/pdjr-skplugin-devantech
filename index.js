@@ -457,13 +457,17 @@ module.exports = function(app) {
        * status report.
        */
       client.on('close', () => {
-        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-        const moduleId = sprintf('%03d%03d%03d%03d', clientIP.split('.')[0], clientIP.split('.')[1], clientIP.split('.')[2], clientIP.split('.')[3]);
-        var module = plugin.options.activeModules[moduleId];
-        if (module) {
-          app.debug(`status listener: closing connection for ${clientIP}`)
-          module.listenerConnection.destroy();
-          module.listenerConnection = null;
+        try {
+          var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+          const moduleId = sprintf('%03d%03d%03d%03d', clientIP.split('.')[0], clientIP.split('.')[1], clientIP.split('.')[2], clientIP.split('.')[3]);
+          var module = plugin.options.activeModules[moduleId];
+          if (module) {
+            app.debug(`status listener: closing connection for ${clientIP}`)
+            module.listenerConnection.destroy();
+            module.listenerConnection = null;
+          }
+        } catch(e) {
+          log.W(`status listener: unable to close connection`);
         }
       });
 
