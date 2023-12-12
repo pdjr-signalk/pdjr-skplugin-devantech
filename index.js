@@ -570,12 +570,12 @@ module.exports = function(app) {
    * Express handlers...
    */
 
-  handleExpress = function(req, res, handler) {
+  function handleExpress(req, res, handler) {
     app.debug(`processing ${req.method} request on '${req.path}`);
     handler(req, res);
   }
 
-  expressGetStatus = function(req, res) {
+  function expressGetStatus(req, res) {
     const body = Object.keys(plugin.options.activeModules).reduce((a,id) => {
       a[id] = {
         address: plugin.options.activeModules[id].ipAddress,
@@ -599,13 +599,13 @@ module.exports = function(app) {
     500: "Internal Server Error"
   };
 
-  expressSend = function(res, code, body = null, debugPrefix = null) {
+  function expressSend(res, code, body = null, debugPrefix = null) {
     res.status(code).send((body)?body:((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null));
     if (debugPrefix) app.debug("%s: %d %s", debugPrefix, code, ((body)?JSON.stringify(body):((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null)));
     return(false);
   }
 
-  isValidKey = function(key) {
+  function isValidKey(key) {
     return((key) && (key.trim().length > 0) && (!plugin.options.excludePaths.reduce((a,ep) => (a || (key.startsWith('.')?key.slice(1):key).startsWith(ep)), false)));
   }
 
