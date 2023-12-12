@@ -467,7 +467,7 @@ module.exports = function(app) {
             module.listenerConnection = null;
           }
         } catch(e) {
-          log.W(`status listener: unable to close connection`);
+          log.W(`status listener: unable to close connection`, false);
         }
       });
 
