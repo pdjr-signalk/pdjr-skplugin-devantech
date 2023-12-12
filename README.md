@@ -9,10 +9,10 @@ DS general-purpose relay modules.
 **pdjr-skplugin-devantech** implements an operating interface for
 the DS range of Ethernet relay devices manufactured by Devantech.
 An interfaced DS device presents as a Signal K switchbank with
-subordinate keys indiating the state of the device's I/O and relay
+subordinate keys indicating the state of the device's I/O and relay
 channels.
-Relays on the remote device are operated by PUT requests on an
-interfaced relay channel.
+PUT requests on DS switchbank relay channels will operate physical
+relays on an the connected DS device.
 
 Typically DS devices used by Signal K will be installed on the local
 network, but it is a simple matter to interface a remote DS device
