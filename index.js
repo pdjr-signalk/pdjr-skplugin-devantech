@@ -17,7 +17,6 @@
 const net = require('net');
 const _ = require('lodash');
 const sprintf = require('sprintf-js').sprintf;
-const { networkInterfaces } = require('os');
 
 const Delta = require('signalk-libdelta/Delta.js');
 const HttpInterface = require('signalk-libhttpinterface/HttpInterface.js');
