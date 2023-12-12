@@ -470,8 +470,8 @@ module.exports = function(app) {
       /**
        * Only allow connections from configured modules.
        */
-      var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
       try {
+        var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
         if (!plugin.options.clientIpFilterRegex.test(clientIP)) throw new Error(`unauthorised device at ${clientIP}`);
       
         var module = createActiveModule(clientIP);
