@@ -11,23 +11,24 @@ the DS range of Ethernet relay devices manufactured by Devantech.
 An interfaced DS device presents as a Signal K switchbank with
 subordinate keys indicating the state of the device's I/O and relay
 channels.
-PUT requests on DS switchbank relay channels will operate physical
+PUT requests on relay channels operate the associated physical
 relays on an the connected DS device.
 
 Typically DS devices used by Signal K will be installed on the local
-network, but it is a simple matter to interface a remote DS device
+network, but it is a simple matter to connect a remote DS device
 located elsewhere on the Internet.
 
 DS devices require some trivial initial configuration to make them
 usable by the plugin but afterwards will automatically interface
 with Signal K as soon as they appear on the host LAN.
 Configuration of the plugin is not required, but may be desirable
-for the purposes of documentation or specialisation.
+for the purposes of documentation or required if it is necessary
+to override the plugin's default behaviour.
 
-This operating strategy is resilient to network outage and (subject
-to the presence of an appropriate IP address filter) allows *ad-hoc*
-connection of DS devices to a live system without further operator
-intervention.
+The overall operating strategy is resilient to network outage and
+(subject to the presence of an appropriate IP address filter) allows
+*ad-hoc* connection of DS devices to a live system without further
+operator intervention.
 
 The plugin exposes an
 [HTTP API](https://pdjr-signalk.github.io/pdjr-skplugin-devantech/)

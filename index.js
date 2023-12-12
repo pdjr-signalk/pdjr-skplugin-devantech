@@ -580,6 +580,8 @@ module.exports = function(app) {
     const body = Object.keys(plugin.options.activeModules).reduce((a,id) => {
       a[id] = {
         address: plugin.options.activeModules[id].ipAddress,
+        relayCount: a[id].relayCount,
+        switchCount: a[id].switchCount,
         connected: (plugin.options.activeModules[id].commandConnection)?true:false
       }
       return(a);
