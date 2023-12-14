@@ -127,15 +127,15 @@ a regular 'heartbeat' status update.
 
 ## Plugin configuration
 
-As long as DS modules are configured using the expected default values
-discussed above, then no explicit plugin configuration is required and
-use of DS modules can be considered to be a 'plug-and-play' activity.
+As long as DS modules are configured using the default values discussed
+above, then no explicit plugin configuration is required and use of DS
+modules can be considered to be a 'plug-and-play' activity.
 
-Typically, users may want to supply a *modules* configuration which
-includes *description* properties for installed modules and the
-channels that they operate.
+However, users may well *want* to supply an enhanced configuration which
+includes *description* properties for installed modules and the channels
+that they operate.
 
-The full range of configuration properties is described below.
+The full range of available configuration properties is described below.
 
 <dl>
   <dt>Client IP filter <code>clientIpFilter</code></dt>
@@ -150,11 +150,11 @@ The full range of configuration properties is described below.
     otherwise must be specified.
     </p>
     <p>
-    On a private network a default regular expression is computed
-    from the host server IP address which will allow connection from
-    any peer on the private network.
-    If you need better security than this, then specify your own, more
-    restrictive, regex.
+    On a private network a default regular expression which will allow
+    connection from any peer on the private networkis computed from the
+    host server's IP address.
+    If better security is required, then a more restrictive regex must
+    be supplied.
     </p>
   </dd>
   <dt>Status listener port <code>statusListenerPort</code></dt>
