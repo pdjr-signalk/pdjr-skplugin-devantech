@@ -142,7 +142,7 @@ The full range of available configuration properties is described below.
   <dd>
     <p>
     String containing a regular expression used to determine if a
-    connection request from a remote client IP hould be accepted.
+    connection request from a remote client IP should be accepted.
     </p>
     <p>
     This property may (depending on the user's security sensitivity)
@@ -151,8 +151,8 @@ The full range of available configuration properties is described below.
     </p>
     <p>
     On a private network a default regular expression which will allow
-    connection from any peer on the private networkis computed from the
-    host server's IP address.
+    connection from any peer on the private network is computed from
+    the host server's IP address.
     If better security is required, then a more restrictive regex must
     be supplied.
     </p>
