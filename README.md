@@ -64,7 +64,7 @@ under each indicated dashboard tab.
     For relays 1 to 31:
     <ul>
       <li>Set 'Relay Name' if you wish;</li>
-      <li>Set 'Pulse/Follow' to ```0```;</li>
+      <li>Set 'Pulse/Follow' to 0;</li>
       <li>Uncheck 'Power-up Restore';</li>
       <li>Set all other fields to blank.</li>
     </ul>
@@ -72,7 +72,7 @@ under each indicated dashboard tab.
     For relay 32:
     <ul>
       <li>Set 'Relay Name' if you wish;</li>
-      <li>Set 'Pulse/Follow' to ```C1>4```;</li>
+      <li>Set 'Pulse/Follow' to 'C1>4';</li>
       <li>Uncheck 'Power-up Restore';</li>
       <li>Set all other fields to blank.</li>
     </ul>
@@ -84,20 +84,20 @@ under each indicated dashboard tab.
     For all I/O channels.
     <ul>
       <li>Set 'Name' if you wish;</li>
-      <li>Set 'Type' to ```Digital With Pullup```;</li>
-      <li>Set 'Attached Relay Number' to ```None```.</li>
+      <li>Set 'Type' to 'Digital With Pullup';</li>
+      <li>Set 'Attached Relay Number' to 'None'.</li>
     </ul>
     </p>
   </dd>
   <dt>Counter/Timer</dt>
   <dd>
     <p>
-    Select 'Counter No.' ```1```, and:
+    Select 'Counter No.' 1, and:
     <ul>
-      <li>Set 'Counter Name' to ```Ctr1``` or whatever;</li>
-      <li>Set 'Counter Input' to ```T1```;</li>
+      <li>Set 'Counter Name' to 'Ctr1' or whatever;</li>
+      <li>Set 'Counter Input' to 'T1';</li>
       <li>Set 'Capture Input' to blank;</li>
-      <li>Set 'Reset Input" to ```C1>9```.</li>
+      <li>Set 'Reset Input" to 'C1>9'.</li>
     </ul>
     </p>
   </dd>
@@ -107,11 +107,11 @@ under each indicated dashboard tab.
     <ul>
       <li>Set 'Event Triggers' to monitor the physical switch inputs
       and relay outputs supported by the DS device and also the virtual
-      relay R32. For example, The DS2242 device has two switch inputs
-      and four-relay outputs and would be configured as
-      ```{D1|D2|R1|R2|R3|R4|R32}```.</li>
+      relay R32. For example, The DS2242 device has four switch inputs
+      and two relay outputs and would be configured as
+      '{D1|D2|D3|D4|R1|R2|R32}'.</li>
       <li>Set 'Target IP' to the IP address of the Signal K host.</li>
-      <li>Set 'Target Port' t0 28241.</li>
+      <li>Set 'Target Port' to 28241.</li>
       <li>Set 'TCP/IP Timeout' to 100.</li>
       <li>Uncheck 'Timestamp'.
     </ul>
@@ -184,6 +184,9 @@ The full range of configuration properties is described below.
     <p>
     Optional string specifying the device identifier that should be
     used for modules which do not define their own <em>deviceId</em>.
+    </p>
+    <p>
+    Defaults to 'DS'.
     </p>
   </dd>
   <dt>Default command port <code>defaultCommandPort</code></dt>
@@ -259,11 +262,11 @@ The full range of configuration properties is described below.
                 <dt>Channel index <code>index</code></dt>
                 <dd>
                   <p>
-                  Required string value giving a name which will be used to
-                  identify the channel in Signal K.
-                  This name <em>must</em> have the form '<em>nT</em>' where
-                  <em>n</em> is a decimal channel number in the range 1..
-                  and <em>T</em> is either 'R' (to identify a relay output
+                  Required string value identifying ying the channel
+                  being configured.
+                  This name <em>must</em> have the form '<em>nT</em>'
+                  where <em>n</em> is a decimal channel number and
+                  <em>T</em> is either 'R' (to identify a relay output
                   channel) or 'S' (to identify a switch input channel).
                   </p>
                 </dd>
