@@ -351,7 +351,7 @@ The full range of available configuration properties is described below.
                   <dt>ON command <code>oncommand</code></dt>
                   <dd>
                     <p>
-                    Required string supplying the ASCII string that is
+                    Required string supplying the ASCII command that is
                     required to switch this channel on.
                     If this is a generic command then the token '{c}'
                     can be used to indicate where in the command a 
@@ -361,7 +361,7 @@ The full range of available configuration properties is described below.
                   <dt>OFF command <code>offcommand</code></dt>
                   <dd>
                     <p>
-                    Required string supplying the ASCII string that is
+                    Required string supplying the ASCII command that is
                     required to switch this channel off.
                     If this is a generic command then the token '{c}'
                     can be used to indicate where in the command a 
