@@ -8,19 +8,19 @@ DS general-purpose relay modules.
 
 **pdjr-skplugin-devantech** implements an operating interface for
 the DS range of Ethernet relay devices manufactured by Devantech.
-An interfaced DS device presents as a Signal K switchbank with
-subordinate keys indicating the state of the device's I/O and relay
-channels.
-PUT requests on relay channels operate the associated physical
-relays on an the connected DS device.
+An interfaced DS device presents as a Signal K switch bank with
+subordinate keys mapping the device's I/O and relay channels.
+
+The state value of each channel reflects the state of the associated
+relay or switch input and PUT requests on relay channels operate the
+associated physical relays on an the connected DS device.
 
 Typically DS devices used by Signal K will be installed on the local
-network, but it is a simple matter to connect a remote DS device
-located elsewhere on the Internet.
+network, but they may be a located elsewhere on the Internet.
 
 DS devices require some trivial initial configuration to make them
-usable by the plugin but afterwards will automatically interface
-with Signal K as soon as they appear on the host LAN.
+usable by the plugin and afterwards will automatically interface
+with Signal K as soon as they appear on the connected network.
 Configuration of the plugin is not required, but may be desirable
 for the purposes of documentation or required if it is necessary
 to override the plugin's default behaviour.
@@ -46,7 +46,7 @@ under each indicated dashboard tab.
     <p>
     <ul>
       <li>Uncheck 'Enable DHCP';</li>
-      <li>Assign the DS device a static IP address and configure other network properties to suit your LAN.</li>
+      <li>Assign the DS device a static IP address and configure other network properties to suit the host LAN.</li>
     </ul>
     </p>
   </dd>
@@ -61,7 +61,7 @@ under each indicated dashboard tab.
   <dt>Relays</dt>
   <dd>
     <p>
-    For relays 1 to 31:
+    For each available relay in the address range 1..31:
     <ul>
       <li>Set 'Relay Name' if you wish;</li>
       <li>Set 'Pulse/Follow' to 0;</li>
