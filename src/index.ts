@@ -15,13 +15,11 @@
  */
 
 import * as net from 'net'
-import * as _ from 'lodash'
 import { sprintf } from 'sprintf-js'
 import { Request, Response } from 'express'
 
 import { Delta } from 'signalk-libdelta'
 import { HttpInterface } from 'signalk-libhttpinterface'
-import path = require('path')
 
 const PLUGIN_ID: string = 'devantech'
 const PLUGIN_NAME: string = 'pdjr-skplugin-devantech'
