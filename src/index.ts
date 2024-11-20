@@ -555,7 +555,7 @@ interface SKPlugin {
   start: (options: any) => void,
   stop: () => void,
   registerWithRouter: (router: any) => void,
-  getOpenApi: () => void
+  getOpenApi: () => () => string
 }
 
 interface Channel {
