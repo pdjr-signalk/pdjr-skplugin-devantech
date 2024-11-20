@@ -244,8 +244,10 @@ module.exports = function(app: any) {
     registerWithRouter: function(router: any) {
       router.get('/status', (req :Request, res: Response) => handleExpress(req, res, expressGetStatus));
     },
-
-    getOpenApi = () => require("../resources/openApi.json")
+    
+    getOpenApi: function() {
+      return(() => require("../resources/openApi.json"))
+    }
 
   } // End of plugin
   
@@ -554,7 +556,8 @@ interface SKPlugin {
 
   start: (options: any) => void,
   stop: () => void,
-  registerWithRouter: (router: any) => void
+  registerWithRouter: (router: any) => void,
+  getOpenApi: () => void
 }
 
 interface Channel {
