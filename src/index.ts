@@ -200,7 +200,7 @@ module.exports = function(app: any) {
 
   var appState: any = {
     clientFilterRegExp: null,
-    statusListener: undefined,
+    statusListener: net.Server,
     transmitQueueTimer: undefined,
     modules: []
   }
@@ -277,8 +277,8 @@ module.exports = function(app: any) {
   }
 
   function startStatusListener(port: number) {
-    app.appState.statusListener = net.createServer().listen(port);
-    app.appState.statusListener.on('connection', (client: net.Socket) => {
+    var retval: net.Server = net.createServer().listen(port);
+    retval.on('connection', (client: net.Socket) => {
       var module: Module;
       if (client.remoteAddress) {
         var clientIp: string = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
@@ -332,6 +332,7 @@ module.exports = function(app: any) {
         }
       }
     });
+    return(retval);
   }
 
   function getModule(ipAddress: string): Module {
