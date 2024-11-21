@@ -311,13 +311,11 @@ module.exports = function (app) {
                     client.on('close', () => {
                         app.debug(`closing client connection`);
                         if (client.remoteAddress) {
-                            var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-                            var moduleId = (0, sprintf_js_1.sprintf)('%03d%03d%03d%03d', clientIP.split('.')[0], clientIP.split('.')[1], clientIP.split('.')[2], clientIP.split('.')[3]);
-                            var module = appState.modules[moduleId];
+                            var module = appState.modules[ipAddress2moduleId(client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1))];
                             if (module) {
-                                app.debug(`status listener: closing connection for ${clientIP}`);
+                                app.debug(`status listener: closing connection for ${module.ipAddress}`);
                                 module.listenerConnection.destroy();
-                                module.listenerConnection = null;
+                                module.listenerConnection = undefined;
                             }
                         }
                     });
@@ -333,9 +331,11 @@ module.exports = function (app) {
     function getModule(ipAddress) {
         var module;
         if (ipAddress2moduleId(ipAddress) in appState.modules) {
+            app.debug('returning existing module');
             return (appState.modules[ipAddress2moduleId(ipAddress)]);
         }
         else {
+            app.debug('creating new module');
             var moduleOptions = appOptions.modules.reduce((a, m) => (((m.ipAddress) && (m.ipAddress == ipAddress)) ? m : a), {});
             module = {
                 id: ipAddress2moduleId(ipAddress),
