@@ -328,8 +328,8 @@ module.exports = function (app) {
     }
     function getModule(ipAddress) {
         var module;
-        if (ipAddress2moduleId(ipAddress) in app.appState.modules) {
-            return (app.appState.modules[ipAddress2moduleId(ipAddress)]);
+        if (ipAddress2moduleId(ipAddress) in appState.modules) {
+            return (appState.modules[ipAddress2moduleId(ipAddress)]);
         }
         else {
             module = {
