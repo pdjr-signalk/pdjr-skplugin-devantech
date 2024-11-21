@@ -449,10 +449,10 @@ module.exports = function(app: any) {
 
   function processCommandQueues() {
     app.debug(`processing comand queues...`);
-    
-    Object.keys(app.appState.modules).forEach(key => processCommandQueue(app.appState.modules[key], app));
+
+    Object.keys(appState.modules).forEach(key => processCommandQueue(appState.modules[key]));
   
-    function processCommandQueue(module: Module, app: any) {
+    function processCommandQueue(module: Module) {
       if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
         module.currentCommand = module.commandQueue.shift();
         if ((module.commandConnection) && (module.currentCommand)) {
