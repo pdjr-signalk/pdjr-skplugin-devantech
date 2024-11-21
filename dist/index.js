@@ -518,4 +518,5 @@ module.exports = function (app) {
     function moduleId2ipAddress(moduleId) {
         return ((0, sprintf_js_1.sprintf)('%d\.%d\.%d\.%d', +(moduleId.slice(0, 3)), +(moduleId.slice(3, 6)), +(moduleId.slice(6, 9)), +(moduleId.slice(9))));
     }
+    return (plugin);
 }; // End of app

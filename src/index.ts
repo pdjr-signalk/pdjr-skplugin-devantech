@@ -544,6 +544,8 @@ module.exports = function(app: any) {
     return(sprintf('%d\.%d\.%d\.%d', +(moduleId.slice(0,3)), +(moduleId.slice(3,6)), +(moduleId.slice(6,9)), +(moduleId.slice(9))));
   }
 
+  return(plugin);
+
 } // End of app
 
 interface SKPlugin {
