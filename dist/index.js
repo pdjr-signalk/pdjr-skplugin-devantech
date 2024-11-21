@@ -282,9 +282,9 @@ module.exports = function (app) {
                     if ((module.commandPort) && (!module.commandConnection))
                         openCommandConnection(module);
                     client.on('data', (data) => {
+                        app.debug(`receiving data from ${module.ipAddress}`);
                         try {
                             const messageLines = data.toString().split('\n');
-                            app.debug(`received '${messageLines.join('|')}' from ${module.ipAddress}`);
                             const relayStates = messageLines[1].trim();
                             const switchStates = messageLines[2].replaceAll(' ', '').trim();
                             var delta = new signalk_libdelta_1.Delta(app, plugin.id);
