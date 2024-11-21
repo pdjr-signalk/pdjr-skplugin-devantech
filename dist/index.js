@@ -373,7 +373,7 @@ module.exports = function (app) {
         }
     }
     function publishModuleMetadata(module) {
-        var delta = new signalk_libdelta_1.Delta(app, app.plugin.id);
+        var delta = new signalk_libdelta_1.Delta(app, plugin.id);
         let metadata = {
             description: module.description,
             instance: module.id,
@@ -381,7 +381,7 @@ module.exports = function (app) {
             shortName: module.id,
             longName: `Module ${module.id}`,
             displayName: `Module ${module.id}`,
-            $source: `plugin:${app.plugin.id}`
+            $source: `plugin:${plugin.id}`
         };
         delta.addMeta(module.switchbankPath, metadata);
         Object.keys(module.channels).forEach((key) => {
@@ -393,7 +393,7 @@ module.exports = function (app) {
                 displayName: module.channels[key].description || `[${module.id},${module.channels[key].id}]`,
                 unit: 'Binary switch state (0/1)',
                 type: module.channels[key].type,
-                $source: `plugin:${app.plugin.id}`
+                $source: `plugin:${plugin.id}`
             };
             delta.addMeta(module.channels[key].path, metadata);
         });
