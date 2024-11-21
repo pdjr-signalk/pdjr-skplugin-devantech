@@ -16,7 +16,7 @@ relay or switch input and PUT requests on relay channels operate the
 associated physical relays on an the connected DS device.
 
 Typically DS devices used by Signal K will be installed on the local
-network, but they may be a located elsewhere on the Internet.
+network, but they may be located elsewhere on the Internet.
 
 DS devices require some trivial initial configuration to make them
 usable by the plugin and afterwards will automatically interface

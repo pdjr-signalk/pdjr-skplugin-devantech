@@ -17,7 +17,6 @@
 import * as net from 'net'
 import { sprintf } from 'sprintf-js'
 import { Request, Response } from 'express'
-
 import { Delta } from 'signalk-libdelta'
 
 const PLUGIN_ID: string = 'devantech'

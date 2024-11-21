@@ -27,16 +27,12 @@
   },
   "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-devantech#readme",
   "dependencies": {
-    "lodash": "^4.17.21",
     "net": "^1.0.2",
     "signalk-libdelta": "github:pdjr-signalk/signalk-libdelta",
-    "signalk-libhttpinterface": "github:pdjr-signalk/signalk-libhttpinterface",
     "sprintf-js": "^1.1.3"
   },
   "devDependencies": {
-    "@types/dotenv": "^8.2.3",
     "@types/express": "^5.0.0",
-    "@types/lodash": "^4.17.7",
     "@types/node": "^22.5.4",
     "@types/sprintf-js": "^1.1.4"
   },
