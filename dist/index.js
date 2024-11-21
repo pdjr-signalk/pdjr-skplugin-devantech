@@ -333,7 +333,7 @@ module.exports = function (app) {
         else {
             module = {
                 id: ipAddress2moduleId(ipAddress),
-                deviceId: (appOptions.modules.reduce((a, m) => (((m.ipAddress) && (m.devideId) && (m.ipAddress == ipAddress)) ? m.deviceId : a), undefined) || appOptions.defaultDeviceId || DEFAULT_DEVICE_ID),
+                deviceId: (appOptions.modules.reduce((a, m) => (((m.ipAddress) && (m.deviceId) && (m.ipAddress == ipAddress)) ? m.deviceId : a), undefined) || appOptions.defaultDeviceId || DEFAULT_DEVICE_ID),
                 description: (appOptions.modules.reduce((a, m) => (((m.ipAddress) && (m.description) && (m.ipAddress == ipAddress)) ? m.description : a), undefined) || `Devantech DS switchbank at '${ipAddress}'`),
                 ipAddress: ipAddress,
                 switchbankPath: `electrical.switches.bank.${ipAddress2moduleId(ipAddress)}`,
