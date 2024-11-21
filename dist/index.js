@@ -282,24 +282,25 @@ module.exports = function (app) {
                     client.on('data', (data) => {
                         app.debug(`received '${data.toString()}' from ${module.ipAddress}`);
                         try {
-                            if (module) {
-                                const messageLines = data.toString().split('\n');
-                                const relayStates = messageLines[1].trim().slice(0, getRelayCount(module));
-                                const switchStates = messageLines[2].replaceAll(' ', '').trim().slice(0, getSwitchCount(module));
-                                var delta = new signalk_libdelta_1.Delta(app, app.plugin.id);
-                                for (var i = 0; i < relayStates.length; i++) {
-                                    delta.addValue(`${module.switchbankPath}.${i + 1}r.order`, (i + 1));
-                                    delta.addValue(`${module.switchbankPath}.${i + 1}r.state`, ((relayStates.charAt(i) == '0') ? 0 : 1));
+                            const messageLines = data.toString().split('\n');
+                            const relayStates = messageLines[1].trim();
+                            const switchStates = messageLines[2].replaceAll(' ', '').trim().slice(0, getSwitchCount(module));
+                            var delta = new signalk_libdelta_1.Delta(app, app.plugin.id);
+                            for (var i = 0; i < relayStates.length; i++) {
+                                var channel = module.channels[`${i + 1}r`];
+                                if (channel) {
+                                    delta.addValue(`${channel.path}.order`, channel.index);
+                                    delta.addValue(`${channel.path}.state`, ((relayStates.charAt(i) == '0') ? 0 : 1));
                                 }
-                                for (var i = 0; i < switchStates.length; i++) {
-                                    delta.addValue(`${module.switchbankPath}.${i + 1}s.order`, (i + 1));
-                                    delta.addValue(`${module.switchbankPath}.${i + 1}s.state`, ((switchStates.charAt(i) == '0') ? 0 : 1));
+                            }
+                            for (var i = 0; i < switchStates.length; i++) {
+                                var channel = module.channels[`${i + 1}s`];
+                                if (channel) {
+                                    delta.addValue(`${channel.path}.order`, channel.index);
+                                    delta.addValue(`${channel.path}.state`, ((switchStates.charAt(i) == '0') ? 0 : 1));
                                 }
-                                delta.commit().clear();
                             }
-                            else {
-                                throw new Error('client is not a module');
-                            }
+                            delta.commit().clear();
                         }
                         catch (e) {
                             app.debug(`error processing data from ${clientIp} (${e.message})`);
@@ -356,7 +357,7 @@ module.exports = function (app) {
                         id: channelOption.id,
                         type: (channelOption.id[channelOption.id.length - 1] == 'r') ? 'relay' : 'switch',
                         description: (channelOption.description || `Channel ${channelOption.id} on module ${module.id}`),
-                        path: `${module.switchbankPath}.${channelOption.id}.state`
+                        path: `${module.switchbankPath}.${channelOption.id}`
                     };
                     if (channel.type == 'relay') {
                         channel.index = parseInt(channelOption.id);
@@ -396,7 +397,7 @@ module.exports = function (app) {
                 type: module.channels[key].type,
                 $source: `plugin:${plugin.id}`
             };
-            delta.addMeta(module.channels[key].path, metadata);
+            delta.addMeta(module.channels[key].path + '.state', metadata);
         });
         delta.commit().clear();
     }
