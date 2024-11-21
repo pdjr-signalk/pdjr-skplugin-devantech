@@ -212,6 +212,7 @@ module.exports = function(app: any) {
     },
 
     start: function(options: any) {
+      console.log("Starting...");
       plugin.options = options;
 
       try {

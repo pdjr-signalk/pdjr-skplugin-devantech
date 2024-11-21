@@ -203,6 +203,7 @@ module.exports = function (app) {
             modules: []
         },
         start: function (options) {
+            console.log("Starting...");
             plugin.options = options;
             try {
                 plugin.state.statusListener = startStatusListener((options.statusListenerPort) ? options.statusListenerPort : DEFAULT_STATUS_LISTENER_PORT);
