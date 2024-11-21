@@ -195,7 +195,16 @@ const FETCH_RESPONSES: { [index: number] : string } = {
 };
 
 module.exports = function(app: any) {
-  
+
+  var appOptions: any = undefined;
+
+  var appState: any = {
+    clientFilterRegExp: null,
+    statusListener: undefined,
+    transmitQueueTimer: undefined,
+    modules: []
+  }
+
   const plugin: SKPlugin = {
    
     id: PLUGIN_ID,
@@ -203,28 +212,21 @@ module.exports = function(app: any) {
     description: PLUGIN_DESCRIPTION,
     schema: PLUGIN_SCHEMA,
     uiSchema: PLUGIN_UISCHEMA,
-    options: undefined,
-    state: {
-      clientFilterRegExp: null,
-      statusListener: undefined,
-      transmitQueueTimer: undefined,
-      modules: []
-    },
 
     start: function(options: any) {
       console.log("Starting...");
-      plugin.options = options;
+      appOptions = options;
 
       try {
-        plugin.state.statusListener = startStatusListener((options.statusListenerPort)?options.statusListenerPort:DEFAULT_STATUS_LISTENER_PORT);
+        appState.statusListener = startStatusListener((appOptions.statusListenerPort)?appOptions.statusListenerPort:DEFAULT_STATUS_LISTENER_PORT);
         try {
-          plugin.state.clientFilterRegExp = new RegExp((options.clientIpFilter)?options.clientIpFilter:DEFAULT_CLIENT_IP_FILTER);
-          plugin.state.transmitQueueTimer = setInterval(() => { processCommandQueues() }, ((options.transmitQueueHeartbeat)?options.transmitQueueHeartbeat:DEFAULT_TRANSMIT_QUEUE_HEARTBEAT));
-          plugin.state.modules = {}  
-          app.setPluginStatus(`listening for DS module connections on ${plugin.state.statusListener.address()}`);  
+          appState.clientFilterRegExp = new RegExp((appOptions.clientIpFilter)?appOptions.clientIpFilter:DEFAULT_CLIENT_IP_FILTER);
+          appState.transmitQueueTimer = setInterval(() => { processCommandQueues() }, ((appOptions.transmitQueueHeartbeat)?appOptions.transmitQueueHeartbeat:DEFAULT_TRANSMIT_QUEUE_HEARTBEAT));
+          appState.modules = {}  
+          app.setPluginStatus(`listening for DS module connections on ${appState.statusListener.address()}`);  
         } catch (e: any) {
           app.setPluginError(`stopped: error starting transmit queue processor: ${e.message}`);
-          plugin.state.statusListener.close();
+          appState.statusListener.close();
         }
       } catch (e: any) {
         app.setPluginError(`stopped: error starting connection listener: ${e.message}`);
@@ -232,12 +234,12 @@ module.exports = function(app: any) {
     },
 
     stop: function() {
-      Object.keys(plugin.state.modules).forEach((key: string) => {
-        if (plugin.state.modules[key].listenerConnection) plugin.state.modules[key].listenerConnection.destroy();
-        if (plugin.state.modules[key].commandConnection) plugin.state.modules.commandConnection.destroy();
+      Object.keys(appState.modules).forEach((key: string) => {
+        if (appState.modules[key].listenerConnection) appState.modules[key].listenerConnection.destroy();
+        if (appState.modules[key].commandConnection) appState.modules.commandConnection.destroy();
       });
-      if (plugin.state.statusListener) plugin.state.statusListener.close();
-      clearTimeout(plugin.state.transmitQueueTimer);
+      if (appState.statusListener) appState.statusListener.close();
+      clearTimeout(appState.transmitQueueTimer);
     },
 
     registerWithRouter: function(router: any) {
@@ -256,12 +258,12 @@ module.exports = function(app: any) {
   }
 
   function expressGetStatus(req: Request, res: Response) {
-    const body: any = Object.keys(plugin.state.modules).reduce((a: any, id: string) => {
+    const body: any = Object.keys(appState.modules).reduce((a: any, id: string) => {
       a[id] = {
-        address: plugin.state.modules[id].ipAddress,
-        relayCount: plugin.state.modules[id].relayCount,
-        switchCount: plugin.state.modules[id].switchCount,
-        connected: (plugin.state.modules[id].commandConnection)?true:false
+        address: appState.modules[id].ipAddress,
+        relayCount: appState.modules[id].relayCount,
+        switchCount: appState.modules[id].switchCount,
+        connected: (appState.modules[id].commandConnection)?true:false
       }
       return(a);
     }, {});
@@ -275,12 +277,12 @@ module.exports = function(app: any) {
   }
 
   function startStatusListener(port: number) {
-    app.plugin.state.statusListener = net.createServer().listen(port);
-    app.plugin.state.statusListener.on('connection', (client: net.Socket) => {
+    app.appState.statusListener = net.createServer().listen(port);
+    app.appState.statusListener.on('connection', (client: net.Socket) => {
       var module: Module;
       if (client.remoteAddress) {
         var clientIp: string = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-        if ((plugin.state.clientFilterRegExp) && (app.plugin.state.clientFilterRegExp.test(clientIp))) {
+        if ((appState.clientFilterRegExp) && (app.appState.clientFilterRegExp.test(clientIp))) {
           module = getModule(clientIp);
           publishModuleMetadata(module);            
           if (module.listenerConnection) module.listenerConnection.destroy();
@@ -316,7 +318,7 @@ module.exports = function(app: any) {
             if (client.remoteAddress) {
               var clientIP: string = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
               var moduleId: string = sprintf('%03d%03d%03d%03d', clientIP.split('.')[0], clientIP.split('.')[1], clientIP.split('.')[2], clientIP.split('.')[3]);
-              var module = plugin.state.modules[moduleId];
+              var module = appState.modules[moduleId];
               if (module) {
                 app.debug(`status listener: closing connection for ${clientIP}`)
                 module.listenerConnection.destroy();
@@ -335,16 +337,16 @@ module.exports = function(app: any) {
   function getModule(ipAddress: string): Module {
     var module: Module;
 
-    if (ipAddress2moduleId(ipAddress) in app.plugin.state.modules) {
-      return(app.plugin.state.modules[ipAddress2moduleId(ipAddress)]);
+    if (ipAddress2moduleId(ipAddress) in app.appState.modules) {
+      return(app.appState.modules[ipAddress2moduleId(ipAddress)]);
     } else {
       module = {
         id: ipAddress2moduleId(ipAddress),
-        deviceId: (plugin.options.modules[ipAddress] || app.plugin.options.defaultDeviceId || DEFAULT_DEVICE_ID),
-        description: (plugin.options.modules.description || `Devantech DS switchbank at '${ipAddress}'`),
+        deviceId: (appOptions.modules[ipAddress] || appOptions.defaultDeviceId || DEFAULT_DEVICE_ID),
+        description: (appOptions.modules.description || `Devantech DS switchbank at '${ipAddress}'`),
         ipAddress: ipAddress,
         switchbankPath: `electrical.switches.bank.${ipAddress2moduleId(ipAddress)}`,
-        commandPort: (plugin.options.modules[ipAddress] || plugin.options.defaultCommandPort || DEFAULT_COMMAND_PORT),
+        commandPort: (appOptions.modules[ipAddress] || appOptions.defaultCommandPort || DEFAULT_COMMAND_PORT),
         commandConnection: null,
         commandQueue: [],
         currentCommand: undefined,
@@ -353,14 +355,14 @@ module.exports = function(app: any) {
       };
       // To configure the channels array we need to get the
       // device details which relate to this module.
-      var device = plugin.options.devices.reduce((a: any, d: any) => { return((d.id == module.deviceId)?d:a); }, undefined);
+      var device = appOptions.devices.reduce((a: any, d: any) => { return((d.id == module.deviceId)?d:a); }, undefined);
       if (device) {
         // And now process the channels...
         for (var i: number = 0; i < device.relays; i++) {
           module.channels[`${i+1}R`] = {
             id: `${i+1}R`,
             type: 'relay',
-            description: getChannelDescription(app.plugin.options.modules[ipAddress].channels, `${i+1}R`),
+            description: getChannelDescription(app.plugin.appOptions.modules[ipAddress].channels, `${i+1}R`),
             path: `${module.switchbankPath}.${i+1}R.state`,
             onCommand: getChannelOnCommand(device, i+1),
             offCommand: getChannelOffCommand(device, i+1)
@@ -370,7 +372,7 @@ module.exports = function(app: any) {
           module.channels[`${i+1}S`] = {
             id: `${i+1}R`,
             type: 'switch',
-            description: getChannelDescription(plugin.options.modules[ipAddress].channels, `${i+1}S`),
+            description: getChannelDescription(appOptions.modules[ipAddress].channels, `${i+1}S`),
             path: `${module.switchbankPath}.${i+1}S.state`
           }
         }
@@ -445,7 +447,7 @@ module.exports = function(app: any) {
   }
 
   function processCommandQueues() {
-    Object.keys(app.plugin.state.modules).forEach(key => processCommandQueue(app.plugin.state.modules[key], app));
+    Object.keys(app.appState.modules).forEach(key => processCommandQueue(app.appState.modules[key], app));
   
     function processCommandQueue(module: Module, app: any) {
       if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
@@ -508,7 +510,7 @@ module.exports = function(app: any) {
     var module: Module, channel: Channel, relayCommand: string;
     var retval: { state: string, statusCode?: number } = { state: 'COMPLETED', statusCode: 400 };
   
-    module = plugin.state.modules[getModuleIdFromPath(path)]
+    module = appState.modules[getModuleIdFromPath(path)]
     if (module) {
       if (module.commandConnection) {
         channel = module.channels[getChannelIndexFromPath(path)];
@@ -550,9 +552,6 @@ interface SKPlugin {
   description: string,
   schema: any,
   uiSchema: any,
-  options: any,
-  state: State,
-
   start: (options: any) => void,
   stop: () => void,
   registerWithRouter: (router: any) => void,
