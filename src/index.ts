@@ -295,9 +295,9 @@ module.exports = function(app: any) {
           if ((module.commandPort) && (!module.commandConnection)) openCommandConnection(module);
   
           client.on('data', (data: any) => {
-            app.debug(`received '${data.toString().replace('\n','\\n')}' from ${module.ipAddress}`);
             try {
               const messageLines: string[] = data.toString().split('\n');
+              app.debug(`received '${messageLines.join('|')}' from ${module.ipAddress}`);
               const relayStates: string = messageLines[1].trim();
               const switchStates: string = messageLines[2].replaceAll(' ','').trim();
         
