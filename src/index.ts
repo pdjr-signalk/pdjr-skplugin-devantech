@@ -255,11 +255,12 @@ module.exports = function(app: any) {
   } // End of plugin
   
   function handleExpress(req: Request, res: Response, handler: (req: Request, res: Response) => void) {
-    app.debug(`processing ${req.method} request on '${req.path}`);
+    app.debug(`handleExpress(): processing ${req.method} request on '${req.path}`);
     handler(req, res);
   }
 
   function expressGetStatus(req: Request, res: Response) {
+    app.debug(`expressGetStatus():`);
     const body: any = Object.keys(appState.modules).reduce((a: any, id: string) => {
       a[id] = {
         address: appState.modules[id].ipAddress,
@@ -273,12 +274,14 @@ module.exports = function(app: any) {
   }
   
   function expressSend(res: Response, code: number, body: string | null = null, debugPrefix: string | null = null) {
+    app.debug(`expressSend():`);
     res.status(code).send((body)?body:((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null));
     if (debugPrefix) app.debug("%s: %d %s", debugPrefix, code, ((body)?JSON.stringify(body):((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null)));
     return(false);
   }
 
   function startStatusListener(port: number) {
+    app.debug(`startStatusListener(${port}):`);
     var retval: net.Server = net.createServer().listen(port);
     retval.on('connection', (client: net.Socket) => {
       var module: Module;
@@ -286,8 +289,7 @@ module.exports = function(app: any) {
         var clientIp: string = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
         app.debug(`processing connection attempt from ${clientIp}`);
         if ((appState.clientFilterRegExp) && (appState.clientFilterRegExp.test(clientIp))) {
-          module = getModule(clientIp);
-          publishModuleMetadata(module);            
+          module = getModule(clientIp);          
           if (module.listenerConnection) module.listenerConnection.destroy();
           module.listenerConnection = client;
           if ((module.commandPort) && (!module.commandConnection)) openCommandConnection(module);
@@ -321,6 +323,7 @@ module.exports = function(app: any) {
           });
   
           client.on('close', () => {
+            app.debug(`closing client connection for ${module.ipAddress}`);
             if (client.remoteAddress) {
               var clientIP: string = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
               var moduleId: string = sprintf('%03d%03d%03d%03d', clientIP.split('.')[0], clientIP.split('.')[1], clientIP.split('.')[2], clientIP.split('.')[3]);
@@ -380,7 +383,7 @@ module.exports = function(app: any) {
           }
           module.channels[channelOption.id] = channel;
         });
-        app.debug(JSON.stringify(module, null, 2));
+        publishModuleMetadata(module);
         return(module);
       } else {
         throw new Error('bad device specification');
@@ -389,6 +392,7 @@ module.exports = function(app: any) {
   }
   
   function publishModuleMetadata(module: Module): void {
+    app.debug(`publishModuleMetadata(): for ${module.ipAddress}`);
     var delta = new Delta(app, plugin.id);
     let metadata = {
       description: module.description,
