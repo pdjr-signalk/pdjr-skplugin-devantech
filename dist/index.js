@@ -211,7 +211,7 @@ module.exports = function (app) {
                     appState.clientFilterRegExp = new RegExp((appOptions.clientIpFilter) ? appOptions.clientIpFilter : DEFAULT_CLIENT_IP_FILTER);
                     appState.transmitQueueTimer = setInterval(() => { processCommandQueues(); }, ((appOptions.transmitQueueHeartbeat) ? appOptions.transmitQueueHeartbeat : DEFAULT_TRANSMIT_QUEUE_HEARTBEAT));
                     appState.modules = {};
-                    app.setPluginStatus(`listening for DS module connections on ${appState.statusListener.address()}`);
+                    app.setPluginStatus(`listening for DS module connections on ${appState.statusListenerPort}`);
                 }
                 catch (e) {
                     app.setPluginError(`stopped: error starting transmit queue processor: ${e.message}`);
@@ -429,6 +429,7 @@ module.exports = function (app) {
         }
     }
     function processCommandQueues() {
+        app.debug(`processing comand queues...`);
         Object.keys(app.appState.modules).forEach(key => processCommandQueue(app.appState.modules[key], app));
         function processCommandQueue(module, app) {
             if ((module.commandConnection) && (module.currentCommand == null) && (module.commandQueue) && (module.commandQueue.length > 0)) {
