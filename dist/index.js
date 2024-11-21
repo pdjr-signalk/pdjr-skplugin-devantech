@@ -212,7 +212,6 @@ module.exports = function (app) {
                     appState.transmitQueueTimer = setInterval(() => { processCommandQueues(); }, ((appOptions.transmitQueueHeartbeat) ? appOptions.transmitQueueHeartbeat : DEFAULT_TRANSMIT_QUEUE_HEARTBEAT));
                     appState.modules = {};
                     app.setPluginStatus(`Started: listening for DS module connections on ${appOptions.statusListenerPort}`);
-                    app.debug(`using configuration ${JSON.stringify(appState.modules, null, 2)}`);
                 }
                 catch (e) {
                     app.setPluginStatus('Stopped: error starting transmit queue processor');
@@ -345,6 +344,7 @@ module.exports = function (app) {
                 listenerConnection: null,
                 channels: {}
             };
+            app.debug(JSON.stringify(module, null, 2));
             // To configure the channels array we need to get the
             // device details which relate to this module.
             var device = appOptions.devices.reduce((a, d) => { return ((d.id == module.deviceId) ? d : a); }, undefined);
