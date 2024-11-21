@@ -282,7 +282,7 @@ module.exports = function (app) {
                     if ((module.commandPort) && (!module.commandConnection))
                         openCommandConnection(module);
                     client.on('data', (data) => {
-                        app.debug(`received '${data.toString()}' from ${module.ipAddress}`);
+                        app.debug(`received '${data.toString().replace('\n', '\\n')}' from ${module.ipAddress}`);
                         try {
                             const messageLines = data.toString().split('\n');
                             const relayStates = messageLines[1].trim();
