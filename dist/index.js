@@ -191,8 +191,8 @@ const FETCH_RESPONSES = {
 module.exports = function (app) {
     var appOptions = undefined;
     var appState = {
-        clientFilterRegExp: null,
-        statusListener: net.Server,
+        clientFilterRegExp: undefined,
+        statusListener: undefined,
         transmitQueueTimer: undefined,
         modules: []
     };
@@ -211,7 +211,7 @@ module.exports = function (app) {
                     appState.clientFilterRegExp = new RegExp((appOptions.clientIpFilter) ? appOptions.clientIpFilter : DEFAULT_CLIENT_IP_FILTER);
                     appState.transmitQueueTimer = setInterval(() => { processCommandQueues(); }, ((appOptions.transmitQueueHeartbeat) ? appOptions.transmitQueueHeartbeat : DEFAULT_TRANSMIT_QUEUE_HEARTBEAT));
                     appState.modules = {};
-                    app.setPluginStatus(`Started: listening for DS module connections on ${appState.statusListenerPort}`);
+                    app.setPluginStatus(`Started: listening for DS module connections on ${appOptions.statusListenerPort}`);
                     app.debug(`using configuration ${JSON.stringify(appState.modules, null, 2)}`);
                 }
                 catch (e) {
@@ -272,7 +272,7 @@ module.exports = function (app) {
             if (client.remoteAddress) {
                 var clientIp = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
                 app.debug(`processing connection attempt from ${clientIp}`);
-                if ((appState.clientFilterRegExp) && (app.appState.clientFilterRegExp.test(clientIp))) {
+                if ((appState.clientFilterRegExp) && (appState.clientFilterRegExp.test(clientIp))) {
                     module = getModule(clientIp);
                     publishModuleMetadata(module);
                     if (module.listenerConnection)
