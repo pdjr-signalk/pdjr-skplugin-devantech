@@ -309,7 +309,7 @@ module.exports = function (app) {
                         }
                     });
                     client.on('close', () => {
-                        app.debug(`closing client connection for ${module.ipAddress}`);
+                        app.debug(`closing client connection`);
                         if (client.remoteAddress) {
                             var clientIP = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
                             var moduleId = (0, sprintf_js_1.sprintf)('%03d%03d%03d%03d', clientIP.split('.')[0], clientIP.split('.')[1], clientIP.split('.')[2], clientIP.split('.')[3]);

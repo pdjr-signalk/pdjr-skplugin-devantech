@@ -323,7 +323,7 @@ module.exports = function(app: any) {
           });
   
           client.on('close', () => {
-            app.debug(`closing client connection for ${module.ipAddress}`);
+            app.debug(`closing client connection`);
             if (client.remoteAddress) {
               var clientIP: string = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
               var moduleId: string = sprintf('%03d%03d%03d%03d', clientIP.split('.')[0], clientIP.split('.')[1], clientIP.split('.')[2], clientIP.split('.')[3]);
