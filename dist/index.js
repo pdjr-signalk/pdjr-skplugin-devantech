@@ -371,6 +371,7 @@ module.exports = function (app) {
                     module.channels[channelOption.id] = channel;
                 });
                 publishModuleMetadata(module);
+                appState.modules[module.id] = module;
                 return (module);
             }
             else {

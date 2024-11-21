@@ -386,6 +386,7 @@ module.exports = function(app: any) {
           module.channels[channelOption.id] = channel;
         });
         publishModuleMetadata(module);
+        appState.modules[module.id] = module;
         return(module);
       } else {
         throw new Error('bad device specification');
