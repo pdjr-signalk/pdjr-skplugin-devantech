@@ -334,11 +334,11 @@ module.exports = function (app) {
         else {
             module = {
                 id: ipAddress2moduleId(ipAddress),
-                deviceId: (appOptions.modules[ipAddress] || appOptions.defaultDeviceId || DEFAULT_DEVICE_ID),
-                description: (appOptions.modules.description || `Devantech DS switchbank at '${ipAddress}'`),
+                deviceId: (appOptions.modules.reduce((a, m) => (((m.ipAddress) && (m.devideId) && (m.ipAddress == ipAddress)) ? m.deviceId : a), undefined) || appOptions.defaultDeviceId || DEFAULT_DEVICE_ID),
+                description: (appOptions.modules.reduce((a, m) => (((m.ipAddress) && (m.description) && (m.ipAddress == ipAddress)) ? m.description : a), undefined) || `Devantech DS switchbank at '${ipAddress}'`),
                 ipAddress: ipAddress,
                 switchbankPath: `electrical.switches.bank.${ipAddress2moduleId(ipAddress)}`,
-                commandPort: (appOptions.modules[ipAddress] || appOptions.defaultCommandPort || DEFAULT_COMMAND_PORT),
+                commandPort: (appOptions.modules.reduce((a, m) => (((m.ipAddress) && (m.commandPort) && (m.ipAddress == ipAddress)) ? m.commandPort : a), undefined) || appOptions.defaultCommandPort || DEFAULT_COMMAND_PORT),
                 commandConnection: null,
                 commandQueue: [],
                 currentCommand: undefined,
