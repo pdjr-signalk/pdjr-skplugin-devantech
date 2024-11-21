@@ -346,7 +346,6 @@ module.exports = function(app: any) {
   function getModule(ipAddress: string): Module {
     var module: Module;
 
-    app.debug(Object.keys(appState.modules));
     if (ipAddress2moduleId(ipAddress) in appState.modules) {
       return(appState.modules[ipAddress2moduleId(ipAddress)]);
     } else {

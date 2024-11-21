@@ -330,7 +330,6 @@ module.exports = function (app) {
     }
     function getModule(ipAddress) {
         var module;
-        app.debug(Object.keys(appState.modules));
         if (ipAddress2moduleId(ipAddress) in appState.modules) {
             return (appState.modules[ipAddress2moduleId(ipAddress)]);
         }
