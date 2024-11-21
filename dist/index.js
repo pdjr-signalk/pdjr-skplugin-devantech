@@ -212,7 +212,7 @@ module.exports = function (app) {
                     appState.transmitQueueTimer = setInterval(() => { processCommandQueues(); }, ((appOptions.transmitQueueHeartbeat) ? appOptions.transmitQueueHeartbeat : DEFAULT_TRANSMIT_QUEUE_HEARTBEAT));
                     appState.modules = {};
                     app.setPluginStatus(`Started: listening for DS module connections on ${appState.statusListenerPort}`);
-                    app.debug(`using configuration ${JSON.stringify(appState, null, 2)}`);
+                    app.debug(`using configuration ${JSON.stringify(appState.modules, null, 2)}`);
                 }
                 catch (e) {
                     app.setPluginStatus('Stopped: error starting transmit queue processor');
