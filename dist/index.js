@@ -334,6 +334,7 @@ module.exports = function (app) {
             return (appState.modules[ipAddress2moduleId(ipAddress)]);
         }
         else {
+            app.debug(`creating new module for ${ipAddress}`);
             var moduleOptions = appOptions.modules.reduce((a, m) => (((m.ipAddress) && (m.ipAddress == ipAddress)) ? m : a), {});
             module = {
                 id: ipAddress2moduleId(ipAddress),

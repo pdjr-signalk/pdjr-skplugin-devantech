@@ -349,6 +349,7 @@ module.exports = function(app: any) {
     if (ipAddress2moduleId(ipAddress) in appState.modules) {
       return(appState.modules[ipAddress2moduleId(ipAddress)]);
     } else {
+      app.debug(`creating new module for ${ipAddress}`);
       var moduleOptions: any = appOptions.modules.reduce((a: any, m: any) => (((m.ipAddress) && (m.ipAddress == ipAddress))?m:a), {});
       module = {
         id: ipAddress2moduleId(ipAddress),
