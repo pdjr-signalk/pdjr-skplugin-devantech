@@ -285,6 +285,7 @@ module.exports = function(app: any) {
       var module: Module;
       if (client.remoteAddress) {
         var clientIp: string = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
+        app.debug(`processing connection attempt from ${clientIp}`);
         if ((appState.clientFilterRegExp) && (app.appState.clientFilterRegExp.test(clientIp))) {
           module = getModule(clientIp);
           publishModuleMetadata(module);            
