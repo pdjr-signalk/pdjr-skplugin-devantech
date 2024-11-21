@@ -292,7 +292,8 @@ module.exports = function(app: any) {
           module.listenerConnection = client;
           if ((module.commandPort) && (!module.commandConnection)) openCommandConnection(module);
   
-          client.on('data', (data: any) => {  
+          client.on('data', (data: any) => {
+            app.debug(`received '${data.toString()}' from ${module.ipAddress}`);
             try {
               if (module) {
                 const messageLines: string[] = data.toString().split('\n');
@@ -301,12 +302,12 @@ module.exports = function(app: any) {
         
                 var delta: Delta = new Delta(app, app.plugin.id);
                 for (var i: number = 0; i < relayStates.length; i++) {
-                  delta.addValue(`${module.switchbankPath}.${i+1}R.order`, (i+1));
-                  delta.addValue(`${module.switchbankPath}.${i+1}R.state`, ((relayStates.charAt(i) == '0')?0:1));
+                  delta.addValue(`${module.switchbankPath}.${i+1}r.order`, (i+1));
+                  delta.addValue(`${module.switchbankPath}.${i+1}r.state`, ((relayStates.charAt(i) == '0')?0:1));
                 }
                 for (var i = 0; i < switchStates.length; i++) {
-                  delta.addValue(`${module.switchbankPath}.${i+1}S.order`, (i+1));
-                  delta.addValue(`${module.switchbankPath}.${i+1}S.state`, ((switchStates.charAt(i) == '0')?0:1));
+                  delta.addValue(`${module.switchbankPath}.${i+1}s.order`, (i+1));
+                  delta.addValue(`${module.switchbankPath}.${i+1}s.state`, ((switchStates.charAt(i) == '0')?0:1));
                 }
                 delta.commit().clear();
               } else {
