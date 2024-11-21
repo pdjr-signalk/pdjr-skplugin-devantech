@@ -223,13 +223,16 @@ module.exports = function(app: any) {
           appState.clientFilterRegExp = new RegExp((appOptions.clientIpFilter)?appOptions.clientIpFilter:DEFAULT_CLIENT_IP_FILTER);
           appState.transmitQueueTimer = setInterval(() => { processCommandQueues() }, ((appOptions.transmitQueueHeartbeat)?appOptions.transmitQueueHeartbeat:DEFAULT_TRANSMIT_QUEUE_HEARTBEAT));
           appState.modules = {}  
-          app.setPluginStatus(`listening for DS module connections on ${appState.statusListenerPort}`);  
+          app.setPluginStatus(`Started: listening for DS module connections on ${appState.statusListenerPort}`);
+          app.debug(`using configuration ${JSON.stringify(appState, null, 2)}`); 
         } catch (e: any) {
-          app.setPluginError(`stopped: error starting transmit queue processor: ${e.message}`);
+          app.setPluginStatus('Stopped: error starting transmit queue processor');
+          app.debug(`error starting transmit queue processor: ${e.message}`);
           appState.statusListener.close();
         }
       } catch (e: any) {
-        app.setPluginError(`stopped: error starting connection listener: ${e.message}`);
+        app.setPluginStatus('Stopped: error starting connection listener');
+        app.debug(`error starting connection listener: ${e.message}`);
       }
     },
 
