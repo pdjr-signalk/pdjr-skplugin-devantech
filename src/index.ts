@@ -371,10 +371,10 @@ module.exports = function(app: any) {
             id: channelOption.id,
             type: (channelOption.id[channelOption.id.length - 1] == 'r')?'relay':'switch',
             description: (channelOption.description || `Channel ${channelOption.id} on module ${module.id}`),
-            path: `${module.switchbankPath}.${channelOption.id}`
+            path: `${module.switchbankPath}.${channelOption.id}`,
+            index: parseInt(channelOption.id)
           }
           if (channel.type == 'relay') {
-            channel.index = parseInt(channelOption.id);
             channel.onCommand = getChannelOnCommand(device, parseInt(channelOption.id));
             channel.offCommand = getChannelOffCommand(device, parseInt(channelOption.id));
           }
@@ -570,7 +570,7 @@ interface Channel {
   type: string,
   description: string,
   path: string,
-  index?: number,
+  index: number,
   onCommand?: string,
   offCommand?: string
 }
