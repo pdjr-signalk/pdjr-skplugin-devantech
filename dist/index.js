@@ -274,8 +274,8 @@ module.exports = function (app) {
             var module;
             if (client.remoteAddress) {
                 var clientIp = client.remoteAddress.substring(client.remoteAddress.lastIndexOf(':') + 1);
-                app.debug(`processing connection attempt from ${clientIp}`);
                 if ((appState.clientFilterRegExp) && (appState.clientFilterRegExp.test(clientIp))) {
+                    app.setPluginStatus(`Accepting connection from ${clientIp}`);
                     module = getModule(clientIp);
                     if (module.listenerConnection)
                         module.listenerConnection.destroy();
