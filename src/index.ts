@@ -297,9 +297,9 @@ module.exports = function(app: any) {
             try {
               const messageLines: string[] = data.toString().split('\n');
               const relayStates: string = messageLines[1].trim();
-              const switchStates: string = messageLines[2].replaceAll(' ','').trim().slice(0, getSwitchCount(module));
+              const switchStates: string = messageLines[2].replaceAll(' ','').trim();
         
-              var delta: Delta = new Delta(app, app.plugin.id);
+              var delta: Delta = new Delta(app, plugin.id);
               for (var i: number = 0; i < relayStates.length; i++) {
                 var channel: Channel = module.channels[`${i+1}r`];
                 if (channel) {

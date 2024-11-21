@@ -284,8 +284,8 @@ module.exports = function (app) {
                         try {
                             const messageLines = data.toString().split('\n');
                             const relayStates = messageLines[1].trim();
-                            const switchStates = messageLines[2].replaceAll(' ', '').trim().slice(0, getSwitchCount(module));
-                            var delta = new signalk_libdelta_1.Delta(app, app.plugin.id);
+                            const switchStates = messageLines[2].replaceAll(' ', '').trim();
+                            var delta = new signalk_libdelta_1.Delta(app, plugin.id);
                             for (var i = 0; i < relayStates.length; i++) {
                                 var channel = module.channels[`${i + 1}r`];
                                 if (channel) {
