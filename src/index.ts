@@ -88,9 +88,9 @@ const PLUGIN_SCHEMA: any = {
             "items": {
               "type": "object",
               "properties": {
-                "index": {
-                  "title": "Index",
-                  "description": "Signal K channel index to which this configuration applies.",
+                "id": {
+                  "title": "Channel identifier",
+                  "description": "Signal K channel identifier to which this configuration applies.",
                   "type": "string"
                 },
                 "description": {
@@ -344,43 +344,40 @@ module.exports = function(app: any) {
     if (ipAddress2moduleId(ipAddress) in appState.modules) {
       return(appState.modules[ipAddress2moduleId(ipAddress)]);
     } else {
+      var moduleOptions: any = appOptions.modules.reduce((a: any, m: any) => (((m.ipAddress) && (m.ipAddress == ipAddress))?m:a), {});
       module = {
         id: ipAddress2moduleId(ipAddress),
-        deviceId: (appOptions.modules.reduce((a: any, m: any) => (((m.ipAddress) && (m.deviceId) && (m.ipAddress == ipAddress))?m.deviceId:a), undefined) || appOptions.defaultDeviceId || DEFAULT_DEVICE_ID),
-        description: (appOptions.modules.reduce((a: any, m: any) => (((m.ipAddress) && (m.description) && (m.ipAddress == ipAddress))?m.description:a), undefined) || `Devantech DS switchbank at '${ipAddress}'`),
+        deviceId: (moduleOptions.deviceId || appOptions.defaultDeviceId || DEFAULT_DEVICE_ID),
+        description: (moduleOptions.description || `Devantech DS switchbank at '${ipAddress}'`),
         ipAddress: ipAddress,
         switchbankPath: `electrical.switches.bank.${ipAddress2moduleId(ipAddress)}`,
-        commandPort: (appOptions.modules.reduce((a: any, m: any) => (((m.ipAddress) && (m.commandPort) && (m.ipAddress == ipAddress))?m.commandPort:a), undefined) || appOptions.defaultCommandPort || DEFAULT_COMMAND_PORT),
+        commandPort: (moduleOptions.commandPort || appOptions.defaultCommandPort || DEFAULT_COMMAND_PORT),
         commandConnection: null,
         commandQueue: [],
         currentCommand: undefined,
         listenerConnection: null,
         channels: {}
       };
-      app.debug(JSON.stringify(module, null, 2));
       // To configure the channels array we need to get the
       // device details which relate to this module.
       var device = appOptions.devices.reduce((a: any, d: any) => { return((d.id == module.deviceId)?d:a); }, undefined);
       if (device) {
         // And now process the channels...
-        for (var i: number = 0; i < device.relays; i++) {
-          module.channels[`${i+1}R`] = {
-            id: `${i+1}R`,
-            type: 'relay',
-            description: getChannelDescription(app.plugin.appOptions.modules[ipAddress].channels, `${i+1}R`),
-            path: `${module.switchbankPath}.${i+1}R.state`,
-            onCommand: getChannelOnCommand(device, i+1),
-            offCommand: getChannelOffCommand(device, i+1)
+        moduleOptions.channels.forEach((channelOption: any) => {
+          var channel: Channel = {
+            id: channelOption.id,
+            type: (channelOption.id[channelOption.id.length - 1] == 'r')?'relay':'switch',
+            description: (channelOption.description || `Channel ${channelOption.id} on module ${module.id}`),
+            path: `${module.switchbankPath}.${channelOption.id}.state`
           }
-        }
-        for (var i: number = 0; i < device.switches; i++) {
-          module.channels[`${i+1}S`] = {
-            id: `${i+1}R`,
-            type: 'switch',
-            description: getChannelDescription(appOptions.modules[ipAddress].channels, `${i+1}S`),
-            path: `${module.switchbankPath}.${i+1}S.state`
+          if (channel.type == 'relay') {
+            channel.index = parseInt(channelOption.id);
+            channel.onCommand = getChannelOnCommand(device, parseInt(channelOption.id));
+            channel.offCommand = getChannelOffCommand(device, parseInt(channelOption.id));
           }
-        }
+          module.channels[channelOption.id] = channel;
+        });
+        app.debug(JSON.stringify(module, null, 2));
         return(module);
       } else {
         throw new Error('bad device specification');
@@ -570,6 +567,7 @@ interface Channel {
   type: string,
   description: string,
   path: string,
+  index?: number,
   onCommand?: string,
   offCommand?: string
 }
