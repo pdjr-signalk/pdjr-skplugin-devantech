@@ -448,8 +448,6 @@ module.exports = function(app: any) {
   }
 
   function processCommandQueues() {
-    app.debug(`processing comand queues...`);
-
     Object.keys(appState.modules).forEach(key => processCommandQueue(appState.modules[key]));
   
     function processCommandQueue(module: Module) {
