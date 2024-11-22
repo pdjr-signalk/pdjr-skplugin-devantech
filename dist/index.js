@@ -112,11 +112,11 @@ const PLUGIN_SCHEMA = {
                         "title": "Device identifier",
                         "type": "string"
                     },
-                    "relays": {
+                    "numberOfRelays": {
                         "title": "Number of supported relay channels",
                         "type": "number"
                     },
-                    "switches": {
+                    "numberOfSwitches": {
                         "title": "Number of supported switch channels",
                         "type": "number"
                     },
@@ -148,8 +148,8 @@ const PLUGIN_SCHEMA = {
         "devices": [
             {
                 "id": "DS",
-                "relays": 32,
-                "switches": 8,
+                "numberOfRelays": 32,
+                "numberOfSwitches": 8,
                 "channels": [
                     {
                         "address": 0,
@@ -160,8 +160,8 @@ const PLUGIN_SCHEMA = {
             },
             {
                 "id": "DS2824",
-                "relays": 24,
-                "switches": 8,
+                "numberOfRelays": 24,
+                "numberOfSwitches": 8,
                 "channels": [
                     {
                         "address": 0,
@@ -353,22 +353,35 @@ module.exports = function (app) {
             // To configure the channels array we need to get the
             // device details which relate to this module.
             var device = appOptions.devices.reduce((a, d) => { return ((d.id == module.deviceId) ? d : a); }, undefined);
-            if (device) {
-                // And now process the channels...
-                moduleOptions.channels.forEach((channelOption) => {
+            if ((device) && (device.numberOfRelays) && (device.numberOfSwitches)) {
+                for (var i = 0; i < device.numberOfRelays; i++) {
+                    var channelId = `${i + 1}r`;
+                    var channelOptions = moduleOptions.channels.reduce((a, c) => ((c.id == channelId) ? c : a), undefined);
                     var channel = {
-                        id: channelOption.id,
-                        type: (channelOption.id[channelOption.id.length - 1] == 'r') ? 'relay' : 'switch',
-                        description: (channelOption.description || `Channel ${channelOption.id} on module ${module.id}`),
-                        path: `${module.switchbankPath}.${channelOption.id}`,
-                        index: parseInt(channelOption.id)
+                        id: channelId,
+                        type: 'relay',
+                        description: ((channelOptions) && (channelOptions.description)) ? channelOptions.description : `Channel ${channelId} on module ${module.id}`,
+                        path: `${module.switchbankPath}.${channelId}`,
+                        index: (i + 1),
+                        onCommand: getChannelOnCommand(device, (i + 1)),
+                        offCommand: getChannelOffCommand(device, (i + 1))
                     };
-                    if (channel.type == 'relay') {
-                        channel.onCommand = getChannelOnCommand(device, parseInt(channelOption.id));
-                        channel.offCommand = getChannelOffCommand(device, parseInt(channelOption.id));
-                    }
-                    module.channels[channelOption.id] = channel;
-                });
+                    module.channels[channelId] = channel;
+                }
+                ;
+                for (var i = 0; i < device.numberOfSwitches; i++) {
+                    var channelId = `${i + 1}s`;
+                    var channelOptions = moduleOptions.channels.reduce((a, c) => ((c.id == channelId) ? c : a), undefined);
+                    var channel = {
+                        id: channelId,
+                        type: 'switch',
+                        description: ((channelOptions) && (channelOptions.description)) ? channelOptions.description : `Channel ${channelId} on module ${module.id}`,
+                        path: `${module.switchbankPath}.${channelId}`,
+                        index: (i + 1)
+                    };
+                    module.channels[channelId] = channel;
+                }
+                ;
                 publishModuleMetadata(module);
                 appState.modules[module.id] = module;
                 return (module);
