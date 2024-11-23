@@ -240,7 +240,7 @@ module.exports = function (app) {
             router.get('/status', (req, res) => handleExpress(req, res, expressGetStatus));
         },
         getOpenApi: function () {
-            return (require("../resources/openApi.json"));
+            return (require("openApi.json"));
         }
     }; // End of plugin
     function handleExpress(req, res, handler) {
