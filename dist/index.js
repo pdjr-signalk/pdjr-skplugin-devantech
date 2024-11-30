@@ -237,35 +237,41 @@ module.exports = function (app) {
             clearTimeout(appState.transmitQueueTimer);
         },
         registerWithRouter: function (router) {
-            router.get('/status', (req, res) => handleExpress(req, res, expressGetStatus));
+            router.get('/status', handleRoutes);
         },
         getOpenApi: function () {
             return (require("./openApi.json"));
         }
     }; // End of plugin
-    function handleExpress(req, res, handler) {
-        app.debug(`handleExpress(): processing ${req.method} request on '${req.path}`);
-        handler(req, res);
-    }
-    function expressGetStatus(req, res) {
-        app.debug(`expressGetStatus():`);
-        const body = Object.keys(appState.modules).reduce((a, id) => {
-            a[id] = {
-                address: appState.modules[id].ipAddress,
-                relayCount: appState.modules[id].relayCount,
-                switchCount: appState.modules[id].switchCount,
-                connected: (appState.modules[id].commandConnection) ? true : false
-            };
-            return (a);
-        }, {});
-        expressSend(res, 200, body, req.path);
-    }
-    function expressSend(res, code, body = null, debugPrefix = null) {
-        app.debug(`expressSend():`);
-        res.status(code).send((body) ? body : ((FETCH_RESPONSES[code]) ? FETCH_RESPONSES[code] : null));
-        if (debugPrefix)
-            app.debug("%s: %d %s", debugPrefix, code, ((body) ? JSON.stringify(body) : ((FETCH_RESPONSES[code]) ? FETCH_RESPONSES[code] : null)));
-        return (false);
+    function handleRoutes(req, res) {
+        app.debug(`processing ${req.method} request on '${req.path}`);
+        try {
+            switch (req.path.slice(0, (req.path.indexOf('/', 1) == -1) ? undefined : req.path.indexOf('/', 1))) {
+                case '/status':
+                    const body = Object.keys(appState.modules).reduce((a, id) => {
+                        a[id] = {
+                            address: appState.modules[id].ipAddress,
+                            relayCount: appState.modules[id].relayCount,
+                            switchCount: appState.modules[id].switchCount,
+                            connected: (appState.modules[id].commandConnection) ? true : false
+                        };
+                        return (a);
+                    }, {});
+                    expressSend(res, 200, body, req.path);
+                    break;
+            }
+        }
+        catch (e) {
+            app.debug(e.message);
+            expressSend(res, ((/^\d+$/.test(e.message)) ? parseInt(e.message) : 500), null, req.path);
+        }
+        function expressSend(res, code, body = null, debugPrefix = null) {
+            app.debug(`expressSend():`);
+            res.status(code).send((body) ? body : ((FETCH_RESPONSES[code]) ? FETCH_RESPONSES[code] : null));
+            if (debugPrefix)
+                app.debug("%s: %d %s", debugPrefix, code, ((body) ? JSON.stringify(body) : ((FETCH_RESPONSES[code]) ? FETCH_RESPONSES[code] : null)));
+            return (false);
+        }
     }
     function startStatusListener(port) {
         app.debug(`startStatusListener(${port}):`);

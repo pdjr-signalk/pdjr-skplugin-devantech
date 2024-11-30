@@ -244,7 +244,7 @@ module.exports = function(app: any) {
     },
 
     registerWithRouter: function(router: any) {
-      router.get('/status', (req :Request, res: Response) => handleExpress(req, res, expressGetStatus));
+      router.get('/status', handleRoutes);
     },
     
     getOpenApi: function() {
@@ -253,30 +253,34 @@ module.exports = function(app: any) {
 
   } // End of plugin
   
-  function handleExpress(req: Request, res: Response, handler: (req: Request, res: Response) => void) {
-    app.debug(`handleExpress(): processing ${req.method} request on '${req.path}`);
-    handler(req, res);
-  }
-
-  function expressGetStatus(req: Request, res: Response) {
-    app.debug(`expressGetStatus():`);
-    const body: any = Object.keys(appState.modules).reduce((a: any, id: string) => {
-      a[id] = {
-        address: appState.modules[id].ipAddress,
-        relayCount: appState.modules[id].relayCount,
-        switchCount: appState.modules[id].switchCount,
-        connected: (appState.modules[id].commandConnection)?true:false
+  function handleRoutes(req: Request, res: Response) {
+    app.debug(`processing ${req.method} request on '${req.path}`);
+    try {
+      switch (req.path.slice(0, (req.path.indexOf('/', 1) == -1)?undefined:req.path.indexOf('/', 1))) {
+        case '/status':
+          const body: any = Object.keys(appState.modules).reduce((a: any, id: string) => {
+            a[id] = {
+              address: appState.modules[id].ipAddress,
+              relayCount: appState.modules[id].relayCount,
+              switchCount: appState.modules[id].switchCount,
+              connected: (appState.modules[id].commandConnection)?true:false
+            };
+            return(a);
+          }, {});
+          expressSend(res, 200, body, req.path);
+          break;
       }
-      return(a);
-    }, {});
-    expressSend(res, 200, body, req.path);
-  }
+    } catch(e: any) {
+      app.debug(e.message)
+      expressSend(res, ((/^\d+$/.test(e.message))?parseInt(e.message):500), null, req.path)
+    }
   
-  function expressSend(res: Response, code: number, body: string | null = null, debugPrefix: string | null = null) {
-    app.debug(`expressSend():`);
-    res.status(code).send((body)?body:((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null));
-    if (debugPrefix) app.debug("%s: %d %s", debugPrefix, code, ((body)?JSON.stringify(body):((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null)));
-    return(false);
+    function expressSend(res: Response, code: number, body: string | null = null, debugPrefix: string | null = null) {
+      app.debug(`expressSend():`);
+      res.status(code).send((body)?body:((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null));
+      if (debugPrefix) app.debug("%s: %d %s", debugPrefix, code, ((body)?JSON.stringify(body):((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null)));
+      return(false);
+    }
   }
 
   function startStatusListener(port: number) {
