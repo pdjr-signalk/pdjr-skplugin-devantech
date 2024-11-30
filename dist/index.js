@@ -212,7 +212,7 @@ module.exports = function (app) {
                     appState.clientFilterRegExp = new RegExp((appOptions.clientIpFilter) ? appOptions.clientIpFilter : DEFAULT_CLIENT_IP_FILTER);
                     appState.transmitQueueTimer = setInterval(() => { processCommandQueues(); }, ((appOptions.transmitQueueHeartbeat) ? appOptions.transmitQueueHeartbeat : DEFAULT_TRANSMIT_QUEUE_HEARTBEAT));
                     appState.modules = {};
-                    app.setPluginStatus(`Started: listening for DS module connections on ${statusListenerPort}`);
+                    app.setPluginStatus(`Started: listening for DS module connections on port ${statusListenerPort}`);
                 }
                 catch (e) {
                     app.setPluginStatus('Stopped: error starting transmit queue processor');
