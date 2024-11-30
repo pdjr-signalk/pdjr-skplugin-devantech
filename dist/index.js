@@ -250,10 +250,12 @@ module.exports = function (app) {
                 case '/status':
                     const body = Object.keys(appState.modules).reduce((a, id) => {
                         a[id] = {
-                            address: appState.modules[id].ipAddress,
-                            relayCount: appState.modules[id].relayCount,
-                            switchCount: appState.modules[id].switchCount,
-                            connected: (appState.modules[id].commandConnection) ? true : false
+                            description: appState.modules[id].description,
+                            deviceId: appState.modules[id].deviceId,
+                            ipAddress: appState.modules[id].ipAddress,
+                            commandPort: appState.modules[id].commandPort,
+                            commandConnection: (appState.modules[id].commandConnection) ? 'open' : 'closed',
+                            switchbankPath: appState.modules[id].switchbankPath
                         };
                         return (a);
                     }, {});
