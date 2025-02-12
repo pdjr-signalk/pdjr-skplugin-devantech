@@ -375,6 +375,7 @@ module.exports = function (app) {
                         offCommand: getChannelOffCommand(device, (i + 1))
                     };
                     module.channels[channelId] = channel;
+                    app.registerPutHandler('vessels.self', channel.path, relayPutHandler);
                 }
                 ;
                 for (var i = 0; i < device.numberOfSwitches; i++) {
