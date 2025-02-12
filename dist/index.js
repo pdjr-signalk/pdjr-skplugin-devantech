@@ -375,6 +375,7 @@ module.exports = function (app) {
                         offCommand: getChannelOffCommand(device, (i + 1))
                     };
                     module.channels[channelId] = channel;
+                    app.debug(`installing put handler on ${channel.path}`);
                     app.registerPutHandler('vessels.self', channel.path, relayPutHandler);
                 }
                 ;
